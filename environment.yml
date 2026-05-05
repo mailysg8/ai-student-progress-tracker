@@ -8,3 +8,7 @@ dependencies:
   - altair=6.1.0
   - networkx=3.6.1 
   - matplotlib=3.10.9
+  - click=8.3.3
+  - vl-convert-python=2.0.0rc1
+  - quarto=1.9.37
+  - jupyterlab=4.5.7

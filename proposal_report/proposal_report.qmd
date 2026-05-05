@@ -67,30 +67,21 @@ The knowledge components are skills that students need to complete skills. These
 
 
 ### KC coverage imbalance
-
-```{python}
-import sys
-import pandas as pd
-sys.path.append('..')
-from src.visualization_utils import create_kc_coverage_chart 
-student_observations = pd.read_csv('../data/raw/student_observations.csv')
-create_kc_coverage_chart(student_observations)
-```
+![KC Coverage Imbalance](figures/kc_coverage.png){#fig-kc-coverage width=70%}
 
 There is an imbalance in the number of observations for each knowledge component, with some having only 25 observations (i.e 1 per student) while others contain 175 observations (i.e 7 per student). This imbalance needs to be taken into account when modelling, since it means that the values estimated for the KCs with little number of observations are likely to be inaccurate.
 
 
 ### Wide spread within assignments
-![](/img/assignment_spread.png)
+![Wide spread within assignments](figures/assignment_spread.png){#fig-assignment-spread width=70%}
 
 
 Within the assignments there is a wide spread of performances with some students scoring consistently above 80% while others are below 50%. The shift in distribution range between homework 1 and 3 should also be considered
 
 
 
-
 ### Performance band imbalance
-![](/img/performance.png)
+![Performance band imbalance](figures/performance_band.png){#fig-performance-band width=70%}
 
 
 The performance band distributions are also somewhat imbalanced, with there being 2 times more proficient students than emerging. This might lead to some prediction issues in the model building phase, especially when trying to make predictions for emerging students. This can be especially problematic since these are the students that the early warning system should flag
@@ -99,7 +90,7 @@ The performance band distributions are also somewhat imbalanced, with there bein
 
 
 ### Knowledge component relationships
-![](/img/kc_graph.png)
+![Knowledge component relationships](img/kc_graph.png){#fig-kc-graph width=70%}
 
 
 Some knowledge components are prerequisites of each other, which means that in order for a student to have mastered a KC, they need to have mastered all of its prerequisites. This is something that needs to be taken into account when modelling.
