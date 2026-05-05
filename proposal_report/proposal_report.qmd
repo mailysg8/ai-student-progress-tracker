@@ -1,5 +1,6 @@
 ---
 title: "Proposal report"
+jupyter: python3
 format:
   html:
     toc: true
@@ -20,8 +21,6 @@ format:
         \usepackage{float}
         \usepackage[section]{placeins}
 ---
-
-
 # Executive Summary
 
 
@@ -32,9 +31,6 @@ Our solution would be to provide tutors with a fully functional pipeline and das
 
 
 # Introduction
-
-
-
 
 The problem that we are tackling in this project is to help teachers track student mastery progress through time. This would allow us to ensure parents and students get timely feedback in a clear and concise manner.
 Knowledge tracing is a machine learning method to track and predict a student’s mastery over time based on their performance data.
@@ -56,8 +52,6 @@ The outcome of the project would be a fully functional and reproducible pipeline
 # Data & Exploratory Data Analysis (EDA)
 
 
-
-
 The dataset comes from an AP Statistics course and contains information about the course structure (number of assignments and classes), the knowledge structure (knowledge components and their relationships) and the student response structure (performance data for 25 students). It spans across 3 homework assignments (69 observations total), 27 knowledge components (38 edges between KCs) and 25 students for a total of 1725 item-level student records.
 
 
@@ -67,16 +61,21 @@ The observational unit in this dataset is the student's grades which can be foun
 The knowledge components are skills that students need to complete skills. These components are inter-dependent, with some KCs being prerequisites for others. This is what we are trying to estimate the mastery of.
 
 
-
-
 ## Key insights
 
 
 
 
 ### KC coverage imbalance
-![](/img/kc_coverage.png)
 
+```{python}
+import sys
+import pandas as pd
+sys.path.append('..')
+from src.visualization_utils import create_kc_coverage_chart 
+student_observations = pd.read_csv('../data/raw/student_observations.csv')
+create_kc_coverage_chart(student_observations)
+```
 
 There is an imbalance in the number of observations for each knowledge component, with some having only 25 observations (i.e 1 per student) while others contain 175 observations (i.e 7 per student). This imbalance needs to be taken into account when modelling, since it means that the values estimated for the KCs with little number of observations are likely to be inaccurate.
 
