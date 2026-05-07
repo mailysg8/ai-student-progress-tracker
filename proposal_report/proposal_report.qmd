@@ -2,6 +2,10 @@
 title: "Proposal report"
 jupyter: python3
 format:
+  html:
+    toc: true
+    toc-depth: 4
+    embed-resources: true
   pdf:
     toc: true
     toc-depth: 4
@@ -22,7 +26,17 @@ execute:
   timeout: 600
 ---
 
+```{python}
+import pandas as pd
+from IPython.display import Markdown
 
+missing_assignment = pd.read_csv('tables/missing_assignment.csv')
+missing_student_assignment = pd.read_csv('tables/missing_student_assignment.csv')
+student_summary = pd.read_csv('tables/student_summary.csv', index_col='observation')
+kc_summary = pd.read_csv('tables/kc_summary.csv', index_col='observation')
+kc_coverage_comparison_table = pd.read_csv('tables/kc_coverage_comparison_table.csv')
+perf_summary = pd.read_csv('tables/perf_summary.csv', index_col='performance_band')
+```
 
 # Executive Summary
 
@@ -54,13 +68,6 @@ The outcome of the project would be a fully functional and reproducible pipeline
 # Data & Exploratory Data Analysis (EDA)
 
 ```{python}
-import pandas as pd
-from IPython.display import Markdown
-
-missing_assignment = pd.read_csv('tables/missing_assignment.csv')
-missing_student_assignment = pd.read_csv('tables/missing_student_assignment.csv')
-student_summary = pd.read_csv('tables/student_summary.csv', index_col='observation')
-kc_summary = pd.read_csv('tables/kc_summary.csv', index_col='observation')
 
 nb_students = student_summary.loc['nb_students','value']
 nb_assignments = student_summary.loc['nb_assignments','value']
@@ -68,15 +75,22 @@ nb_observations = student_summary.loc['nb_observations','value']
 nb_items = student_summary.loc['nb_items','value']
 
 nb_kc = kc_summary.loc['nb_kc','value']
+median_items_per_kc = kc_summary.loc['median_items_per_kc','value']
+max_obs_per_kc = kc_summary.loc['max_obs_per_kc','value']
+min_obs_per_kc = kc_summary.loc['min_obs_per_kc','value']
+nb_zero_coverage = kc_summary.loc['nb_zero_coverage','value']
 
+zero_coverage_full = kc_coverage_comparison_table[(kc_coverage_comparison_table['student_id']=='S001') & (kc_coverage_comparison_table['num_items']==0)]['kc_id'].nunique()
+zero_coverage_missing = kc_coverage_comparison_table[(kc_coverage_comparison_table['student_id']=='S012') & (kc_coverage_comparison_table['num_items']==0)]['kc_id'].nunique()
+
+nb_proficient = perf_summary.loc['Proficient','nb_students']
+nb_emerging = perf_summary.loc['Emerging','nb_students']
 ```
 
-The dataset comes from an AP Statistics course and contains information about the course structure (number of assignments and classes), the knowledge structure (knowledge components and their relationships) and the student response structure (performance data for `{python} str(nb_students)` students). It spans across `{python} str(nb_assignments)` assignments (`{python} str(nb_observations)` observations total), `{python} str(nb_kc)` knowledge components  and `{python} str(nb_students)` students for a total of `{python} str(nb_items)` item-level student records.
-
-The observational unit in this dataset is the student's grades which can be found in the Student_Observations file in the score column. This provides insights into the students' performance.
+The dataset comes from an AP Statistics course, with data collected over 7 months. It contains information about the course structure (how assignments are structured), the knowledge structure (how KC relationships are structured) and the student's performance (student scores) for `{python} int(nb_students)` students. The dataset spans across `{python} int(nb_assignments)` assignments (includes homeworks and exams for a total of `{python} int(nb_observations)` items) and  `{python} int(nb_kc)` knowledge components, for a total of `{python} format(int(nb_items), ",")` item-level student records.
 
 
-The knowledge components are skills that students need to complete skills. These components are inter-dependent, with some KCs being prerequisites for others. This is what we are trying to estimate the mastery of.
+The observational unit is the student item interaction, which represents a single student's response to a specific assignment question. The key variables are the student's scores, the knowledge component IDs (indicate which KCs each item assesses) and the KC graphs (provide information about how the KCs are related to each other).
 
 
 ## Key insights
@@ -92,7 +106,7 @@ Some students did not hand in assignments which has led to missing values in the
 Markdown(missing_student_assignment.to_markdown(index=False))
 ```
 
-Looking at @tbl-missing_student_assignment, there are more students that are missing at least one assignment (`{python} str(missing_student_assignment[missing_student_assignment['Number of missing assignments']!=0]['Number of students'].sum())` students) than students not missing any (`{python} str(missing_student_assignment[missing_student_assignment['Number of missing assignments']==0]['Number of students'].sum())` students). However, most of the students with missing assignments are only missing one (`{python} str(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data), which implies that the missingness is relatively evenly spread out across students. 
+Looking at @tbl-missing_student_assignment, there are more students that are missing at least one assignment (`{python} int(missing_student_assignment[missing_student_assignment['Number of missing assignments']!=0]['Number of students'].sum())` students) than students not missing any (`{python} int(missing_student_assignment[missing_student_assignment['Number of missing assignments']==0]['Number of students'].sum())` students). However, most of the students with missing assignments are only missing one (`{python} int(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data), which implies that the missingness is relatively evenly spread out across students. 
 
 ```{python}
 #| label: tbl-missing_assignment
@@ -100,41 +114,42 @@ Looking at @tbl-missing_student_assignment, there are more students that are mis
 Markdown(missing_assignment.to_markdown(index=False))
 ```
 
-Looking at @tbl-missing_assignment, the number of assignments that are missing students (`{python} str(round(missing_assignment[missing_assignment['Number of missing students']!=0]['Number of assignments'].sum()*100/nb_assignments,0))`% of assignments) is close to the number of assignments that aren't missing students (`{python} str(round(missing_assignment[missing_assignment['Number of missing students']==0]['Number of assignments'].sum()*100/nb_assignments,0))`% of assignments). This means that the missing data is relatively evenly spread across assignments, with no assignment missing more than 
-`{python} str(missing_assignment['Number of missing students'].max())` out of `{python} str(nb_students)` students (`{python} str(missing_assignment['Number of missing students'].max()*100/nb_students)`%). It also suggests that the missingness isn't due to an assignment specific issue.
+Looking at @tbl-missing_assignment, the number of assignments that are missing students (`{python} str(int(round(missing_assignment[missing_assignment['Number of missing students']!=0]['Number of assignments'].sum()*100/nb_assignments,0)))`% of assignments) is close to the number of assignments that aren't missing students (`{python} str(int(round(missing_assignment[missing_assignment['Number of missing students']==0]['Number of assignments'].sum()*100/nb_assignments,0)))`% of assignments). This means that the missing data is relatively evenly spread across assignments, with no assignment missing more than 
+`{python} str(int(missing_assignment['Number of missing students'].max()))` out of `{python} str(int(nb_students))` students (`{python} str(int(missing_assignment['Number of missing students'].max()*100/nb_students))`%). It also suggests that the missingness isn't due to an assignment specific issue.
 
-The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than `{python} str(missing_assignment['Number of missing students'].max())` students and most students (`{python} str(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data) missing only 1 assignment. Overall, this suggests that missingess is unlikely to introduce significant bias into the analysis.
+The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than `{python} str(int(missing_assignment['Number of missing students'].max()))` students and most students (`{python} str(int(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0)))`% of students with missing data) missing only 1 assignment. Overall, this suggests that missingess is unlikely to introduce significant bias into the analysis.
 
 
 ### KC coverage imbalance
 
-![This figure shows the distribution of KC coverage across assignment items. Most KCs are covered by less than 10 items, with coverage peaking at 2-3 items per KC. A small number of KCs are covered by up to 30 items](figures/kc_coverage.png){#fig-kc-coverage width=40%}
+![This figure shows the distribution of KC coverage across assignment items. Most KCs are covered by fewer than 10 items, with coverage peaking at 2-3 items per KC. A small number of KCs are covered by up to 30 items.](figures/kc_coverage.png){#fig-kc-coverage width=40%}
 
-Looking at @fig-kc-coverage, we can see that the KC coverage is heavily right-skewed, with most KCs been assessed by a small number of items (median ).
-There is an imbalance in the number of observations for each knowledge component, with some having only 25 observations (i.e 1 per student) while others contain 175 observations (i.e 7 per student). This imbalance needs to be taken into account when modelling, since it means that the values estimated for the KCs with little number of observations are likely to be inaccurate.
+Looking at @fig-kc-coverage, the KC coverage is heavily right-skewed, with a median of `{python} str(int(median_items_per_kc))` items per KC. This imbalance means that some knowledge components contain up to `{python} str(int(max_obs_per_kc))` observations, while others are not assessed at all (`{python} str(int(nb_zero_coverage))` KCs with `{python} str(int(min_obs_per_kc))` observations). The difference in coverage among KCs could affect the reliability of mastery estimates for under-covered KCs.
 
-![This figure shows the number of observations per knowledge component across the dataset. There is a substantial imbalance in coverage, ranging from 25 to 175 observations.](figures/kc_coverage_comparison.png){#fig-kc-coverage-comparison width=70%}
+
+![This figure shows the distribution of KC coverage across assignment items for 2 different students, one who handed in all assignments (left : S001) and one who has 5 missing assignments (right : S012).](figures/kc_coverage_comparison.png){#fig-kc-coverage-comparison width=90%}
+
+Looking at @fig-kc-coverage-comparison, both students have a similarly right-skewed KC coverage distribution, though S012's is shifted slightly more towards the left compared to S001, which is consistent with the 5 missing assignments. In fact, S012 has `{python} zero_coverage_missing` untested KCs compared to S001 who only has `{python} zero_coverage_full`, meaning that already under covered KCs are even sparser for S012. Overall, this means that having missing assignments may reduce the reliability of mastery estimates.
 
 ### Performance band imbalance
-![This figure shows the distribution of students across four performance bands, ordered from least to most proficient: Emerging, Developing, Proficient, and Advanced. The majority of students fall in the Proficient (9) and Developing (8) categories, indicating that most are performing at or near the expected level.](figures/performance_band.png){#fig-performance-band width=70%}
+![This figure shows the distribution of students across four performance bands, ordered from least to most proficient: Emerging, Developing, Proficient, and Advanced. The majority of students fall in the Proficient (9) and Developing (8) categories, indicating that most are performing at or near the expected level.](figures/performance_band.png){#fig-performance-band width=50%}
 
 
-The performance band distributions are also somewhat imbalanced, with there being 2 times more proficient students than emerging. This might lead to some prediction issues in the model building phase, especially when trying to make predictions for emerging students. This can be especially problematic since these are the students that the early warning system should flag
+Looking at @fig-performance-band, there is an imbalance in the performance band distribution, with there being `{python} int(nb_proficient/nb_emerging)` times as many proficient students (`{python} int(nb_proficient)`) as emerging (`{python} int(nb_emerging)`). This might lead to some prediction issues in the model building phase, since classifiers tend to provide less accurate estimates for underrepresented groups. This can be especially problematic since emerging students are precisely those that the early warning should reliably flag.
 
 
 ### Knowledge component relationships
-![There are complex relationships between KCs with some being prerequisites of others.](img/kc_graph.png){#fig-kc-graph width=70%}
+![This figure shows the prerequisite structure for a subset of KCs. Arrows indicate the type of relationship (support or prerequisite) between KCs.](img/kc_graph.png){#fig-kc-graph width=70%}
 
 
-Some knowledge components are prerequisites of each other, which means that in order for a student to have mastered a KC, they need to have mastered all of its prerequisites. This is something that needs to be taken into account when modelling.
-
-
+Some knowledge components have prerequisite or support relationships, which means that students need to master the foundational KCs before progressing to the dependent ones. As shown in @fig-kc-graph, these dependencies can span multiple levels (e.g KC.U1.02 is a prerequisite for KC.U1.03 which itself is a prerequisite for KC.U1.04). This hierarchical structure needs to be taken into account in the modelling phase, since a student's performance might depend on how well they've mastered the prerequisites.
 
 
 # Data Science Approach
 
-The objectives to be fulfilled in this project are a mastery tracker, an early warning system and a dashboard application.
+Our approach uses knowledge tracing methods to estimate the probability that a student has mastered a knowledge component, based on their assignment scores and the KC relationship structure. These mastery estimates will be used in a dashboard which will contain insights into student performance along with 3 main components : a knowledge profile that summarises each student's strenghts and gaps, an early warning system that flags students that are struggling, and personalised suggested next steps.
 
+![This figure is an overview of the proposed pipeline. From student performance data and knowledge structure inputs, through knowledge tracing, to three dashboard components : knowledge profile, early warning system and next steps.](img/full_pipeline.png){#fig-full-pipeline width=70%}
 
 ## Mastery Tracker
 Our approach to estimating student mastery of the KC is going to be to use knowledge tracing models to build knowledge profiles for each student. Each profile will contain the KCs and the corresponding probability that the student has mastered it (mastery probability). These profiles will be dynamic and will be updated every time students interact with the KCs (i.e. every time a teacher inputs new data).

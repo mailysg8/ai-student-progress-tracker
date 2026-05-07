@@ -25,7 +25,7 @@ import sys
 # Add parent directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from src.eda_utils import create_kc_coverage_chart, create_comparison_kc_coverage_chart, create_performance_band_chart, create_missing_assignement_table, create_student_missing_assignement_table
+from src.eda_utils import create_kc_coverage_chart, create_comparison_kc_coverage_chart, create_performance_band_chart, create_missing_assignement_table, create_student_missing_assignement_table, get_student_kc_coverage
 
 @click.command()
 @click.option('--student_observations', type=str, required=False, default="data/raw/student_observations.csv", help='Path to student_observations CSV file')
@@ -77,17 +77,26 @@ def main(student_observations : str, overall_scores : str, chart_to : str, table
                         'nb_sub_skills',
                         'median_items_per_kc',
                         'max_obs_per_kc',
-                        'min_obs_per_kc'] ,
+                        'min_obs_per_kc',
+                        'nb_zero_coverage'] ,
         'value' : [kc_coverage['kc_id'].nunique(), 
                     4, 
                     18,
                     kc_coverage['num_items'].median(),
                     kc_coverage['num_items'].max()*student_observations['student_id'].nunique(),
-                    kc_coverage['num_items'].min()*student_observations['student_id'].nunique()
+                    kc_coverage['num_items'].min()*student_observations['student_id'].nunique(),
+                    kc_coverage[kc_coverage['num_items']==0]['kc_id'].nunique()
                     ]}).set_index('observation')
     kc_summary_path = os.path.join(table_to, "kc_summary.csv")
     kc_summary.to_csv(kc_summary_path)
     print(f"Saved: {kc_summary_path}")
+
+     # Create performance band summary table
+    print("Creating performance band summary table...")
+    perf_summary = overall_scores.groupby('performance_band').agg(nb_students=('student_id','count'))
+    perf_summary_path = os.path.join(table_to, "perf_summary.csv")
+    perf_summary.to_csv(perf_summary_path)
+    print(f"Saved: {perf_summary_path}")
 
     # Create KC coverage chart
     print("Creating KC coverage chart...")
@@ -102,6 +111,16 @@ def main(student_observations : str, overall_scores : str, chart_to : str, table
     kc_coverage_comparison_path = os.path.join(chart_to, "kc_coverage_comparison.png")
     kc_coverage_comparison.save(kc_coverage_comparison_path)
     print(f"Saved: {kc_coverage_comparison_path}")
+
+    # Create KC coverage student comparison table
+    print("Creating KC coverage student comparison chart...")
+    kc_coverage_comparison_table = pd.concat([
+        get_student_kc_coverage('S001', student_observations, kc_coverage['kc_id']),
+        get_student_kc_coverage('S012', student_observations, kc_coverage['kc_id'])
+    ])
+    kc_coverage_comparison_table_path = os.path.join(table_to, "kc_coverage_comparison_table.csv")
+    kc_coverage_comparison_table.to_csv(kc_coverage_comparison_table_path, index=False)
+    print(f"Saved: {kc_coverage_comparison_table_path}")
     
 
     # Create missing assignment table.
