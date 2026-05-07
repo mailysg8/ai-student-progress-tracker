@@ -2,15 +2,10 @@
 title: "Proposal report"
 jupyter: python3
 format:
-  html:
-    toc: true
-    toc-depth: 4
-    embed-resources: true
   pdf:
     toc: true
     toc-depth: 4
     number-sections: true
-    colorlinks: true
     fig-pos: 'H'
     fig-align: center
     fig-cap-location: bottom
@@ -26,8 +21,10 @@ execute:
   daemon: false
   timeout: 600
 ---
-# Executive Summary
 
+
+
+# Executive Summary
 
 Currently, tutors are relying primarily on manual processes and human memory to track student progress. This often leads to a lack of reliable and timely signals as to which areas students are struggling with. Similarly, parents often get inconsistent and unclear pictures of how their children are progressing.
 
@@ -108,9 +105,12 @@ Looking at @tbl-missing_assignment, the number of assignments that are missing s
 
 The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than `{python} str(missing_assignment['Number of missing students'].max())` students and most students (`{python} str(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data) missing only 1 assignment. Overall, this suggests that missingess is unlikely to introduce significant bias into the analysis.
 
-### KC coverage imbalance
-![This figure shows the number of observations per knowledge component across the dataset. There is a substantial imbalance in coverage, ranging from 25 to 175 observations.](figures/kc_coverage.png){#fig-kc-coverage width=70%}
 
+### KC coverage imbalance
+
+![This figure shows the distribution of KC coverage across assignment items. Most KCs are covered by less than 10 items, with coverage peaking at 2-3 items per KC. A small number of KCs are covered by up to 30 items](figures/kc_coverage.png){#fig-kc-coverage width=40%}
+
+Looking at @fig-kc-coverage, we can see that the KC coverage is heavily right-skewed, with most KCs been assessed by a small number of items (median ).
 There is an imbalance in the number of observations for each knowledge component, with some having only 25 observations (i.e 1 per student) while others contain 175 observations (i.e 7 per student). This imbalance needs to be taken into account when modelling, since it means that the values estimated for the KCs with little number of observations are likely to be inaccurate.
 
 ![This figure shows the number of observations per knowledge component across the dataset. There is a substantial imbalance in coverage, ranging from 25 to 175 observations.](figures/kc_coverage_comparison.png){#fig-kc-coverage-comparison width=70%}

@@ -75,11 +75,13 @@ def main(student_observations : str, overall_scores : str, chart_to : str, table
         'observation': ['nb_kc', 
                         'nb_skills', 
                         'nb_sub_skills',
+                        'median_items_per_kc',
                         'max_obs_per_kc',
                         'min_obs_per_kc'] ,
         'value' : [kc_coverage['kc_id'].nunique(), 
                     4, 
                     18,
+                    kc_coverage['num_items'].median(),
                     kc_coverage['num_items'].max()*student_observations['student_id'].nunique(),
                     kc_coverage['num_items'].min()*student_observations['student_id'].nunique()
                     ]}).set_index('observation')
