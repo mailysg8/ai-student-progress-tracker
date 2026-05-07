@@ -20,7 +20,8 @@ def get_student_kc_coverage(student_id, student_observations, kc_coverage):
                .set_index('student_id')
                .loc[student_id, ['assignment_id', 'observation_id', 'all_kc_ids']])
     q_to_kc['kc_covered'] = q_to_kc['all_kc_ids'].str.split('|')
-    q_to_kc = (q_to_kc.explode('kc_covered')
+    q_to_kc = (q_to_kc
+               .explode('kc_covered')
                .reset_index()
                .groupby('kc_covered')
                .agg(num_items=('assignment_id', 'count'))
@@ -49,22 +50,31 @@ def create_comparison_kc_coverage_chart(kc : pd.DataFrame, student_observations 
     
     return chart
 
-def create_assignement_spread_chart(student_observations : pd.DataFrame):
-    assignement_avg = student_observations.groupby(['student_id','assignment_id']).agg('sum').reset_index()[['student_id','assignment_id','score','max_score']]
-    assignement_avg['percent_score'] = round(assignement_avg['score']/assignement_avg['max_score']*100,1)
-    chart = alt.Chart(assignement_avg).mark_bar().encode(
-        x=alt.X('percent_score', title='Score (%)', bin=True),
-        y=alt.Y('count()', title='Number of students') 
-    )
+def create_missing_assignement_table(student_observations : pd.DataFrame):
+    nb_students = len(student_observations['student_id'].unique())
 
-    mean_line = alt.Chart(assignement_avg).mark_rule(color='red').encode(
-        x='mean(percent_score):Q'
-    )
+    completed_hwk = (student_observations
+                        .groupby(['student_id','assignment_id'])
+                        .agg(completed=('assignment_id','count'))
+                        .reset_index()
+                        .groupby(['assignment_id'])
+                        .agg(nb_assignments=('student_id','count')))
+    completed_hwk['nb_missing']=nb_students-completed_hwk['nb_assignments']
+    completed_hwk = completed_hwk.groupby('nb_missing').agg('count')
+    return completed_hwk
 
-    return (chart + mean_line).facet(
-        column=alt.Column('assignment_id:N', title = 'Assignment'), 
-        title='Wide spread in student performance within assignments'
-    )
+def create_student_missing_assignement_table(student_observations : pd.DataFrame):
+    nb_assignments = len(student_observations['assignment_id'].unique())
+
+    student_hwk = (student_observations
+                    .groupby(['student_id','assignment_id'])
+                    .agg(completed=('assignment_id','count'))
+                    .reset_index()
+                    .groupby(['student_id'])
+                    .agg(nb_students=('assignment_id','count')))
+    student_hwk['nb_missing']=nb_assignments-student_hwk['nb_students']
+    student_hwk = student_hwk.groupby('nb_missing').agg('count')
+    return student_hwk
 
 def create_performance_band_chart(overall_scores : pd.DataFrame):
     chart = alt.Chart(overall_scores).mark_bar().encode(

@@ -2,7 +2,9 @@
 
 This script:
 1. Creates KC coverage chart
-2. Creates assignement spread chart
+2. Creates student KC coverage comparison chart
+3. Creates summary table of assignments missing students
+4. Creates summary table of students missing assignments
 3. Creates performance band chart
 
 Usage: python proposal_report/src/eda.py [OPTIONS]
@@ -10,10 +12,9 @@ Usage: python proposal_report/src/eda.py [OPTIONS]
 [OPTIONS] :
 --student_observations    Path to student_observations CSV file (default: data/raw/student_observations.csv)
 --overall_scores          Path to overall_scores CSV file (default: data/raw/overall_scores.csv)
---student_roster          Path to student_roster CSV file (default: data/raw/student_roster.csv)
---class_plan              Path to class_plan CSV file (default: data/raw/class_plan.csv)
 --kc_coverage             Path to kc_coverage CSV file (default: data/raw/kc_coverage.csv)
 --chart_to                Directory to save figures (default: proposal_report/figures)
+--table_to                Directory to save tables (default: proposal_report/tables)
 """
 
 import click
@@ -24,17 +25,16 @@ import sys
 # Add parent directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from src.eda_utils import create_kc_coverage_chart, create_comparison_kc_coverage_chart, create_assignement_spread_chart, create_performance_band_chart
+from src.eda_utils import create_kc_coverage_chart, create_comparison_kc_coverage_chart, create_performance_band_chart, create_missing_assignement_table, create_student_missing_assignement_table
 
 @click.command()
 @click.option('--student_observations', type=str, required=False, default="data/raw/student_observations.csv", help='Path to student_observations CSV file')
 @click.option('--overall_scores', type=str, required=False, default="data/raw/overall_scores.csv", help='Path to overall_scores CSV file')
-@click.option('--student_roster', type=str, required=False, default="data/raw/student_roster.csv", help='Path to student_roster CSV file')
-@click.option('--class_plan', type=str, required=False, default="data/raw/class_plan.csv", help='Path to class_plan CSV file')
 @click.option('--kc', type=str, required=False, default="data/raw/kc_coverage.csv", help='Path to kc_coverage CSV file')
 @click.option('--chart_to', type=str, required=False, default="proposal_report/figures", help='Directory to save figures')
+@click.option('--table_to', type=str, required=False, default="proposal_report/tables", help='Directory to save tables')
 
-def main(student_observations : str, overall_scores : str, chart_to : str, student_roster : str, class_plan : str, kc : str):
+def main(student_observations : str, overall_scores : str, chart_to : str, table_to : str, kc : str):
     """Generate EDA visualizations and summary tables."""
 
     os.makedirs(chart_to, exist_ok=True)
@@ -47,14 +47,6 @@ def main(student_observations : str, overall_scores : str, chart_to : str, stude
     print(f"Loading data from: {overall_scores}")
     overall_scores = pd.read_csv(overall_scores)
     print(f"Loaded {overall_scores.shape[0]} student scores")
-
-    print(f"Loading data from: {student_roster}")
-    student_roster = pd.read_csv(student_roster)
-    print(f"Loaded {student_roster.shape[0]} students")
-
-    print(f"Loading data from: {class_plan}")
-    class_plan = pd.read_csv(class_plan)
-    print(f"Loaded {class_plan.shape[0]} classes")
 
     print(f"Loading data from: {kc}")
     kc = pd.read_csv(kc)
@@ -76,12 +68,19 @@ def main(student_observations : str, overall_scores : str, chart_to : str, stude
     print(f"Saved: {kc_coverage_comparison_path}")
     
 
-    # Create assignement spread chart
-    print("Creating assignement spread chart...")
-    assignment_spread = create_assignement_spread_chart(student_observations)
-    assignment_spread_path = os.path.join(chart_to, "assignment_spread.png")
-    assignment_spread.save(assignment_spread_path)
-    print(f"Saved: {assignment_spread_path}")
+    # Create missing assignment table.
+    print("Creating missing assignment table...")
+    missing_assignment = create_missing_assignement_table(student_observations)
+    missing_assignment_path = os.path.join(table_to, "missing_assignment.csv")
+    missing_assignment.to_csv(missing_assignment_path)
+    print(f"Saved: {missing_assignment_path}")
+
+    # Create missing student assignment table.
+    print("Creating missing student assignment table...")
+    missing_student_assignment = create_student_missing_assignement_table(student_observations)
+    missing_student_assignment_path = os.path.join(table_to, "missing_student_assignment.csv")
+    missing_student_assignment.to_csv(missing_student_assignment_path)
+    print(f"Saved: {missing_student_assignment_path}")
 
     # Create performance band chart
     print("Creating performance band chart...")
@@ -89,18 +88,6 @@ def main(student_observations : str, overall_scores : str, chart_to : str, stude
     performance_band_path = os.path.join(chart_to, "performance_band.png")
     performance_band.save(performance_band_path)
     print(f"Saved: {performance_band_path}")
-
-    # Number of students
-    nb_students = student_roster.shape[0]
-
-    # Number of assessement opportunities
-    nb_assessement = class_plan['homework_id'].nunique()
-
-    # Total number of observations
-    nb_observations = class_plan['homework_observations'].sum()
-
-
-    
 
 
 if __name__ == "__main__":
