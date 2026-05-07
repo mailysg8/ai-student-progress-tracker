@@ -20,6 +20,11 @@ format:
       text: |
         \usepackage{float}
         \usepackage[section]{placeins}
+execute:
+  echo: false
+  warning: false
+  daemon: false
+  timeout: 600
 ---
 # Executive Summary
 
@@ -51,9 +56,25 @@ The outcome of the project would be a fully functional and reproducible pipeline
 
 # Data & Exploratory Data Analysis (EDA)
 
+```{python}
+import pandas as pd
+from IPython.display import Markdown
 
-The dataset comes from an AP Statistics course and contains information about the course structure (number of assignments and classes), the knowledge structure (knowledge components and their relationships) and the student response structure (performance data for 25 students). It spans across 3 homework assignments (69 observations total), 27 knowledge components (38 edges between KCs) and 25 students for a total of 1725 item-level student records.
+missing_assignment = pd.read_csv('tables/missing_assignment.csv')
+missing_student_assignment = pd.read_csv('tables/missing_student_assignment.csv')
+student_summary = pd.read_csv('tables/student_summary.csv', index_col='observation')
+kc_summary = pd.read_csv('tables/kc_summary.csv', index_col='observation')
 
+nb_students = student_summary.loc['nb_students','value']
+nb_assignments = student_summary.loc['nb_assignments','value']
+nb_observations = student_summary.loc['nb_observations','value']
+nb_items = student_summary.loc['nb_items','value']
+
+nb_kc = kc_summary.loc['nb_kc','value']
+
+```
+
+The dataset comes from an AP Statistics course and contains information about the course structure (number of assignments and classes), the knowledge structure (knowledge components and their relationships) and the student response structure (performance data for `{python} str(nb_students)` students). It spans across `{python} str(nb_assignments)` assignments (`{python} str(nb_observations)` observations total), `{python} str(nb_kc)` knowledge components  and `{python} str(nb_students)` students for a total of `{python} str(nb_items)` item-level student records.
 
 The observational unit in this dataset is the student's grades which can be found in the Student_Observations file in the score column. This provides insights into the students' performance.
 
@@ -64,29 +85,41 @@ The knowledge components are skills that students need to complete skills. These
 ## Key insights
 
 
+### Missing values
 
+Some students did not hand in assignments which has led to missing values in the data.
+
+```{python}
+#| label: tbl-missing_student_assignment
+#| tbl-cap: "Number of students that are missing assignments."
+Markdown(missing_student_assignment.to_markdown(index=False))
+```
+
+Looking at @tbl-missing_student_assignment, there are more students that are missing at least one assignment (`{python} str(missing_student_assignment[missing_student_assignment['Number of missing assignments']!=0]['Number of students'].sum())` students) than students not missing any (`{python} str(missing_student_assignment[missing_student_assignment['Number of missing assignments']==0]['Number of students'].sum())` students). However, most of the students with missing assignments are only missing one (`{python} str(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data), which implies that the missingness is relatively evenly spread out across students. 
+
+```{python}
+#| label: tbl-missing_assignment
+#| tbl-cap: "Number of assignments that are missing students."
+Markdown(missing_assignment.to_markdown(index=False))
+```
+
+Looking at @tbl-missing_assignment, the number of assignments that are missing students (`{python} str(round(missing_assignment[missing_assignment['Number of missing students']!=0]['Number of assignments'].sum()*100/nb_assignments,0))`% of assignments) is close to the number of assignments that aren't missing students (`{python} str(round(missing_assignment[missing_assignment['Number of missing students']==0]['Number of assignments'].sum()*100/nb_assignments,0))`% of assignments). This means that the missing data is relatively evenly spread across assignments, with no assignment missing more than 
+`{python} str(missing_assignment['Number of missing students'].max())` out of `{python} str(nb_students)` students (`{python} str(missing_assignment['Number of missing students'].max()*100/nb_students)`%). It also suggests that the missingness isn't due to an assignment specific issue.
+
+The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than `{python} str(missing_assignment['Number of missing students'].max())` students and most students (`{python} str(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data) missing only 1 assignment. Overall, this suggests that missingess is unlikely to introduce significant bias into the analysis.
 
 ### KC coverage imbalance
 ![This figure shows the number of observations per knowledge component across the dataset. There is a substantial imbalance in coverage, ranging from 25 to 175 observations.](figures/kc_coverage.png){#fig-kc-coverage width=70%}
 
 There is an imbalance in the number of observations for each knowledge component, with some having only 25 observations (i.e 1 per student) while others contain 175 observations (i.e 7 per student). This imbalance needs to be taken into account when modelling, since it means that the values estimated for the KCs with little number of observations are likely to be inaccurate.
 
-
-### Wide spread within assignments
-![This figure shows how student scores are distributed for the three assignments. The red line corresponds to the mean score of each assignment. There is a wide range of scores across students in each assignment.](figures/assignment_spread.png){#fig-assignment-spread}
-
-
-Within the assignments there is a wide spread of performances with some students scoring consistently above 80% while others are below 50%. The shift in distribution range between homework 1 and 3 should also be considered
-
-
+![This figure shows the number of observations per knowledge component across the dataset. There is a substantial imbalance in coverage, ranging from 25 to 175 observations.](figures/kc_coverage_comparison.png){#fig-kc-coverage-comparison width=70%}
 
 ### Performance band imbalance
 ![This figure shows the distribution of students across four performance bands, ordered from least to most proficient: Emerging, Developing, Proficient, and Advanced. The majority of students fall in the Proficient (9) and Developing (8) categories, indicating that most are performing at or near the expected level.](figures/performance_band.png){#fig-performance-band width=70%}
 
 
 The performance band distributions are also somewhat imbalanced, with there being 2 times more proficient students than emerging. This might lead to some prediction issues in the model building phase, especially when trying to make predictions for emerging students. This can be especially problematic since these are the students that the early warning system should flag
-
-
 
 
 ### Knowledge component relationships

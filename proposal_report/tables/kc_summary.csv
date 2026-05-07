@@ -1,0 +1,6 @@
+observation,value
+nb_kc,256
+nb_skills,4
+nb_sub_skills,18
+max_obs_per_kc,725
+min_obs_per_kc,0
