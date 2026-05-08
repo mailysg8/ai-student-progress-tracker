@@ -2255,19 +2255,18 @@ vertical-align: -.125em;
 
 <section id="executive-summary" class="level1">
 <h1>Executive Summary</h1>
-<p>Currently, tutors are relying primarily on manual processes and human memory to track student progress. This often leads to a lack of reliable and timely signals as to which areas students are struggling with. Similarly, parents often get inconsistent and unclear pictures of how their children are progressing.</p>
-<p>Our solution would be to provide tutors with a fully functional pipeline and dashboard that would provide them with all the necessary tools to track student progress with specific skills and ensure that they can get timely signals to detect potentially problematic areas for students.</p>
+<p>Tutors currently rely on manual processes and human memory to track student progress, which often leads to delayed and unreliable signals for the areas students are struggling with. This makes it difficult for tutors to intervene in a timely manner and provide personalised support to students. To address this issue, we propose an automated student progress tracking system, built with Knowledge Tracing models that estimate each student’s probability of mastering specific knowledge components based on their assignment scores. These estimates will be used in an interactive dashboard with three main components : a knowledge profile that summarises each student’s strengths and gaps, an Early Warning System that flags knowledge components students are struggling with and a Next Step Suggestion System that recommends assignments to students once they have mastered a skill. The expected outcome of this project is a reliable, data-driven tool that helps tutors identify struggling students earlier and more consistently, personalise their support and give students the opportunity to see their own progression.</p>
 </section>
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>The problem that we are tackling in this project is to help teachers track student mastery progress through time. This would allow us to ensure parents and students get timely feedback in a clear and concise manner. Knowledge tracing is a machine learning method to track and predict a student’s mastery over time based on their performance data.</p>
-<p>We have 3 main objectives for this project :</p>
+<p>Tracking student progress is a persistent challenge in education. Tutors and teachers often rely on manual processes and informal observations to identify students that are struggling, which can lead to delayed interventions and vague feedback. Without timely and reliable signals about which specific areas students are struggling with, it becomes difficult for teachers to provide personalised support.</p>
+<p>This problem has led to the development of research in learning analytics, which seeks to use student performance data to gain a clearer understanding of a student’s knowledge. Knowledge Tracing is an established method to estimate a student’s latent mastery of specific knowledge components over time, based on their observed performance data (<span class="citation" data-cites="corbett1994knowledge">Corbett and Anderson (<a href="#ref-corbett1994knowledge" role="doc-biblioref">1994</a>)</span>). In recent years, Knowledge Tracing models have been successfully deployed in Intelligent Tutoring Systems which have helped teachers track the progression of their students.</p>
+<p>In this project, we will be applying Knowledge Tracing methods, with two main objectives :</p>
 <ul>
-<li>Create a mastery tracker that uses knowledge tracing to estimate student’s mastery probability</li>
-<li>Create an early warning system that flags areas that students are struggling with</li>
-<li>Create a dashboard application visualises the elements above and other students insights (e.g average scores)</li>
+<li>Develop a mastery estimation model that tracks each student’s probability of mastering specific knowledge components over time</li>
+<li>Create an interactive dashboard that provides teachers with both class and individual level insights, including mastery estimates, early warning signals and personalised next step suggestions</li>
 </ul>
-<p>The outcome of the project would be a fully functional and reproducible pipeline that updates the dashboard when given new data.</p>
+<p>The final data product will be a reproducible pipeline that takes new assignment data, updates the mastery estimates as well as the dashboard. This will ensure tutors have up-to-date insights into their students’ performance.</p>
 </section>
 <section id="data-exploratory-data-analysis-eda" class="level1">
 <h1>Data &amp; Exploratory Data Analysis (EDA)</h1>
@@ -2358,7 +2357,7 @@ Table 2: Number of assignments that are missing students.
 </div>
 </div>
 <p>Looking at <a href="#tbl-missing_assignment" class="quarto-xref">Table 2</a>, the number of assignments that are missing students (58% of assignments) is close to the number of assignments that aren’t missing students (42% of assignments). This means that the missing data is relatively evenly spread across assignments, with no assignment missing more than 2 out of 25 students (8%). It also suggests that the missingness isn’t due to an assignment specific issue.</p>
-<p>The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than 2 students and most students (71% of students with missing data) missing only 1 assignment. Overall, this suggests that missingess is unlikely to introduce significant bias into the analysis.</p>
+<p>The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than 2 students and most students (71% of students with missing data) missing only 1 assignment. Overall, this suggests that missingness is unlikely to introduce significant bias into the analysis.</p>
 </section>
 <section id="kc-coverage-imbalance" class="level3">
 <h3 class="anchored" data-anchor-id="kc-coverage-imbalance">KC coverage imbalance</h3>
@@ -2430,8 +2429,8 @@ Figure 5: This figure is an overview of the proposed pipeline. From student per
 </div>
 <section id="model" class="level2">
 <h2 class="anchored" data-anchor-id="model">Model</h2>
-<p>To estimate student mastery we will use Knowledge Tracing, which is a family of models that track the progression of a student’s knowledge as they interact with knowledge components (through assignments). Since the dataset contains item level student responses related to specific KCs, this method is a natural fit as it is designed to use this structure to estimate unkown mastery states. Understanding a student’s knowledge state can help teachers customize the lesson plans to better suit individual needs, as well as help students identify the skills they are struggling with the most.</p>
-<p>We will build and compare multiple different types of Knowledge Tracing models to determine the one that is the best fit for our data. Our baseline model is a Bayesian Knowledge Tracing (BKT) model, which assumes that it is possible to estimate a student’s latent knowledge state (their understanding) based on their observed performance (their grades) (<span class="citation" data-cites="shen2024survey">Shen et al. (<a href="#ref-shen2024survey" role="doc-biblioref">2024</a>)</span>). We chose this model as our baseline since it is simple and easily interpretable, which makes it a natural choice to which compare more complex models to. However, the significant KC coverage imbalance (identified in the EDA section above) means that simpler models like BKT that treat all KCs as independent, may struggle with sparse KC coverage. More complex models that share information across KCs may therefore perform better on this dataset.</p>
+<p>To estimate student mastery we will use Knowledge Tracing, which is a family of models that track the progression of a student’s knowledge as they interact with knowledge components (through assignments). Since the dataset contains item level student responses related to specific KCs, this method is a natural fit as it is designed to use this structure to estimate unknown mastery states. Understanding a student’s knowledge state can help teachers customize the lesson plans to better suit individual needs, as well as help students identify the skills they are struggling with the most.</p>
+<p>We will build and compare multiple different types of Knowledge Tracing models to determine the one that is the best fit for our data. Our baseline model is a Bayesian Knowledge Tracing (BKT) model, which assumes that it is possible to estimate a student’s latent knowledge state (their understanding) based on their observed performance (their grades) (<span class="citation" data-cites="shen2024survey">Shen et al. (<a href="#ref-shen2024survey" role="doc-biblioref">2024</a>)</span>). We chose this model as our baseline since it is simple and easily interpretable, which makes it a natural choice to compare more complex models to. However, the significant KC coverage imbalance (identified in the EDA section above) means that simpler models like BKT that treat all KCs as independent, may struggle with sparse KC coverage. More complex models that share information across KCs may therefore perform better on this dataset.</p>
 <p>These models will produce an estimate of the probability that a student has mastered a specific KC based on their past performance (assignment scores), which is called the mastery probability. These estimates are the foundation for all three dashboard components : the knowledge profile, the early warning system and the suggested next steps.</p>
 </section>
 <section id="dashboard" class="level2">
@@ -2447,14 +2446,15 @@ Figure 5: This figure is an overview of the proposed pipeline. From student per
 <h4 class="anchored" data-anchor-id="early-warning-system">Early Warning System</h4>
 <p>For every student, the Early Warning System will automatically flag knowledge components that they appear to be struggling with, based on these two conditions:</p>
 <ul>
-<li>The mastery probability remains below a certain threshold (e.g. 50%) after a predefined number of interactions (e.g. 3 assignments)</li>
+<li>The mastery probability remains below a certain threshold (50%) after a predefined number of interactions (3 assignments)</li>
 <li>The mastery probability has become stagnant and shows no meaningful increase across consecutive interactions</li>
 </ul>
-<p>These conditions allow the system to flag both students who are struggling to grasp a KC and those whose understanding is not progressing. Flagged KCs will be highlighted on the dashboard to ensure timely interventions from teachers. The thresholds for flagging a students will be determined emperically by comparing student performance progression across multiple assignments.</p>
+<p>These conditions allow the system to flag both students who are struggling to grasp a KC and those whose understanding is not progressing. Flagged KCs will be highlighted on the dashboard to ensure timely interventions from teachers. Both the thresholds (50% and 3 assignments) are tentative and will be calibrated based on the dataset.</p>
 </section>
 <section id="next-steps-suggestion-system" class="level4">
 <h4 class="anchored" data-anchor-id="next-steps-suggestion-system">Next Steps Suggestion System</h4>
-<p>A student is considered to have mastered a KC if their mastery probability is above a certain threshold (e.g. 95%). Once a student has mastered a KC, the Next Step Suggestion System will recommend assignments that cover KCs that they have not mastered yet, prioritising KCs whose prerequisites have been satisfied. This helps ensure that recommendations follow a logical progression through course content.</p>
+<p>A student is considered to have mastered a KC if their mastery probability is above a certain threshold (95%). Once a student has mastered a KC, the Next Step Suggestion System will recommend assignments that cover KCs that they have not mastered yet, prioritising KCs whose prerequisites have been satisfied. This helps ensure that recommendations follow a logical progression through course content.</p>
+<p>Setting a mastery threshold at 95% follows the standard established by <span class="citation" data-cites="corbett1994knowledge">Corbett and Anderson (<a href="#ref-corbett1994knowledge" role="doc-biblioref">1994</a>)</span>.</p>
 </section>
 </section>
 <section id="prototypes" class="level3">
@@ -2492,26 +2492,26 @@ Figure 7: This is a prototype of the student view dashboard, showing individual
 <p>We will be evaluating our approach on three fronts, as follows :</p>
 <section id="model-validity" class="level3">
 <h3 class="anchored" data-anchor-id="model-validity">Model Validity</h3>
-<p>To preserve the dependency structure between KCs, the data will be split into train and test sets by student. We will be evaluating the model performance by comparing the mastery probability to the final exam scores of the students. Using RMSE to determine how far the predicted mastery probabilities are from the actual test scores (smaller the RMSE the stronger the predictive validity of the model).</p>
+<p>The data will be split into train and test sets by student, which will ensure that the model can be generalized for unseen students. We will be evaluating the model validity by comparing the estimated mastery probability to the student’s final exam scores. We will be using RMSE as a metric to determine how far the predicted mastery probabilities are from the actual test scores.</p>
 </section>
 <section id="model-comparison" class="level3">
 <h3 class="anchored" data-anchor-id="model-comparison">Model Comparison</h3>
-<p>To find the model that is the best fit for our data, we will be comparing any model we fit to the baseline BKT model. Using RMSE and AIC/BIC we will be comparing the model fit with model complexity to ensure the final model fits all requirements.</p>
+<p>We will compare multiple different types of Knowledge Tracing models against the baseline BKT model. The models will be compared using RMSE for predictive accuracy and AIX/BIC to penalise unncecessary complexity, to ensure that the final selected model balances performance with interpretability.</p>
 </section>
 <section id="early-warning-system-validity" class="level3">
 <h3 class="anchored" data-anchor-id="early-warning-system-validity">Early Warning System Validity</h3>
-<p>We will create a dataset using the student’s performance band from Overall_Scores where Emerging students are labelled as Flag and the others are labelled as Not Flag. Using this dataset, we will be evaluating the Early Warning System as a binary classification problem with metrics like AUC, Precision and Recall to ensure that only necessary warnings are sent.</p>
+<p>We will create a dataset using the student’s performance band from Overall_Scores where Emerging students are labelled as Flag and all others are labelled as Not Flag. Using this dataset, we will be evaluating the Early Warning System as a binary classification problem with metrics like AUC, Precision and Recall to ensure that only necessary warnings are sent. Using the student’s performance bands, we will create a binary classification target where Emerging students are labelled as Flag and all others are labelled as Not Flag. The Early Warning System will then be evaluated as a binary classifier with metrics like AUC, Precision and Recall. Given the class imbalance (only 3 Emerging students out of 25), Recall will be the primary metric used, since it minimises the amount of false negatives (not flagging a student who is struggling).</p>
 </section>
 </section>
 <section id="success-criteria" class="level2">
 <h2 class="anchored" data-anchor-id="success-criteria">Success Criteria</h2>
 <p>We will consider our project a success if all the following conditions are met :</p>
 <ul>
-<li>The mastery tracker reliably estimates student mastery</li>
-<li>The early warning system reliably signals student struggle</li>
+<li>The pipeline (see <a href="#fig-full-pipeline" class="quarto-xref">Figure 5</a>) reliably updates the dashboard when new data is added</li>
+<li>The model reliably estimates student mastery</li>
+<li>The Early Warning System reliably signals student struggle</li>
+<li>The Next Steps Suggestion System provides logical recommendations</li>
 <li>The dashboard provides a clear and reliable way to show student progress</li>
-<li>The dashboard provides teachers with class-wide descriptive statistics inclusive of skills, knowledge components and overall status of a class</li>
-<li>The dashboard provides students with personal progress, areas of concerns alongside “what to practice next”​</li>
 </ul>
 </section>
 </section>
@@ -2527,29 +2527,29 @@ Figure 7: This is a prototype of the student view dashboard, showing individual
 <thead>
 <tr class="header">
 <th style="text-align: left;">Milestone</th>
-<th style="text-align: left;">Due Date</th>
-<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Deadline</th>
+<th style="text-align: left;">Elements</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Milestone 1</td>
-<td style="text-align: left;">May 8</td>
+<td style="text-align: left;">May 10</td>
 <td style="text-align: left;">- Pipeline that outputs model ready dataset <br> - Bayesian Knowledge tracing model (model build and analysis)</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Milestone 2</td>
-<td style="text-align: left;">May 15</td>
+<td style="text-align: left;">May 17</td>
 <td style="text-align: left;">- Alternative models (model build and analysis) <br> - Dashboard skeleton design</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Milestone 3</td>
-<td style="text-align: left;">May 22</td>
+<td style="text-align: left;">May 24</td>
 <td style="text-align: left;">- Final dashboard design <br> - Final model selection</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Milestone 4</td>
-<td style="text-align: left;">May 29</td>
+<td style="text-align: left;">May 31</td>
 <td style="text-align: left;">- Dashboard update pipeline <br> - Early warning system</td>
 </tr>
 <tr class="odd">
@@ -2568,6 +2568,9 @@ Figure 7: This is a prototype of the student view dashboard, showing individual
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
 <div id="ref-aleven2010developing" class="csl-entry" role="listitem">
 Aleven, Vincent, Franceska Xhakaj, Kenneth Holstein, and Bruce M McLaren. 2010. <span>“Developing a Teacher Dashboard for Use with Intelligent Tutoring Systems.”</span> <em>Technology</em> 34: 44–50.
+</div>
+<div id="ref-corbett1994knowledge" class="csl-entry" role="listitem">
+Corbett, Albert T, and John R Anderson. 1994. <span>“Knowledge Tracing: Modeling the Acquisition of Procedural Knowledge.”</span> <em>User Modeling and User-Adapted Interaction</em> 4 (4): 253–78.
 </div>
 <div id="ref-dashboard" class="csl-entry" role="listitem">
 Jasen. 2020. <em>Student Progress Tracking Dashboard</em>. Flight Schedule Pro. <a href="https://www.flightschedulepro.com/blog/student-progress-tracking-dashboard">https://www.flightschedulepro.com/blog/student-progress-tracking-dashboard</a>.
