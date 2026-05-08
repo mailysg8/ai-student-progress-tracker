@@ -42,7 +42,7 @@ perf_summary = pd.read_csv('../tables/perf_summary.csv', index_col='performance_
 
 # Executive Summary
 
-Tutors currently rely on manual processes and human memory to track student progress, which often leads to delayed and unreliable signals for the areas students are struggling with. 
+Tutors currently rely on manual processes and human memory to track student progress, which often leads to delayed and unreliable signals for the areas students are struggling in. 
 To address this issue, we propose a student progress tracking system, built with Knowledge Tracing models that estimate each student's probability of mastering specific knowledge components based on their assignment scores. These estimates will be used in an interactive dashboard with three main components : a knowledge profile that summarises each student's knowledge state, an Early Warning System that flags KCs students are struggling with and a Next Step Suggestion System that recommends assignments to students once they have mastered a skill.
 The expected outcome of this project is a reliable, data-driven tool that helps tutors identify struggling students earlier and personalise their support.
 
@@ -81,10 +81,10 @@ nb_proficient = perf_summary.loc['Proficient','nb_students']
 nb_emerging = perf_summary.loc['Emerging','nb_students']
 ```
 
-The dataset comes from an AP Statistics course, with data collected over 7 months. It contains information about the course structure (how assignments are structured), the knowledge structure (how KC relationships are structured) and the student's performance (scores) for `{python} int(nb_students)` students. The dataset spans `{python} int(nb_assignments)` assignments (includes homeworks and exams for a total of `{python} int(nb_observations)` items) and  `{python} int(nb_kc)` knowledge components, for a total of `{python} format(int(nb_items), ",")` item-level student records.
+The dataset comes from an AP Statistics course, with data collected over 7 months. It contains information about the course structure (how assignments are structured), the knowledge structure (how KC relationships are structured) and the student's performance (scores) for `{python} int(nb_students)` students. The dataset spans `{python} int(nb_assignments)` assignments (includes homework and exams for a total of `{python} int(nb_observations)` items) and  `{python} int(nb_kc)` knowledge components, for a total of `{python} format(int(nb_items), ",")` item-level student records.
 
 
-The observational unit is the student-item interaction, which represents a single student's response to a specific assignment question. The key variables are the student's scores, the knowledge component IDs (indicate which KCs each item assesses) and the KC graphs (provide information about how the KCs are related to each other).
+The observational unit is the student-item interaction, which represents a single student's response to a specific assignment question. The key variables are the student's scores, the knowledge component IDs (indicating which KCs each item assesses) and the KC graphs (providing information about how the KCs are related to each other).
 
 
 ## Key insights
