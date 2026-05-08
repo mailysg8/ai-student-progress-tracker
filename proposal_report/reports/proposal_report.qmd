@@ -41,18 +41,14 @@ perf_summary = pd.read_csv('../tables/perf_summary.csv', index_col='performance_
 
 # Executive Summary
 
-Tutors currently rely on manual processes and human memory to track student progress, which often leads to delayed and unreliable signals for the areas students are struggling with. This makes it difficult for tutors to intervene in a timely manner and provide personalised support to students.
+Tutors currently rely on manual processes and human memory to track student progress, which often leads to delayed and unreliable signals for the areas students are struggling with. 
 To address this issue, we propose an automated student progress tracking system, built with Knowledge Tracing models that estimate each student's probability of mastering specific knowledge components based on their assignment scores. These estimates will be used in an interactive dashboard with three main components : a knowledge profile that summarises each student's strengths and gaps, an Early Warning System that flags knowledge components students are struggling with and a Next Step Suggestion System that recommends assignments to students once they have mastered a skill.
 The expected outcome of this project is a reliable, data-driven tool that helps tutors identify struggling students earlier and more consistently, personalise their support and give students the opportunity to see their own progression.
 
 
 # Introduction
 
-Tracking student progress is a persistent challenge in education. Tutors and teachers often rely on manual processes and informal observations to identify students that are struggling, which can lead to delayed interventions and vague feedback. Without timely and reliable signals about which specific areas students are struggling with, it becomes difficult for teachers to provide personalised support.
-
-
-This problem has led to the development of research in learning analytics, which seeks to use student performance data to gain a clearer understanding of a student's knowledge. Knowledge Tracing is an established method to estimate a student's latent mastery of specific knowledge components over time, based on their observed performance data (@corbett1994knowledge). In recent years, Knowledge Tracing models have been successfully deployed in Intelligent Tutoring Systems which have helped teachers track the progression of their students.
-
+Tracking student progress is a persistent challenge in education. Tutors and teachers often rely on manual processes and informal observations to identify students that are struggling, which can lead to delayed interventions and vague feedback. Knowledge Tracing is an established method to estimate a student's latent mastery of specific knowledge components over time, based on their observed performance data (@corbett1994knowledge). In recent years, Knowledge Tracing models have been successfully deployed in Intelligent Tutoring Systems which have helped teachers track the progression of their students.
 
 In this project, we will be applying Knowledge Tracing methods, with two main objectives :
 
@@ -61,8 +57,6 @@ In this project, we will be applying Knowledge Tracing methods, with two main ob
 
 
 The final data product will be a reproducible pipeline that takes new assignment data, updates the mastery estimates as well as the dashboard. This will ensure tutors have up-to-date insights into their students' performance.
-
-
 
 
 # Data & Exploratory Data Analysis (EDA)
@@ -95,41 +89,15 @@ The observational unit is the student item interaction, which represents a singl
 
 ## Key insights
 
+The full exploration of the data can be found in [Appendix A](#appendix-a--data--exploratory-data-analysis-(eda)).
 
 ### Missing values
 
-Some students did not hand in assignments which has led to missing values in the data.
-
-```{python}
-#| label: tbl-missing_student_assignment
-#| tbl-cap: "Number of students that are missing assignments."
-Markdown(missing_student_assignment.to_markdown(index=False))
-```
-
-Looking at @tbl-missing_student_assignment, there are more students that are missing at least one assignment (`{python} int(missing_student_assignment[missing_student_assignment['Number of missing assignments']!=0]['Number of students'].sum())` students) than students not missing any (`{python} int(missing_student_assignment[missing_student_assignment['Number of missing assignments']==0]['Number of students'].sum())` students). However, most of the students with missing assignments are only missing one (`{python} int(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data), which implies that the missingness is relatively evenly spread out across students. 
-
-```{python}
-#| label: tbl-missing_assignment
-#| tbl-cap: "Number of assignments that are missing students."
-Markdown(missing_assignment.to_markdown(index=False))
-```
-
-Looking at @tbl-missing_assignment, the number of assignments that are missing students (`{python} str(int(round(missing_assignment[missing_assignment['Number of missing students']!=0]['Number of assignments'].sum()*100/nb_assignments,0)))`% of assignments) is close to the number of assignments that aren't missing students (`{python} str(int(round(missing_assignment[missing_assignment['Number of missing students']==0]['Number of assignments'].sum()*100/nb_assignments,0)))`% of assignments). This means that the missing data is relatively evenly spread across assignments, with no assignment missing more than 
-`{python} str(int(missing_assignment['Number of missing students'].max()))` out of `{python} str(int(nb_students))` students (`{python} str(int(missing_assignment['Number of missing students'].max()*100/nb_students))`%). It also suggests that the missingness isn't due to an assignment specific issue.
-
-The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than `{python} str(int(missing_assignment['Number of missing students'].max()))` students and most students (`{python} str(int(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0)))`% of students with missing data) missing only 1 assignment. Overall, this suggests that missingness is unlikely to introduce significant bias into the analysis.
-
+The missing data seems to be sparse and well-distributed across the observations, with no assignment missing more than `{python} str(int(missing_assignment['Number of missing students'].max()))` students and most students (`{python} str(int(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0)))`% of students with missing data) missing only 1 assignment. Overall, this suggests that missingness is unlikely to introduce significant bias into the analysis (see [Appendix A](#appendix-a--data--exploratory-data-analysis-(eda)),   @tbl-missing_student_assignment and @tbl-missing_assignment).
 
 ### KC coverage imbalance
 
-![This figure shows the distribution of KC coverage across assignment items. Most KCs are covered by fewer than 10 items, with coverage peaking at 2-3 items per KC. A small number of KCs are covered by up to 30 items.](../figures/kc_coverage.png){#fig-kc-coverage width=40%}
-
-Looking at @fig-kc-coverage, the KC coverage is heavily right-skewed, with a median of `{python} str(int(median_items_per_kc))` items per KC. This imbalance means that some knowledge components contain up to `{python} str(int(max_obs_per_kc))` observations, while others are not assessed at all (`{python} str(int(nb_zero_coverage))` KCs with `{python} str(int(min_obs_per_kc))` observations). The difference in coverage among KCs could affect the reliability of mastery estimates for under-covered KCs.
-
-
-![This figure shows the distribution of KC coverage across assignment items for 2 different students, one who handed in all assignments (left : S001) and one who has 5 missing assignments (right : S012).](../figures/kc_coverage_comparison.png){#fig-kc-coverage-comparison width=90%}
-
-Looking at @fig-kc-coverage-comparison, both students have a similarly right-skewed KC coverage distribution, though S012's is shifted slightly more towards the left compared to S001, which is consistent with the 5 missing assignments. In fact, S012 has `{python} zero_coverage_missing` untested KCs compared to S001 who only has `{python} zero_coverage_full`, meaning that already under covered KCs are even sparser for S012. Overall, this means that having missing assignments may reduce the reliability of mastery estimates.
+The distribution of number of observations for KCs is highly imbalanced, with a range of `{python} str(int(min_obs_per_kc))` to `{python} str(int(max_obs_per_kc))` observations. This imbalance is even more visible for students with missing assignments which may further reduce the reliability of mastery estimates for under-covered KCs (see [Appendix A](#appendix-a--data--exploratory-data-analysis-(eda)), @fig-kc-coverage and @fig-kc-coverage-comparison)
 
 ### Performance band imbalance
 ![This figure shows the distribution of students across four performance bands, ordered from least to most proficient: Emerging, Developing, Proficient, and Advanced. The majority of students fall in the Proficient (9) and Developing (8) categories, indicating that most are performing at or near the expected level.](../figures/performance_band.png){#fig-performance-band width=50%}
@@ -144,46 +112,28 @@ Looking at @fig-performance-band, there is an imbalance in the performance band 
 
 Some knowledge components have prerequisite or support relationships, which means that students need to master the foundational KCs before progressing to the dependent ones. As shown in @fig-kc-graph, these dependencies can span multiple levels (e.g KC.U1.02 is a prerequisite for KC.U1.03 which itself is a prerequisite for KC.U1.04). This hierarchical structure needs to be taken into account in the modelling phase, since a student's performance might depend on how well they've mastered the prerequisites.
 
-
 # Data Science Approach
 
 Our approach uses knowledge tracing methods to estimate the probability that a student has mastered a knowledge component, based on their assignment scores and the KC relationship structure. These mastery estimates will be used in a dashboard which will contain insights into student performance along with 3 main components : a knowledge profile that summarises each student's strengths and gaps, an early warning system that flags students that are struggling, and personalised suggested next steps.
 
 ![This figure is an overview of the proposed pipeline. From student performance data and knowledge structure inputs, through knowledge tracing, to three dashboard components : knowledge profile, early warning system and next steps.](../img/full_pipeline.png){#fig-full-pipeline width=70%}
 
+As detailed in @fig-full-pipeline, our approach will be split into 2 main elements a model part and a dahsboard part.
+
+
+
 ## Model
+To estimate student mastery we will use Knowledge Tracing models, which are designed to infer student's mastery of specific KC based on their assignment performance.
+We will use a Bayesian Knowledge Tracing (BKT) model as an interpretable baseline, and compare it against more complex models that might be a better fit for the data.
+The selected model will output a mastery probability per student per KC, which we will use in the dashboard.
 
-To estimate student mastery we will use Knowledge Tracing, which is a family of models that track the progression of a student's knowledge as they interact with knowledge components (through assignments). Since the dataset contains item level student responses related to specific KCs, this method is a natural fit as it is designed to use this structure to estimate unknown mastery states. Understanding a student's knowledge state can help teachers customize the lesson plans to better suit individual needs, as well as help students identify the skills they are struggling with the most.
-
-We will build and compare multiple different types of Knowledge Tracing models to determine the one that is the best fit for our data. Our baseline model is a Bayesian Knowledge Tracing (BKT) model, which assumes that it is possible to estimate a student's latent knowledge state (their understanding) based on their observed performance (their grades) (@shen2024survey). We chose this model as our baseline since it is simple and easily interpretable, which makes it a natural choice to compare more complex models to. However, the significant KC coverage imbalance (identified in the EDA section above) means that simpler models like BKT that treat all KCs as independent, may struggle with sparse KC coverage. More complex models that share information across KCs may therefore perform better on this dataset.
-
-These models will produce an estimate of the probability that a student has mastered a specific KC based on their past performance (assignment scores), which is called the mastery probability. These estimates are the foundation for all three dashboard components : the knowledge profile, the early warning system and the suggested next steps.
+A detailed description of the modelling approach can be found in [Appendix B](#model-1).
 
 ## Dashboard
 
 A major problem teachers face when explaining a student's progress is the lack of visual tools to show their evolution over time. Dashboards can help bridge that gap by providing an overview of student performance, allowing teachers to understand how their students are progressing in a single glance (@aleven2010developing). Our approach is to build two dashboard views that will allow teachers to gain both class and individual level insights.
 
-### Dashboard Components 
-
-#### Knowledge profile
-
-Using the mastery probability obtained from the Knowledge Tracing model, we will build a knowledge profile for each student. Each profile will display all KCs and their corresponding mastery probability which will allow both students and teachers to get a clear overview of a student's knowledge state. These profiles will be updated each time new assignment data is entered, which will help ensure that they reflect the student's most recent performance.
-
-#### Early Warning System
-
-For every student, the Early Warning System will automatically flag knowledge components that they appear to be struggling with, based on these two conditions:
-
-- The mastery probability remains below a certain threshold (50%) after a predefined number of interactions (3 assignments)
-- The mastery probability has become stagnant and shows no meaningful increase across consecutive interactions
-
-These conditions allow the system to flag both students who are struggling to grasp a KC and those whose understanding is not progressing. Flagged KCs will be highlighted on the dashboard to ensure timely interventions from teachers. Both the thresholds (50% and 3 assignments) are tentative and will be calibrated based on the dataset.
-
-#### Next Steps Suggestion System
-
-A student is considered to have mastered a KC if their mastery probability is above a certain threshold (95%). Once a student has mastered a KC, the Next Step Suggestion System will recommend assignments that cover KCs that they have not mastered yet, prioritising KCs whose prerequisites have been satisfied. This helps ensure that recommendations follow a logical progression through course content.
-
-Setting a mastery threshold at 95% follows the standard established by @corbett1994knowledge.
-
+A detailed description of the dashboard components can be found in [Appendix B](#dashboard-1).
 
 ### Prototypes
 
@@ -202,7 +152,7 @@ The student view of the dashboard, shown in @fig-student-view, gives a detailed 
 # Evaluation & Success Criteria
 
 ## Evaluation
-We will be evaluating our approach on three fronts, as follows :
+We will be evaluating our approach on multiple fronts, as follows :
 
 ### Model Validity
 
@@ -213,11 +163,7 @@ The data will be split into train and test sets by student, which will ensure th
 
 We will compare multiple different types of Knowledge Tracing models against the baseline BKT model. The models will be compared using RMSE for predictive accuracy and AIX/BIC to penalise unncecessary complexity, to ensure that the final selected model balances performance with interpretability.
 
-
-### Early Warning System Validity
-
-We will create a dataset using the student's performance band from Overall_Scores where Emerging students are labelled as Flag and all others are labelled as Not Flag. Using this dataset, we will be evaluating the Early Warning System as a binary classification problem with metrics like AUC, Precision and Recall to ensure that only necessary warnings are sent.
-Using the student's performance bands, we will create a binary classification target where Emerging students are labelled as Flag and all others are labelled as Not Flag. The Early Warning System will then be evaluated as a binary classifier with metrics like AUC, Precision and Recall. Given the class imbalance (only `{python} int(nb_emerging)` Emerging students out of `{python} int(nb_students)`), Recall will be the primary metric used, since it minimises the amount of false negatives (not flagging a student who is struggling).
+Additional evaluation approaches can be found in [Appendix C](#appendix-c---additional-evaluation).
 
 ## Success Criteria
 We will consider our project a success if all the following conditions are met :
@@ -240,6 +186,85 @@ The project will be split into weekly milestones. Each milestone contains a list
 | Milestone 3 | May 24 | - Final dashboard design <br> - Final model selection |
 | Milestone 4 | May 31 | - Dashboard update pipeline <br> - Early warning system |
 | Milestone 5 | June 25 | - Production ready product |
+
+
+# Appendices
+
+## Appendix A : Data & Exploratory Data Analysis (EDA)
+
+### Missing values
+
+Some students did not hand in assignments which has led to missing values in the data.
+
+```{python}
+#| label: tbl-missing_student_assignment
+#| tbl-cap: "Number of students that are missing assignments."
+Markdown(missing_student_assignment.to_markdown(index=False))
+```
+
+Looking at @tbl-missing_student_assignment, there are more students that are missing at least one assignment (`{python} int(missing_student_assignment[missing_student_assignment['Number of missing assignments']!=0]['Number of students'].sum())` students) than students not missing any (`{python} int(missing_student_assignment[missing_student_assignment['Number of missing assignments']==0]['Number of students'].sum())` students). However, most of the students with missing assignments are only missing one (`{python} int(round(100*missing_student_assignment[missing_student_assignment['Number of missing assignments']==1]['Number of students'].sum()/missing_student_assignment[missing_student_assignment['Number of missing assignments']>0]['Number of students'].sum(),0))`% of students with missing data), which implies that the missingness is relatively evenly spread out across students. 
+
+```{python}
+#| label: tbl-missing_assignment
+#| tbl-cap: "Number of assignments that are missing students."
+Markdown(missing_assignment.to_markdown(index=False))
+```
+
+Looking at @tbl-missing_assignment, the number of assignments that are missing students (`{python} str(int(round(missing_assignment[missing_assignment['Number of missing students']!=0]['Number of assignments'].sum()*100/nb_assignments,0)))`% of assignments) is close to the number of assignments that aren't missing students (`{python} str(int(round(missing_assignment[missing_assignment['Number of missing students']==0]['Number of assignments'].sum()*100/nb_assignments,0)))`% of assignments). This means that the missing data is relatively evenly spread across assignments, with no assignment missing more than 
+`{python} str(int(missing_assignment['Number of missing students'].max()))` out of `{python} str(int(nb_students))` students (`{python} str(int(missing_assignment['Number of missing students'].max()*100/nb_students))`%). It also suggests that the missingness isn't due to an assignment specific issue.
+
+
+### KC coverage imbalance
+
+![This figure shows the distribution of KC coverage across assignment items. Most KCs are covered by fewer than 10 items, with coverage peaking at 2-3 items per KC. A small number of KCs are covered by up to 30 items.](../figures/kc_coverage.png){#fig-kc-coverage width=40%}
+
+Looking at @fig-kc-coverage, the KC coverage is heavily right-skewed, with a median of `{python} str(int(median_items_per_kc))` items per KC. This imbalance means that some knowledge components contain up to `{python} str(int(max_obs_per_kc))` observations, while others are not assessed at all (`{python} str(int(nb_zero_coverage))` KCs with `{python} str(int(min_obs_per_kc))` observations). The difference in coverage among KCs could affect the reliability of mastery estimates for under-covered KCs.
+
+
+![This figure shows the distribution of KC coverage across assignment items for 2 different students, one who handed in all assignments (left : S001) and one who has 5 missing assignments (right : S012).](../figures/kc_coverage_comparison.png){#fig-kc-coverage-comparison width=90%}
+
+Looking at @fig-kc-coverage-comparison, both students have a similarly right-skewed KC coverage distribution, though S012's is shifted slightly more towards the left compared to S001, which is consistent with the 5 missing assignments. In fact, S012 has `{python} zero_coverage_missing` untested KCs compared to S001 who only has `{python} zero_coverage_full`, meaning that already under covered KCs are even sparser for S012. Overall, this means that having missing assignments may reduce the reliability of mastery estimates.
+
+## Appendix B : Data Science Approach
+
+### Model
+
+To estimate student mastery we will use Knowledge Tracing, which is a family of models that track the progression of a student's knowledge as they interact with knowledge components (through assignments). Since the dataset contains item level student responses related to specific KCs, this method is a natural fit as it is designed to use this structure to estimate unknown mastery states. Understanding a student's knowledge state can help teachers customize the lesson plans to better suit individual needs, as well as help students identify the skills they are struggling with the most.
+
+We will build and compare multiple different types of Knowledge Tracing models to determine the one that is the best fit for our data. Our baseline model is a Bayesian Knowledge Tracing (BKT) model, which assumes that it is possible to estimate a student's latent knowledge state (their understanding) based on their observed performance (their grades) (@shen2024survey). We chose this model as our baseline since it is simple and easily interpretable, which makes it a natural choice to compare more complex models to. However, the significant KC coverage imbalance (identified in the EDA section above) means that simpler models like BKT that treat all KCs as independent, may struggle with sparse KC coverage. More complex models that share information across KCs may therefore perform better on this dataset.
+
+These models will produce an estimate of the probability that a student has mastered a specific KC based on their past performance (assignment scores), which is called the mastery probability. These estimates are the foundation for all three dashboard components : the knowledge profile, the early warning system and the suggested next steps.
+
+### Dashboard
+
+These are the main components that the dashboard will contain : 
+
+#### Knowledge profile
+
+Using the mastery probability obtained from the Knowledge Tracing model, we will build a knowledge profile for each student. Each profile will display all KCs and their corresponding mastery probability which will allow both students and teachers to get a clear overview of a student's knowledge state. These profiles will be updated each time new assignment data is entered, which will help ensure that they reflect the student's most recent performance.
+
+#### Early Warning System
+
+For every student, the Early Warning System will automatically flag knowledge components that they appear to be struggling with, based on these two conditions:
+
+- The mastery probability remains below a certain threshold (50%) after a predefined number of interactions (3 assignments)
+- The mastery probability has become stagnant and shows no meaningful increase across consecutive interactions
+
+These conditions allow the system to flag both students who are struggling to grasp a KC and those whose understanding is not progressing. Flagged KCs will be highlighted on the dashboard to ensure timely interventions from teachers. Both the thresholds (50% and 3 assignments) are tentative and will be calibrated based on the dataset.
+
+#### Next Steps Suggestion System
+
+A student is considered to have mastered a KC if their mastery probability is above a certain threshold (95%). Once a student has mastered a KC, the Next Step Suggestion System will recommend assignments that cover KCs that they have not mastered yet, prioritising KCs whose prerequisites have been satisfied. This helps ensure that recommendations follow a logical progression through course content.
+
+Setting a mastery threshold at 95% follows the standard established by @corbett1994knowledge.
+
+
+## Appendix C - Additional Evaluation
+
+### Early Warning System Validity
+
+We will create a dataset using the student's performance band from Overall_Scores where Emerging students are labelled as Flag and all others are labelled as Not Flag. Using this dataset, we will be evaluating the Early Warning System as a binary classification problem with metrics like AUC, Precision and Recall to ensure that only necessary warnings are sent.
+Using the student's performance bands, we will create a binary classification target where Emerging students are labelled as Flag and all others are labelled as Not Flag. The Early Warning System will then be evaluated as a binary classifier with metrics like AUC, Precision and Recall. Given the class imbalance (only `{python} int(nb_emerging)` Emerging students out of `{python} int(nb_students)`), Recall will be the primary metric used, since it minimises the amount of false negatives (not flagging a student who is struggling).
 
 
 # References
