@@ -1,5 +1,6 @@
 ---
 title: "Proposal report"
+author: "Mailys Guedon, Siting Wang, Godsgift Braimah, Seungmyun Park"
 jupyter: python3
 format:
   html:
