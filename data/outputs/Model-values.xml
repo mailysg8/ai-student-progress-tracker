@@ -1,0 +1,13 @@
+<model_values>
+  <model>
+    <name>Default</name>
+    <log_likelihood>14776.2502</log_likelihood>
+    <AIC>31432.5003</AIC>
+    <BIC>38943.1305</BIC>
+    <RMSE>0.4920</RMSE>
+    <accuracy>0.5834</accuracy>
+    <cv_student_stratified>0.5006</cv_student_stratified>
+    <cv_item_stratified>0.5019</cv_item_stratified>
+    <cv_non_stratified>0.4948</cv_non_stratified>
+  </model>
+</model_values>

@@ -1,0 +1,2117 @@
+<parameters>
+  <parameter>
+    <id>1</id>
+    <type>skill</type>
+    <name>Observational unit and variable</name>
+    <intercept>0.4450939254</intercept>
+    <slope>0.0507549964</slope>
+    <slip>0.0133897873</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>2</id>
+    <type>skill</type>
+    <name>Categorical vs quantitative variable</name>
+    <intercept>0.9204302941</intercept>
+    <slope>0.0179977513</slope>
+    <slip>0.2615487847</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>3</id>
+    <type>skill</type>
+    <name>Frequency and relative-frequency tables</name>
+    <intercept>0.6345097711</intercept>
+    <slope>0.0109573024</slope>
+    <slip>0.2252331058</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>4</id>
+    <type>skill</type>
+    <name>Bar, pie, and segmented-bar displays</name>
+    <intercept>0.8310702998</intercept>
+    <slope>0.1678328769</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2755469496</guess>
+  </parameter>
+  <parameter>
+    <id>5</id>
+    <type>skill</type>
+    <name>Two-way categorical association</name>
+    <intercept>0.3835399122</intercept>
+    <slope>0.0149960207</slope>
+    <slip>0.1082378449</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>6</id>
+    <type>skill</type>
+    <name>Choose categorical display</name>
+    <intercept>0.4895913638</intercept>
+    <slope>0.0718188914</slope>
+    <slip>0.0102896508</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>7</id>
+    <type>skill</type>
+    <name>Sample, population, and scope of generalization</name>
+    <intercept>0.2037341406</intercept>
+    <slope>0.0079271911</slope>
+    <slip>0.0149884373</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>8</id>
+    <type>skill</type>
+    <name>Discrete vs continuous quantitative variable</name>
+    <intercept>0.6933915358</intercept>
+    <slope>0.0030813597</slope>
+    <slip>0.2171315313</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>9</id>
+    <type>skill</type>
+    <name>Read quantitative displays</name>
+    <intercept>0.2074685982</intercept>
+    <slope>0.0086879654</slope>
+    <slip>0.0114945379</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>10</id>
+    <type>skill</type>
+    <name>Shape, clusters, gaps, and outliers</name>
+    <intercept>0.5902257443</intercept>
+    <slope>0.0206890097</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>11</id>
+    <type>skill</type>
+    <name>Measures of center</name>
+    <intercept>0.6868441869</intercept>
+    <slope>0.0103200872</slope>
+    <slip>0.1525992776</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>12</id>
+    <type>skill</type>
+    <name>Measures of spread</name>
+    <intercept>0.4965254984</intercept>
+    <slope>0.0955995341</slope>
+    <slip>0.1109762285</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>13</id>
+    <type>skill</type>
+    <name>1.5 × IQR outlier rule</name>
+    <intercept>0.6553714171</intercept>
+    <slope>0.0354612958</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>14</id>
+    <type>skill</type>
+    <name>Resistance, skewness, and mean vs median</name>
+    <intercept>0.6883215153</intercept>
+    <slope>0.0093025834</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>15</id>
+    <type>skill</type>
+    <name>Five-number summary and boxplots</name>
+    <intercept>0.3904072583</intercept>
+    <slope>0.2211623815</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>16</id>
+    <type>skill</type>
+    <name>Compare distributions</name>
+    <intercept>0.2228022896</intercept>
+    <slope>0.0014953846</slope>
+    <slip>0.0027110161</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>17</id>
+    <type>skill</type>
+    <name>Linear transformations of data</name>
+    <intercept>0.7818534029</intercept>
+    <slope>0.0323407548</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>18</id>
+    <type>skill</type>
+    <name>Percentiles and quartile interpretation</name>
+    <intercept>0.2414206909</intercept>
+    <slope>0.0304565781</slope>
+    <slip>0.0699496416</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>19</id>
+    <type>skill</type>
+    <name>Empirical rule and standard deviation reasoning</name>
+    <intercept>0.5340789872</intercept>
+    <slope>0.5888811463</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>20</id>
+    <type>skill</type>
+    <name>Normal-model appropriateness</name>
+    <intercept>0.5610461310</intercept>
+    <slope>0.0959593566</slope>
+    <slip>0.2135853544</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>21</id>
+    <type>skill</type>
+    <name>Normal tail and interval probabilities</name>
+    <intercept>0.7009661237</intercept>
+    <slope>0.0251133371</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>22</id>
+    <type>skill</type>
+    <name>Inverse normal and percentile equations</name>
+    <intercept>0.3881477626</intercept>
+    <slope>0.1652934075</slope>
+    <slip>0.2766928771</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>23</id>
+    <type>skill</type>
+    <name>Compare standardized values</name>
+    <intercept>0.5314578640</intercept>
+    <slope>0.0350996332</slope>
+    <slip>0.2883464016</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>24</id>
+    <type>skill</type>
+    <name>Compute and interpret z-scores</name>
+    <intercept>0.6228632460</intercept>
+    <slope>0.0177116720</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>25</id>
+    <type>skill</type>
+    <name>Construct graphs with correct axes and scale</name>
+    <intercept>0.0214812342</intercept>
+    <slope>0.0002967867</slope>
+    <slip>0.0153465949</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>26</id>
+    <type>skill</type>
+    <name>Describe a quantitative distribution</name>
+    <intercept>0.5113242248</intercept>
+    <slope>0.2920052409</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>27</id>
+    <type>skill</type>
+    <name>Marginal relative frequency</name>
+    <intercept>0.7393210116</intercept>
+    <slope>0.0407606161</slope>
+    <slip>0.2646262306</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>28</id>
+    <type>skill</type>
+    <name>Conditional relative frequency</name>
+    <intercept>0.6269364296</intercept>
+    <slope>0.0183978234</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>29</id>
+    <type>skill</type>
+    <name>Segmented bar chart comparison</name>
+    <intercept>0.3164760890</intercept>
+    <slope>0.0568313873</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2586852437</guess>
+  </parameter>
+  <parameter>
+    <id>30</id>
+    <type>skill</type>
+    <name>Describe scatterplot association</name>
+    <intercept>0.3239779845</intercept>
+    <slope>0.0854099299</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>31</id>
+    <type>skill</type>
+    <name>Outliers, leverage, and influence</name>
+    <intercept>0.8475268589</intercept>
+    <slope>0.0069245432</slope>
+    <slip>0.2769020448</slip>
+    <guess>0.0530224667</guess>
+  </parameter>
+  <parameter>
+    <id>32</id>
+    <type>skill</type>
+    <name>Correlation properties</name>
+    <intercept>0.5289145694</intercept>
+    <slope>0.1000125441</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>33</id>
+    <type>skill</type>
+    <name>Interpret correlation in context</name>
+    <intercept>0.5989487122</intercept>
+    <slope>0.0629412427</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>34</id>
+    <type>skill</type>
+    <name>Association and independence for categorical variables</name>
+    <intercept>0.1116446646</intercept>
+    <slope>0.0936617441</slope>
+    <slip>0.2681928361</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>35</id>
+    <type>skill</type>
+    <name>Explanatory and response variables</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>36</id>
+    <type>skill</type>
+    <name>Extrapolation and prediction scope</name>
+    <intercept>0.3021447205</intercept>
+    <slope>0.0199514809</slope>
+    <slip>0.0107486999</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>37</id>
+    <type>skill</type>
+    <name>Use residual plots to assess linearity</name>
+    <intercept>0.2032764700</intercept>
+    <slope>0.0555551728</slope>
+    <slip>0.1471583308</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>38</id>
+    <type>skill</type>
+    <name>Least-squares prediction</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>39</id>
+    <type>skill</type>
+    <name>Coefficient of determination</name>
+    <intercept>0.3054841363</intercept>
+    <slope>0.0834282599</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2032336087</guess>
+  </parameter>
+  <parameter>
+    <id>40</id>
+    <type>skill</type>
+    <name>Interpret regression slope</name>
+    <intercept>0.5349507199</intercept>
+    <slope>0.0446131168</slope>
+    <slip>0.1409751726</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>41</id>
+    <type>skill</type>
+    <name>Interpret regression intercept</name>
+    <intercept>0.3375889601</intercept>
+    <slope>0.0581184465</slope>
+    <slip>0.0532590897</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>42</id>
+    <type>skill</type>
+    <name>Transformations to linearize relationships</name>
+    <intercept>0.1760182971</intercept>
+    <slope>0.2662890860</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2908153300</guess>
+  </parameter>
+  <parameter>
+    <id>43</id>
+    <type>skill</type>
+    <name>Scatterplot construction</name>
+    <intercept>0.0852969427</intercept>
+    <slope>0.0085476218</slope>
+    <slip>0.0273485978</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>44</id>
+    <type>skill</type>
+    <name>Compute and interpret residuals</name>
+    <intercept>0.3369206729</intercept>
+    <slope>0.4917101652</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1932603442</guess>
+  </parameter>
+  <parameter>
+    <id>45</id>
+    <type>skill</type>
+    <name>Standard deviation of residuals</name>
+    <intercept>0.2289462131</intercept>
+    <slope>0.0144514617</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1582174222</guess>
+  </parameter>
+  <parameter>
+    <id>46</id>
+    <type>skill</type>
+    <name>Population of interest</name>
+    <intercept>0.1049077084</intercept>
+    <slope>0.1295994789</slope>
+    <slip>0.0030027347</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>47</id>
+    <type>skill</type>
+    <name>Convenience and voluntary-response samples</name>
+    <intercept>0.4036197610</intercept>
+    <slope>0.1365219293</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>48</id>
+    <type>skill</type>
+    <name>Scope of generalization</name>
+    <intercept>0.5021941434</intercept>
+    <slope>0.0277157228</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>49</id>
+    <type>skill</type>
+    <name>Census versus sample survey</name>
+    <intercept>0.6692646600</intercept>
+    <slope>0.0299293582</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>50</id>
+    <type>skill</type>
+    <name>Cluster sample</name>
+    <intercept>0.6391799761</intercept>
+    <slope>0.1034644819</slope>
+    <slip>0.2814208616</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>51</id>
+    <type>skill</type>
+    <name>Statistical advantage of stratification</name>
+    <intercept>0.3417733311</intercept>
+    <slope>0.0481320302</slope>
+    <slip>0.2930311430</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>52</id>
+    <type>skill</type>
+    <name>Sampling bias and undercoverage</name>
+    <intercept>0.5721146995</intercept>
+    <slope>0.1663165186</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2418819278</guess>
+  </parameter>
+  <parameter>
+    <id>53</id>
+    <type>skill</type>
+    <name>Response and wording bias</name>
+    <intercept>0.2730531154</intercept>
+    <slope>0.0044109145</slope>
+    <slip>0.0125138229</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>54</id>
+    <type>skill</type>
+    <name>Stratified random sample</name>
+    <intercept>0.3376800029</intercept>
+    <slope>0.1619250801</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>55</id>
+    <type>skill</type>
+    <name>Nonresponse bias</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>56</id>
+    <type>skill</type>
+    <name>Systematic sample</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>57</id>
+    <type>skill</type>
+    <name>Treatments, explanatory variables, and response variables</name>
+    <intercept>0.4950091313</intercept>
+    <slope>0.0709697871</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2525539575</guess>
+  </parameter>
+  <parameter>
+    <id>58</id>
+    <type>skill</type>
+    <name>Identify experimental-design flaws</name>
+    <intercept>0.1990952240</intercept>
+    <slope>0.0188223219</slope>
+    <slip>0.0604735234</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>59</id>
+    <type>skill</type>
+    <name>Random assignment of treatments</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>60</id>
+    <type>skill</type>
+    <name>Control, comparison, and replication</name>
+    <intercept>0.2417578586</intercept>
+    <slope>0.1370999378</slope>
+    <slip>0.1826483072</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>61</id>
+    <type>skill</type>
+    <name>Matched-pairs design</name>
+    <intercept>0.0120344209</intercept>
+    <slope>0.1095297623</slope>
+    <slip>0.1496518212</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>62</id>
+    <type>skill</type>
+    <name>Experimental units</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>63</id>
+    <type>skill</type>
+    <name>Randomized block design</name>
+    <intercept>0.5003202344</intercept>
+    <slope>0.0413660705</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>64</id>
+    <type>skill</type>
+    <name>Study conclusions: causation and generalization</name>
+    <intercept>0.0859219967</intercept>
+    <slope>0.0000030157</slope>
+    <slip>0.1377591164</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>65</id>
+    <type>skill</type>
+    <name>Causation from well-designed experiments</name>
+    <intercept>0.3676086161</intercept>
+    <slope>0.0343928228</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>66</id>
+    <type>skill</type>
+    <name>Completely randomized design</name>
+    <intercept>0.2542664665</intercept>
+    <slope>0.2396303699</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1919215032</guess>
+  </parameter>
+  <parameter>
+    <id>67</id>
+    <type>skill</type>
+    <name>Placebo and blinding</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>68</id>
+    <type>skill</type>
+    <name>Experiment versus observational study</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>69</id>
+    <type>skill</type>
+    <name>Confounding variables</name>
+    <intercept>0.1181243581</intercept>
+    <slope>0.0355720303</slope>
+    <slip>0.1269873366</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>70</id>
+    <type>skill</type>
+    <name>Probability from simulation output</name>
+    <intercept>0.7358497141</intercept>
+    <slope>0.0797832021</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>71</id>
+    <type>skill</type>
+    <name>Sample spaces and outcomes</name>
+    <intercept>0.9906024214</intercept>
+    <slope>0.0316987704</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>72</id>
+    <type>skill</type>
+    <name>Simulation model design</name>
+    <intercept>0.4933597122</intercept>
+    <slope>0.2591283376</slope>
+    <slip>0.1387924504</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>73</id>
+    <type>skill</type>
+    <name>Complement rule</name>
+    <intercept>0.8832105303</intercept>
+    <slope>0.0270036935</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>74</id>
+    <type>skill</type>
+    <name>Long-run interpretation of probability</name>
+    <intercept>0.7888489009</intercept>
+    <slope>0.1413147959</slope>
+    <slip>0.2986059893</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>75</id>
+    <type>skill</type>
+    <name>Mutually exclusive events</name>
+    <intercept>0.1290521172</intercept>
+    <slope>0.7362356535</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2798525437</guess>
+  </parameter>
+  <parameter>
+    <id>76</id>
+    <type>skill</type>
+    <name>Conditional probability</name>
+    <intercept>0.4755726514</intercept>
+    <slope>0.0462803100</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>77</id>
+    <type>skill</type>
+    <name>Multiplication rule for dependent events</name>
+    <intercept>0.2963721605</intercept>
+    <slope>0.0907393729</slope>
+    <slip>0.1092648392</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>78</id>
+    <type>skill</type>
+    <name>Union, intersection, and addition rule</name>
+    <intercept>0.4328164283</intercept>
+    <slope>0.0437817405</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>79</id>
+    <type>skill</type>
+    <name>Basic probability from counting</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>80</id>
+    <type>skill</type>
+    <name>Independent events</name>
+    <intercept>0.6693940258</intercept>
+    <slope>0.0521883752</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>81</id>
+    <type>skill</type>
+    <name>Tree diagrams and compound paths</name>
+    <intercept>0.5468248075</intercept>
+    <slope>0.1684644625</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>82</id>
+    <type>skill</type>
+    <name>Bayes and total probability reasoning</name>
+    <intercept>0.4122492129</intercept>
+    <slope>0.6855192492</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1958723315</guess>
+  </parameter>
+  <parameter>
+    <id>83</id>
+    <type>skill</type>
+    <name>Joint distributions and independence of random variables</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>84</id>
+    <type>skill</type>
+    <name>Two-way tables for probability</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>85</id>
+    <type>skill</type>
+    <name>Shape and center of probability distributions</name>
+    <intercept>0.1308077166</intercept>
+    <slope>0.0330341529</slope>
+    <slip>0.1137083153</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>86</id>
+    <type>skill</type>
+    <name>Discrete probability distributions</name>
+    <intercept>0.0495760660</intercept>
+    <slope>0.2566677873</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2846142877</guess>
+  </parameter>
+  <parameter>
+    <id>87</id>
+    <type>skill</type>
+    <name>Expected value calculation</name>
+    <intercept>0.3866661412</intercept>
+    <slope>0.0079807082</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>88</id>
+    <type>skill</type>
+    <name>Standard deviation of a random variable</name>
+    <intercept>0.3489260806</intercept>
+    <slope>0.1203704504</slope>
+    <slip>0.1297558310</slip>
+    <guess>0.2514291853</guess>
+  </parameter>
+  <parameter>
+    <id>89</id>
+    <type>skill</type>
+    <name>Expected value interpretation</name>
+    <intercept>0.8744642773</intercept>
+    <slope>0.0092433201</slope>
+    <slip>0.2755393839</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>90</id>
+    <type>skill</type>
+    <name>Combining independent random variables</name>
+    <intercept>0.6686078555</intercept>
+    <slope>0.1034297150</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>91</id>
+    <type>skill</type>
+    <name>Linear transformations of random variables</name>
+    <intercept>0.1205481743</intercept>
+    <slope>0.2106914026</slope>
+    <slip>0.0027938695</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>92</id>
+    <type>skill</type>
+    <name>Expected value decision making</name>
+    <intercept>0.0269605786</intercept>
+    <slope>0.0222768959</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>93</id>
+    <type>skill</type>
+    <name>Binomial exact probability</name>
+    <intercept>0.3243829793</intercept>
+    <slope>0.0093632171</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>94</id>
+    <type>skill</type>
+    <name>Binomial cumulative and complement probability</name>
+    <intercept>0.3045945948</intercept>
+    <slope>0.0041798487</slope>
+    <slip>0.1582963170</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>95</id>
+    <type>skill</type>
+    <name>Binomial mean and standard deviation</name>
+    <intercept>0.3032483630</intercept>
+    <slope>0.1955358729</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>96</id>
+    <type>skill</type>
+    <name>Simple random sample</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>97</id>
+    <type>skill</type>
+    <name>Interpret binomial formulas</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>98</id>
+    <type>skill</type>
+    <name>Geometric probability</name>
+    <intercept>0.4728025697</intercept>
+    <slope>0.0214326307</slope>
+    <slip>0.2573521433</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>99</id>
+    <type>skill</type>
+    <name>Geometric mean and standard deviation</name>
+    <intercept>0.4362281527</intercept>
+    <slope>0.0095051400</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>100</id>
+    <type>skill</type>
+    <name>Binomial conditions</name>
+    <intercept>0.0691942376</intercept>
+    <slope>0.0190214177</slope>
+    <slip>0.0050804332</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>101</id>
+    <type>skill</type>
+    <name>Geometric conditions</name>
+    <intercept>0.3594065426</intercept>
+    <slope>0.0207115683</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>102</id>
+    <type>skill</type>
+    <name>Normal model percentiles and central intervals</name>
+    <intercept>0.4762927405</intercept>
+    <slope>0.0345114302</slope>
+    <slip>0.2551801685</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>103</id>
+    <type>skill</type>
+    <name>Normal model probability for individuals</name>
+    <intercept>0.5471757375</intercept>
+    <slope>0.0788707546</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>104</id>
+    <type>skill</type>
+    <name>Normal model appropriateness</name>
+    <intercept>0.6040408527</intercept>
+    <slope>0.0159677912</slope>
+    <slip>0.2077696766</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>105</id>
+    <type>skill</type>
+    <name>Simulation of sampling distributions</name>
+    <intercept>0.4805849531</intercept>
+    <slope>0.0435032647</slope>
+    <slip>0.1951389290</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>106</id>
+    <type>skill</type>
+    <name>Sample size effect on variability</name>
+    <intercept>0.3784811023</intercept>
+    <slope>0.0810699459</slope>
+    <slip>0.0790867105</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>107</id>
+    <type>skill</type>
+    <name>Point estimators, statistics, and parameters</name>
+    <intercept>0.5843034637</intercept>
+    <slope>0.1011793033</slope>
+    <slip>0.0598506187</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>108</id>
+    <type>skill</type>
+    <name>Estimator variability and efficiency</name>
+    <intercept>0.4346453682</intercept>
+    <slope>0.0387760181</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2482428089</guess>
+  </parameter>
+  <parameter>
+    <id>109</id>
+    <type>skill</type>
+    <name>Unbiased estimator</name>
+    <intercept>0.2984431671</intercept>
+    <slope>0.0255273380</slope>
+    <slip>0.1196115480</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>110</id>
+    <type>skill</type>
+    <name>Mean of sampling distribution of sample proportion</name>
+    <intercept>0.8544862778</intercept>
+    <slope>0.0632300505</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.0005437062</guess>
+  </parameter>
+  <parameter>
+    <id>111</id>
+    <type>skill</type>
+    <name>Normal conditions for sample proportion</name>
+    <intercept>0.6436602833</intercept>
+    <slope>0.1375750891</slope>
+    <slip>0.1699452181</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>112</id>
+    <type>skill</type>
+    <name>Standard error of difference in sample proportions</name>
+    <intercept>0.2211110389</intercept>
+    <slope>0.0133741535</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>113</id>
+    <type>skill</type>
+    <name>Normal conditions for difference in sample proportions</name>
+    <intercept>0.1772148509</intercept>
+    <slope>0.0035652248</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>114</id>
+    <type>skill</type>
+    <name>Mean of difference in sample proportions</name>
+    <intercept>0.1726250862</intercept>
+    <slope>0.0108218124</slope>
+    <slip>0.2119274697</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>115</id>
+    <type>skill</type>
+    <name>Probability for difference in sample proportions</name>
+    <intercept>0.1530754243</intercept>
+    <slope>0.0032393757</slope>
+    <slip>0.1402649847</slip>
+    <guess>0.2760916015</guess>
+  </parameter>
+  <parameter>
+    <id>116</id>
+    <type>skill</type>
+    <name>Standard error of a sample mean</name>
+    <intercept>0.2662944769</intercept>
+    <slope>0.0928605712</slope>
+    <slip>0.0686963718</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>117</id>
+    <type>skill</type>
+    <name>Shape of sampling distribution and CLT</name>
+    <intercept>0.6171848517</intercept>
+    <slope>0.0432110890</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>118</id>
+    <type>skill</type>
+    <name>Probability involving a sample mean</name>
+    <intercept>0.2634734745</intercept>
+    <slope>0.0020898596</slope>
+    <slip>0.2513893048</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>119</id>
+    <type>skill</type>
+    <name>Mean of sampling distribution of sample mean</name>
+    <intercept>0.7557346941</intercept>
+    <slope>0.0139040430</slope>
+    <slip>0.2655057106</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>120</id>
+    <type>skill</type>
+    <name>Mean of difference in sample means</name>
+    <intercept>0.3269596522</intercept>
+    <slope>0.0265596557</slope>
+    <slip>0.0113803572</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>121</id>
+    <type>skill</type>
+    <name>Standard error of difference in sample means</name>
+    <intercept>0.3862452000</intercept>
+    <slope>0.8107174907</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2536013128</guess>
+  </parameter>
+  <parameter>
+    <id>122</id>
+    <type>skill</type>
+    <name>Normal conditions for difference in sample means</name>
+    <intercept>0.5092424100</intercept>
+    <slope>0.2062089801</slope>
+    <slip>0.1133580558</slip>
+    <guess>0.0987948439</guess>
+  </parameter>
+  <parameter>
+    <id>123</id>
+    <type>skill</type>
+    <name>Units for standard error of difference in sample means</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>124</id>
+    <type>skill</type>
+    <name>One-proportion confidence interval procedure selection</name>
+    <intercept>0.4279307644</intercept>
+    <slope>0.0304553100</slope>
+    <slip>0.1645497109</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>125</id>
+    <type>skill</type>
+    <name>Standard error for a sample proportion interval</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>126</id>
+    <type>skill</type>
+    <name>Compute one-proportion confidence interval</name>
+    <intercept>0.3625626603</intercept>
+    <slope>0.0445475713</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1930008745</guess>
+  </parameter>
+  <parameter>
+    <id>127</id>
+    <type>skill</type>
+    <name>Conditions for one-proportion confidence interval</name>
+    <intercept>0.6008030986</intercept>
+    <slope>0.0087217708</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1501276796</guess>
+  </parameter>
+  <parameter>
+    <id>128</id>
+    <type>skill</type>
+    <name>Margin of error, width, and sample size</name>
+    <intercept>0.0622992286</intercept>
+    <slope>0.0014761311</slope>
+    <slip>0.0578927190</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>129</id>
+    <type>skill</type>
+    <name>Long-run interpretation of confidence level</name>
+    <intercept>0.3820737439</intercept>
+    <slope>0.0632973273</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2959548913</guess>
+  </parameter>
+  <parameter>
+    <id>130</id>
+    <type>skill</type>
+    <name>Interpret one-proportion confidence interval</name>
+    <intercept>0.0284032951</intercept>
+    <slope>0.0679338118</slope>
+    <slip>0.1436804656</slip>
+    <guess>0.2907296100</guess>
+  </parameter>
+  <parameter>
+    <id>131</id>
+    <type>skill</type>
+    <name>Use confidence interval to assess a claim</name>
+    <intercept>0.1546916893</intercept>
+    <slope>0.0960266247</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>132</id>
+    <type>skill</type>
+    <name>One-proportion z-test procedure selection</name>
+    <intercept>0.4489994581</intercept>
+    <slope>0.1090629608</slope>
+    <slip>0.2434095616</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>133</id>
+    <type>skill</type>
+    <name>One-proportion hypotheses</name>
+    <intercept>0.7446672451</intercept>
+    <slope>0.0250167701</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.0910789381</guess>
+  </parameter>
+  <parameter>
+    <id>134</id>
+    <type>skill</type>
+    <name>Conditions for one-proportion z-test</name>
+    <intercept>0.2880767056</intercept>
+    <slope>0.0091822089</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2909874401</guess>
+  </parameter>
+  <parameter>
+    <id>135</id>
+    <type>skill</type>
+    <name>One-proportion z-test statistic</name>
+    <intercept>0.1506770996</intercept>
+    <slope>0.0120259767</slope>
+    <slip>0.2689833711</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>136</id>
+    <type>skill</type>
+    <name>P-value calculation and interpretation</name>
+    <intercept>0.4008721614</intercept>
+    <slope>0.0456647554</slope>
+    <slip>0.2739334161</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>137</id>
+    <type>skill</type>
+    <name>Hypothesis test decision and conclusion</name>
+    <intercept>0.1977069050</intercept>
+    <slope>0.0177850778</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>138</id>
+    <type>skill</type>
+    <name>Significance level alpha</name>
+    <intercept>0.1905687921</intercept>
+    <slope>0.0357779373</slope>
+    <slip>0.0561285342</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>139</id>
+    <type>skill</type>
+    <name>Connection between confidence intervals and tests</name>
+    <intercept>0.0000013586</intercept>
+    <slope>0.0075720647</slope>
+    <slip>0.0447161367</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>140</id>
+    <type>skill</type>
+    <name>Type I error in context</name>
+    <intercept>0.5201812217</intercept>
+    <slope>0.2535521890</slope>
+    <slip>0.2794378124</slip>
+    <guess>0.1076163122</guess>
+  </parameter>
+  <parameter>
+    <id>141</id>
+    <type>skill</type>
+    <name>Type II error in context</name>
+    <intercept>0.3456609140</intercept>
+    <slope>0.0024413046</slope>
+    <slip>0.2981620851</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>142</id>
+    <type>skill</type>
+    <name>Power and Type II error relationship</name>
+    <intercept>0.3645438769</intercept>
+    <slope>0.3419971329</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1538758016</guess>
+  </parameter>
+  <parameter>
+    <id>143</id>
+    <type>skill</type>
+    <name>Tradeoffs among alpha, beta, sample size, and standard error</name>
+    <intercept>0.4049437149</intercept>
+    <slope>0.0347487468</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2406877867</guess>
+  </parameter>
+  <parameter>
+    <id>144</id>
+    <type>skill</type>
+    <name>Two-proportion confidence interval procedure selection</name>
+    <intercept>0.4852145819</intercept>
+    <slope>0.3867762418</slope>
+    <slip>0.2982214775</slip>
+    <guess>0.2675827487</guess>
+  </parameter>
+  <parameter>
+    <id>145</id>
+    <type>skill</type>
+    <name>Compute and interpret two-proportion confidence interval</name>
+    <intercept>0.5628629472</intercept>
+    <slope>0.1880011966</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>146</id>
+    <type>skill</type>
+    <name>Two-proportion confidence interval standard error</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>147</id>
+    <type>skill</type>
+    <name>Conditions for two-proportion inference</name>
+    <intercept>0.6748822609</intercept>
+    <slope>0.0695737277</slope>
+    <slip>0.2645674761</slip>
+    <guess>0.0002569733</guess>
+  </parameter>
+  <parameter>
+    <id>148</id>
+    <type>skill</type>
+    <name>Use two-proportion CI to assess difference</name>
+    <intercept>0.5701479084</intercept>
+    <slope>0.1330308029</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>149</id>
+    <type>skill</type>
+    <name>Two-proportion z-test procedure selection</name>
+    <intercept>0.1392198578</intercept>
+    <slope>0.3200750403</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>150</id>
+    <type>skill</type>
+    <name>Two-proportion hypotheses</name>
+    <intercept>0.4423605243</intercept>
+    <slope>0.0516734026</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>151</id>
+    <type>skill</type>
+    <name>Two-proportion test statistic and p-value</name>
+    <intercept>0.1592184187</intercept>
+    <slope>0.0105339030</slope>
+    <slip>0.1456854717</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>152</id>
+    <type>skill</type>
+    <name>Two-proportion test conclusion</name>
+    <intercept>0.4076887633</intercept>
+    <slope>0.0322106110</slope>
+    <slip>0.2828185315</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>153</id>
+    <type>skill</type>
+    <name>Mean inference procedure selection</name>
+    <intercept>0.3772568072</intercept>
+    <slope>0.1739755840</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>154</id>
+    <type>skill</type>
+    <name>Matched-pairs t-interval</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>155</id>
+    <type>skill</type>
+    <name>t-distribution and degrees of freedom</name>
+    <intercept>0.2937300519</intercept>
+    <slope>0.0252396185</slope>
+    <slip>0.0150858931</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>156</id>
+    <type>skill</type>
+    <name>Standard error for sample mean</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>157</id>
+    <type>skill</type>
+    <name>Compute one-sample t-interval</name>
+    <intercept>0.0176752390</intercept>
+    <slope>0.0000197878</slope>
+    <slip>0.0000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>158</id>
+    <type>skill</type>
+    <name>One-sample t-interval conditions</name>
+    <intercept>0.0366734222</intercept>
+    <slope>0.0207232221</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>159</id>
+    <type>skill</type>
+    <name>CI width, sample size, and confidence level</name>
+    <intercept>0.6356189095</intercept>
+    <slope>0.0492124309</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>160</id>
+    <type>skill</type>
+    <name>Interpret t confidence interval for a mean</name>
+    <intercept>0.1775183850</intercept>
+    <slope>0.0302964563</slope>
+    <slip>0.2989025192</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>161</id>
+    <type>skill</type>
+    <name>Generalization scope for quantitative inference</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>162</id>
+    <type>skill</type>
+    <name>One-sample t-test procedure selection</name>
+    <intercept>0.4521150708</intercept>
+    <slope>0.0070985670</slope>
+    <slip>0.0003450549</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>163</id>
+    <type>skill</type>
+    <name>Matched-pairs t-test procedure selection</name>
+    <intercept>0.1379744582</intercept>
+    <slope>0.0278682790</slope>
+    <slip>0.1147638344</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>164</id>
+    <type>skill</type>
+    <name>Hypotheses for population mean</name>
+    <intercept>0.2655116956</intercept>
+    <slope>0.0144212767</slope>
+    <slip>0.2722043655</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>165</id>
+    <type>skill</type>
+    <name>t-test conditions for means</name>
+    <intercept>0.0383503397</intercept>
+    <slope>0.0001161301</slope>
+    <slip>0.2063789215</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>166</id>
+    <type>skill</type>
+    <name>When mean inference is not appropriate</name>
+    <intercept>0.3229118485</intercept>
+    <slope>0.0038387152</slope>
+    <slip>0.0003459988</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>167</id>
+    <type>skill</type>
+    <name>t-test statistic for a mean</name>
+    <intercept>0.1670426789</intercept>
+    <slope>0.0268722399</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2458729716</guess>
+  </parameter>
+  <parameter>
+    <id>168</id>
+    <type>skill</type>
+    <name>p-value interpretation for mean tests</name>
+    <intercept>0.2153095593</intercept>
+    <slope>0.0335672734</slope>
+    <slip>0.1257164607</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>169</id>
+    <type>skill</type>
+    <name>Decision and conclusion for mean tests</name>
+    <intercept>0.0629797666</intercept>
+    <slope>0.0024842518</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>170</id>
+    <type>skill</type>
+    <name>Compute and interpret two-sample t interval</name>
+    <intercept>0.1568553100</intercept>
+    <slope>0.0094962505</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>171</id>
+    <type>skill</type>
+    <name>Use two-sample t interval to assess a claim</name>
+    <intercept>0.2990288123</intercept>
+    <slope>0.2331817976</slope>
+    <slip>0.2820726928</slip>
+    <guess>0.1279180624</guess>
+  </parameter>
+  <parameter>
+    <id>172</id>
+    <type>skill</type>
+    <name>Two-sample t-test procedure selection</name>
+    <intercept>0.3159040664</intercept>
+    <slope>0.1562550667</slope>
+    <slip>0.0505913536</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>173</id>
+    <type>skill</type>
+    <name>Two-sample t-test hypotheses</name>
+    <intercept>0.2339675372</intercept>
+    <slope>0.1194405247</slope>
+    <slip>0.1530011520</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>174</id>
+    <type>skill</type>
+    <name>Two-sample t-interval conditions</name>
+    <intercept>0.3225794378</intercept>
+    <slope>0.0805062680</slope>
+    <slip>0.1016776737</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>175</id>
+    <type>skill</type>
+    <name>Two-sample t-test statistic and p-value</name>
+    <intercept>0.2072532165</intercept>
+    <slope>0.0939752880</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>176</id>
+    <type>skill</type>
+    <name>Two-sample t-test conclusion</name>
+    <intercept>0.2269874900</intercept>
+    <slope>0.0002399269</slope>
+    <slip>0.0025954635</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>177</id>
+    <type>skill</type>
+    <name>Family error rate for multiple t-tests</name>
+    <intercept>0.0525479993</intercept>
+    <slope>0.0374334242</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2863864259</guess>
+  </parameter>
+  <parameter>
+    <id>178</id>
+    <type>skill</type>
+    <name>Alpha adjustment for multiple comparisons</name>
+    <intercept>0.2168898493</intercept>
+    <slope>0.3568239490</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.0358213373</guess>
+  </parameter>
+  <parameter>
+    <id>179</id>
+    <type>skill</type>
+    <name>Goodness-of-fit procedure selection</name>
+    <intercept>0.7431990349</intercept>
+    <slope>0.4351523234</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>180</id>
+    <type>skill</type>
+    <name>Goodness-of-fit hypotheses</name>
+    <intercept>0.4644249097</intercept>
+    <slope>0.0034122645</slope>
+    <slip>0.2118981795</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>181</id>
+    <type>skill</type>
+    <name>Goodness-of-fit expected counts</name>
+    <intercept>0.3542376152</intercept>
+    <slope>0.0996659416</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>182</id>
+    <type>skill</type>
+    <name>Goodness-of-fit test statistic and contributions</name>
+    <intercept>0.2283514307</intercept>
+    <slope>0.0129199852</slope>
+    <slip>0.0089582418</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>183</id>
+    <type>skill</type>
+    <name>Chi-square distribution shape</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>184</id>
+    <type>skill</type>
+    <name>Goodness-of-fit conditions</name>
+    <intercept>0.4261700204</intercept>
+    <slope>0.1589145222</slope>
+    <slip>0.1483602283</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>185</id>
+    <type>skill</type>
+    <name>Goodness-of-fit p-value interpretation</name>
+    <intercept>0.8256122266</intercept>
+    <slope>0.0832223821</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>186</id>
+    <type>skill</type>
+    <name>Goodness-of-fit decision and conclusion</name>
+    <intercept>0.4808698525</intercept>
+    <slope>0.2069602639</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2410247442</guess>
+  </parameter>
+  <parameter>
+    <id>187</id>
+    <type>skill</type>
+    <name>Two-way-table expected counts</name>
+    <intercept>0.2188688933</intercept>
+    <slope>0.0271715559</slope>
+    <slip>0.1688129412</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>188</id>
+    <type>skill</type>
+    <name>Chi-square homogeneity procedure selection</name>
+    <intercept>0.1407033040</intercept>
+    <slope>0.0047162145</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>189</id>
+    <type>skill</type>
+    <name>Chi-square independence procedure selection</name>
+    <intercept>0.3938645006</intercept>
+    <slope>0.0146624431</slope>
+    <slip>0.0035470422</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>190</id>
+    <type>skill</type>
+    <name>Independence hypotheses</name>
+    <intercept>0.2447066804</intercept>
+    <slope>0.0118265572</slope>
+    <slip>0.0234942170</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>191</id>
+    <type>skill</type>
+    <name>Homogeneity hypotheses</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>192</id>
+    <type>skill</type>
+    <name>Two-way chi-square conditions</name>
+    <intercept>0.0236062394</intercept>
+    <slope>0.0124615629</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>193</id>
+    <type>skill</type>
+    <name>Two-way chi-square test statistic</name>
+    <intercept>0.0346221383</intercept>
+    <slope>0.0766385263</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>194</id>
+    <type>skill</type>
+    <name>Two-way chi-square p-value interpretation</name>
+    <intercept>0.0198725717</intercept>
+    <slope>0.1663795359</slope>
+    <slip>0.0102205884</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>195</id>
+    <type>skill</type>
+    <name>Two-way chi-square decision and conclusion</name>
+    <intercept>0.2219728323</intercept>
+    <slope>0.0690433060</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>196</id>
+    <type>skill</type>
+    <name>Homogeneity vs independence distinction</name>
+    <intercept>0.1729149153</intercept>
+    <slope>0.4370122942</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1892031160</guess>
+  </parameter>
+  <parameter>
+    <id>197</id>
+    <type>skill</type>
+    <name>Two-way chi-square degrees of freedom</name>
+    <intercept>0.4542564264</intercept>
+    <slope>0.4794648482</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2258587196</guess>
+  </parameter>
+  <parameter>
+    <id>198</id>
+    <type>skill</type>
+    <name>Generalization scope for chi-square inference</name>
+    <intercept>0.0866962091</intercept>
+    <slope>0.0006502789</slope>
+    <slip>0.0069215854</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>199</id>
+    <type>skill</type>
+    <name>Pooled proportion and test standard error</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>200</id>
+    <type>skill</type>
+    <name>Linear regression inference procedure selection</name>
+    <intercept>0.6075289302</intercept>
+    <slope>0.9267821356</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>201</id>
+    <type>skill</type>
+    <name>Slope confidence interval calculation</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>202</id>
+    <type>skill</type>
+    <name>Slope CI critical value and margin of error</name>
+    <intercept>0.2406922350</intercept>
+    <slope>0.0104111743</slope>
+    <slip>0.0331907635</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>203</id>
+    <type>skill</type>
+    <name>Regression inference condition: linearity</name>
+    <intercept>0.5193470720</intercept>
+    <slope>0.2467206073</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>204</id>
+    <type>skill</type>
+    <name>Slope interval width and sample size</name>
+    <intercept>0.2624057126</intercept>
+    <slope>0.0405691424</slope>
+    <slip>0.0371961072</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>205</id>
+    <type>skill</type>
+    <name>Population regression slope parameter</name>
+    <intercept>0.4349558993</intercept>
+    <slope>0.0165359558</slope>
+    <slip>0.0032063442</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>206</id>
+    <type>skill</type>
+    <name>Slope confidence interval interpretation</name>
+    <intercept>0.3443049658</intercept>
+    <slope>0.0761944858</slope>
+    <slip>0.0565687649</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>207</id>
+    <type>skill</type>
+    <name>Use slope confidence interval to evaluate claims</name>
+    <intercept>0.4303288470</intercept>
+    <slope>0.0624388830</slope>
+    <slip>0.0759282022</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>208</id>
+    <type>skill</type>
+    <name>Slope t-test procedure selection</name>
+    <intercept>0.6942852764</intercept>
+    <slope>0.8918664417</slope>
+    <slip>0.2869076368</slip>
+    <guess>0.2293898769</guess>
+  </parameter>
+  <parameter>
+    <id>209</id>
+    <type>skill</type>
+    <name>Slope t-test hypotheses</name>
+    <intercept>0.5511421212</intercept>
+    <slope>0.0152743861</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.1659888496</guess>
+  </parameter>
+  <parameter>
+    <id>210</id>
+    <type>skill</type>
+    <name>Regression inference condition: equal variance</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>211</id>
+    <type>skill</type>
+    <name>Regression inference condition: residual normality</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>212</id>
+    <type>skill</type>
+    <name>Slope t-test statistic and degrees of freedom</name>
+    <intercept>0.2963346952</intercept>
+    <slope>0.0226634779</slope>
+    <slip>0.0116487268</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>213</id>
+    <type>skill</type>
+    <name>Slope test p-value interpretation</name>
+    <intercept>0.0748572026</intercept>
+    <slope>0.0699987188</slope>
+    <slip>0.0145735478</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>214</id>
+    <type>skill</type>
+    <name>Slope test decision and conclusion</name>
+    <intercept>0.2566289400</intercept>
+    <slope>0.0048265391</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>215</id>
+    <type>skill</type>
+    <name>Scatterplot construction and linear-model judgment</name>
+    <intercept>0.0475388264</intercept>
+    <slope>0.4540285821</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2655360635</guess>
+  </parameter>
+  <parameter>
+    <id>216</id>
+    <type>skill</type>
+    <name>Least-squares regression line from data</name>
+    <intercept>0.2627275200</intercept>
+    <slope>0.0206548505</slope>
+    <slip>0.2281031657</slip>
+    <guess>0.1561881160</guess>
+  </parameter>
+  <parameter>
+    <id>217</id>
+    <type>skill</type>
+    <name>Regression inference scope and prediction language</name>
+    <intercept>0.4148331651</intercept>
+    <slope>0.3214487008</slope>
+    <slip>0.2918705439</slip>
+    <guess>0.2100445134</guess>
+  </parameter>
+  <parameter>
+    <id>218</id>
+    <type>skill</type>
+    <name>Bootstrap purpose: approximate a sampling distribution</name>
+    <intercept>0.1895851886</intercept>
+    <slope>0.0041196152</slope>
+    <slip>0.1146415670</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>219</id>
+    <type>skill</type>
+    <name>Bootstrap resampling with replacement</name>
+    <intercept>0.3112579082</intercept>
+    <slope>0.0157543841</slope>
+    <slip>0.2926608191</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>220</id>
+    <type>skill</type>
+    <name>Bootstrap sample size matches original sample size</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>221</id>
+    <type>skill</type>
+    <name>Bootstrap distribution of a statistic</name>
+    <intercept>0.5081594905</intercept>
+    <slope>0.2534744031</slope>
+    <slip>0.1280473552</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>222</id>
+    <type>skill</type>
+    <name>Bootstrap percentile cutoffs</name>
+    <intercept>0.2148864632</intercept>
+    <slope>0.0149513009</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>223</id>
+    <type>skill</type>
+    <name>Interpret a bootstrap interval in context</name>
+    <intercept>0.1010030934</intercept>
+    <slope>0.0024568858</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.2944259147</guess>
+  </parameter>
+  <parameter>
+    <id>224</id>
+    <type>skill</type>
+    <name>Bootstrap limitations and representativeness</name>
+    <intercept>0.1987483492</intercept>
+    <slope>0.0562004081</slope>
+    <slip>0.1130251641</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>225</id>
+    <type>skill</type>
+    <name>Bootstrap versus null-based randomization test</name>
+    <intercept>0.0925932433</intercept>
+    <slope>0.0000092622</slope>
+    <slip>0.1032229209</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>226</id>
+    <type>skill</type>
+    <name>Compute Cohen's d / standardized effect size</name>
+    <intercept>0.0964943054</intercept>
+    <slope>0.0022168010</slope>
+    <slip>0.0023313994</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>227</id>
+    <type>skill</type>
+    <name>Interpret effect size and practical importance</name>
+    <intercept>0.1116593679</intercept>
+    <slope>0.0088225408</slope>
+    <slip>0.0912954950</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>228</id>
+    <type>skill</type>
+    <name>Interpret sampling-distribution notation</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>229</id>
+    <type>skill</type>
+    <name>Construct a bootstrap percentile interval</name>
+    <intercept>0.5000000000</intercept>
+    <slope>0.5000000000</slope>
+    <slip>0.1500000000</slip>
+    <guess>0.1500000000</guess>
+  </parameter>
+  <parameter>
+    <id>230</id>
+    <type>skill</type>
+    <name>Statistical power definition</name>
+    <intercept>0.0596516076</intercept>
+    <slope>0.0030938597</slope>
+    <slip>0.0017691490</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>231</id>
+    <type>skill</type>
+    <name>Power and beta relationship</name>
+    <intercept>0.2622812381</intercept>
+    <slope>0.0332728087</slope>
+    <slip>0.1716754768</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>232</id>
+    <type>skill</type>
+    <name>Factors affecting power</name>
+    <intercept>0.3646866013</intercept>
+    <slope>0.0010172328</slope>
+    <slip>0.1714224094</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>233</id>
+    <type>skill</type>
+    <name>Alpha-beta-power tradeoff in context</name>
+    <intercept>0.0343734282</intercept>
+    <slope>0.0001427835</slope>
+    <slip>0.0000145928</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>234</id>
+    <type>skill</type>
+    <name>Power for a specific alternative value</name>
+    <intercept>0.4376982061</intercept>
+    <slope>0.1881283553</slope>
+    <slip>0.1291086360</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+  <parameter>
+    <id>235</id>
+    <type>skill</type>
+    <name>Power calculation using rejection region</name>
+    <intercept>0.0033460957</intercept>
+    <slope>0.0016139321</slope>
+    <slip>0.3000000000</slip>
+    <guess>0.3000000000</guess>
+  </parameter>
+</parameters>
