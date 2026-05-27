@@ -30,11 +30,9 @@ pio.renderers.default = "plotly_mimetype"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 1 ── LOAD DATA
-# Replace the file paths below with your actual CSV paths.
-# The column names match exactly what you described.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# -- Load real data (uncomment and adjust paths when you have the files) ------
+# -- Load real data  ------
 # obs_df          = pd.read_csv('student_observations.csv')   # observation-level
 # assign_df       = pd.read_csv('assignment_scores.csv')      # per-HW summary
 # roster_df       = pd.read_csv('student_roster.csv')         # student metadata
@@ -43,8 +41,7 @@ pio.renderers.default = "plotly_mimetype"
 # bkt_mastery_df  = pd.read_csv('bkt_mastery.csv')            # BKT output (optional)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 2 ── SYNTHETIC DATA  (mirrors your real schema — delete when using CSVs)
-# Columns used from your description:
+# SECTION 2 ── SYNTHETIC DATA ------
 #   obs_df:     student_id, assignment_id, primary_kc_id, score, max_score,
 #               percent_score, item_type, new_kc_id
 #   assign_df:  student_id, assignment_id, raw_score, max_score, percent_score,
@@ -341,7 +338,7 @@ ACTION_STYLES = {
 }
 ```
 
-## Row — Student header {height="7%"}
+## Row — Student header {height="5%"}
 
 ```{python}
 #| content: valuebox
