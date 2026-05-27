@@ -1,0 +1,673 @@
+---
+title: "Stellar Education: Your Progress Dashboard"
+jupyter: stellar-proj
+format:
+  dashboard:
+    theme: flatly
+    nav-buttons: []
+    scrolling: true
+execute:
+  echo: false
+  warning: false
+  daemon: false
+  cache: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+import networkx as nx
+from pathlib import Path
+from IPython.display import HTML
+
+import plotly.io as pio
+pio.renderers.default = "plotly_mimetype"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 1 ── LOAD DATA
+# Replace the file paths below with your actual CSV paths.
+# The column names match exactly what you described.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# -- Load real data (uncomment and adjust paths when you have the files) ------
+# obs_df          = pd.read_csv('student_observations.csv')   # observation-level
+# assign_df       = pd.read_csv('assignment_scores.csv')      # per-HW summary
+# roster_df       = pd.read_csv('student_roster.csv')         # student metadata
+# kc_node_df      = pd.read_csv('kc_node.csv')                # KC definitions
+# kc_edge_df      = pd.read_csv('kc_edge.csv')                # KC prerequisite graph
+# bkt_mastery_df  = pd.read_csv('bkt_mastery.csv')            # BKT output (optional)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 2 ── SYNTHETIC DATA  (mirrors your real schema — delete when using CSVs)
+# Columns used from your description:
+#   obs_df:     student_id, assignment_id, primary_kc_id, score, max_score,
+#               percent_score, item_type, new_kc_id
+#   assign_df:  student_id, assignment_id, raw_score, max_score, percent_score,
+#               num_observations
+#   roster_df:  student_id, display_name, performance_band, prior_stats_exposure
+#   kc_node_df: kc_id, kc_label, reporting_group, difficulty_prior, intro_class
+#   kc_edge_df: source_kc_id, target_kc_id, relation, confidence
+# ─────────────────────────────────────────────────────────────────────────────
+
+np.random.seed(42)
+
+# ── KC nodes ─────────────────────────────────────────────────────────────────
+kc_nodes_raw = [
+    ("KC.U1.01.statistical_context",           "Statistical context",         1, 0.25),
+    ("KC.U1.02.observational_unit_variable",   "Observational unit/variable", 1, 0.30),
+    ("KC.U1.03.categorical_quantitative",      "Categorical vs quantitative", 1, 0.35),
+    ("KC.U1.05.distribution_shape",            "Distribution shape",          2, 0.40),
+    ("KC.U1.06.measures_center",               "Measures of center",          2, 0.45),
+    ("KC.U1.10.measures_spread",               "Measures of spread",          2, 0.50),
+    ("KC.U1.13.standard_deviation",            "Standard deviation",          3, 0.60),
+    ("KC.U1.14.five_number_summary",           "Five-number summary",         3, 0.55),
+    ("KC.U1.15.boxplots",                      "Boxplots",                    3, 0.60),
+    ("KC.U1.16.outliers_iqr",                  "Outliers (IQR rule)",         3, 0.65),
+    ("KC.U1.17.skewness",                      "Skewness",                    3, 0.55),
+    ("KC.U1.19.comparing_distributions",       "Comparing distributions",     4, 0.70),
+    ("KC.U1.20.normal_shape",                  "Normal dist. shape",          4, 0.65),
+    ("KC.U1.22.z_scores",                      "Z-scores",                    4, 0.75),
+    ("KC.U1.23.normal_percentiles",            "Normal percentiles",          4, 0.80),
+]
+kc_node_df = pd.DataFrame(kc_nodes_raw,
+    columns=["kc_id", "kc_label", "intro_class", "difficulty_prior"])
+
+# ── KC edges ─────────────────────────────────────────────────────────────────
+edges_raw = [
+    ("KC.U1.01.statistical_context",         "KC.U1.02.observational_unit_variable", "supports", 0.80),
+    ("KC.U1.02.observational_unit_variable", "KC.U1.03.categorical_quantitative",    "supports", 0.85),
+    ("KC.U1.03.categorical_quantitative",    "KC.U1.05.distribution_shape",          "supports", 0.80),
+    ("KC.U1.05.distribution_shape",          "KC.U1.17.skewness",                    "supports", 0.85),
+    ("KC.U1.06.measures_center",             "KC.U1.13.standard_deviation",          "supports", 0.90),
+    ("KC.U1.06.measures_center",             "KC.U1.14.five_number_summary",         "supports", 0.85),
+    ("KC.U1.10.measures_spread",             "KC.U1.13.standard_deviation",          "supports", 0.90),
+    ("KC.U1.10.measures_spread",             "KC.U1.14.five_number_summary",         "supports", 0.80),
+    ("KC.U1.13.standard_deviation",          "KC.U1.22.z_scores",                    "supports", 0.90),
+    ("KC.U1.14.five_number_summary",         "KC.U1.15.boxplots",                    "supports", 0.90),
+    ("KC.U1.15.boxplots",                    "KC.U1.16.outliers_iqr",                "supports", 0.85),
+    ("KC.U1.15.boxplots",                    "KC.U1.19.comparing_distributions",     "supports", 0.80),
+    ("KC.U1.17.skewness",                    "KC.U1.19.comparing_distributions",     "supports", 0.80),
+    ("KC.U1.20.normal_shape",                "KC.U1.22.z_scores",                    "supports", 0.85),
+    ("KC.U1.22.z_scores",                    "KC.U1.23.normal_percentiles",          "supports", 0.90),
+]
+kc_edge_df = pd.DataFrame(edges_raw,
+    columns=["source_kc_id", "target_kc_id", "relation", "confidence"])
+
+KC_IDS    = kc_node_df["kc_id"].tolist()
+KC_LABELS = dict(zip(kc_node_df["kc_id"], kc_node_df["kc_label"]))
+
+# ── Student roster ────────────────────────────────────────────────────────────
+roster_raw = {
+    "S001": ("Student 01", "Developing",  "None"),
+    "S002": ("Student 02", "Proficient",  "Calculus"),
+    "S003": ("Student 03", "Advanced",    "AP Stats"),
+    "S008": ("Student 08", "Emerging",    "None"),
+    "S015": ("Student 15", "Proficient",  "None"),
+    "S020": ("Student 20", "Developing",  "None"),
+}
+roster_df = pd.DataFrame(
+    [(sid, name, band, exp) for sid, (name, band, exp) in roster_raw.items()],
+    columns=["student_id", "display_name", "performance_band", "prior_stats_exposure"]
+)
+
+# ── Assignment scores  (obs_df is simulated from these) ──────────────────────
+assign_raw = {
+    "S001": {"HW1": (12, 21), "HW2": (18, 24), "HW3": (9, 20)},
+    "S002": {"HW1": (19, 21), "HW2": (22, 24), "HW3": (17, 20)},
+    "S003": {"HW1": (21, 21), "HW2": (23, 24), "HW3": (19, 20)},
+    "S008": {"HW1": (16, 21), "HW2": (14, 24), "HW3": (11, 20)},
+    "S015": {"HW1": (18, 21), "HW2": (19, 24), "HW3": (15, 20)},
+    "S020": {"HW1": (10, 21), "HW2": (8,  24), "HW3": (6,  20)},
+}
+assign_rows = []
+for sid, hws in assign_raw.items():
+    for hw, (raw, mx) in hws.items():
+        assign_rows.append({
+            "student_id": sid,
+            "assignment_id": hw,
+            "raw_score": raw,
+            "max_score": mx,
+            "percent_score": round(raw / mx * 100, 1),
+            "num_observations": mx,
+        })
+assign_df = pd.DataFrame(assign_rows)
+
+# ── BKT mastery probabilities per student per KC ──────────────────────────────
+# These would come from your BKT run; simulated here to match three tiers.
+_profiles = {
+    # Advanced student (S003)
+    "S003": {kc: min(0.98, 0.78 + np.random.uniform(0.05, 0.20)) for kc in KC_IDS},
+    # Proficient students (S002, S015)
+    "S002": {kc: min(0.95, 0.60 + np.random.uniform(-0.10, 0.30)) for kc in KC_IDS},
+    "S015": {kc: min(0.92, 0.55 + np.random.uniform(-0.05, 0.30)) for kc in KC_IDS},
+    # Emerging / middle (S008)
+    "S008": {kc: max(0.10, 0.38 + np.random.uniform(-0.15, 0.30)) for kc in KC_IDS},
+    # Developing students (S001, S020)
+    "S001": {kc: max(0.08, 0.25 + np.random.uniform(-0.10, 0.25)) for kc in KC_IDS},
+    "S020": {kc: max(0.05, 0.15 + np.random.uniform(-0.05, 0.20)) for kc in KC_IDS},
+}
+# Pin specific KC values for realism
+_overrides = {
+    "KC.U1.01.statistical_context":         {"S003":0.96, "S002":0.88, "S015":0.84, "S008":0.71, "S001":0.45, "S020":0.28},
+    "KC.U1.02.observational_unit_variable": {"S003":0.95, "S002":0.85, "S015":0.82, "S008":0.65, "S001":0.38, "S020":0.22},
+    "KC.U1.13.standard_deviation":          {"S003":0.91, "S002":0.76, "S015":0.70, "S008":0.30, "S001":0.15, "S020":0.09},
+    "KC.U1.22.z_scores":                    {"S003":0.88, "S002":0.72, "S015":0.68, "S008":0.22, "S001":0.10, "S020":0.06},
+    "KC.U1.23.normal_percentiles":          {"S003":0.85, "S002":0.69, "S015":0.64, "S008":0.16, "S001":0.08, "S020":0.04},
+}
+for kc, sid_vals in _overrides.items():
+    for sid, val in sid_vals.items():
+        _profiles[sid][kc] = val
+
+bkt_mastery_df = pd.DataFrame([
+    {"student_id": sid, "kc_id": kc, "p_mastered": round(p, 3)}
+    for sid, kc_dict in _profiles.items()
+    for kc, p in kc_dict.items()
+])
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 3 ── STUDENT SELECTION
+# Change STUDENT_ID to any student in your roster.
+# In a deployed dashboard this would come from a parameter / URL query.
+# ─────────────────────────────────────────────────────────────────────────────
+STUDENT_ID       = "S008"   # ← CHANGE THIS to switch student views
+MASTERY_THRESHOLD = 0.80
+
+# Pull student data
+student_name = roster_df.loc[roster_df.student_id == STUDENT_ID, "display_name"].values[0]
+student_band = roster_df.loc[roster_df.student_id == STUDENT_ID, "performance_band"].values[0]
+prior_exp    = roster_df.loc[roster_df.student_id == STUDENT_ID, "prior_stats_exposure"].values[0]
+
+mastery_series = (
+    bkt_mastery_df[bkt_mastery_df.student_id == STUDENT_ID]
+    .set_index("kc_id")["p_mastered"]
+)
+mastery_dict = mastery_series.to_dict()
+
+hw_df = assign_df[assign_df.student_id == STUDENT_ID].copy()
+overall_accuracy = hw_df["percent_score"].mean() / 100
+
+# KC classification
+mastered_kcs   = [kc for kc, p in mastery_dict.items() if p >= MASTERY_THRESHOLD]
+developing_kcs = [kc for kc, p in mastery_dict.items() if 0.50 <= p < MASTERY_THRESHOLD]
+needs_work_kcs = [kc for kc, p in mastery_dict.items() if p < 0.50]
+
+# Build KC graph
+G = nx.DiGraph()
+G.add_edges_from(zip(kc_edge_df.source_kc_id, kc_edge_df.target_kc_id))
+
+# Blocked KCs: not mastered AND at least one unmastered prerequisite
+blocked = [
+    kc for kc in needs_work_kcs
+    if any(mastery_dict.get(pr, 1.0) < MASTERY_THRESHOLD for pr in G.predecessors(kc))
+]
+
+# Performance band and color
+BAND_COLORS = {
+    "Advanced":   "#0F6E56",
+    "Proficient": "#185FA5",
+    "Emerging":   "#854F0B",
+    "Developing": "#A32D2D",
+}
+BAND_UI_COLORS = {
+    "Advanced":   "success",
+    "Proficient": "primary",
+    "Emerging":   "warning",
+    "Developing": "danger",
+}
+band_color    = BAND_COLORS.get(student_band, "#555")
+band_ui_color = BAND_UI_COLORS.get(student_band, "secondary")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 4 ── TRAINING AGENDA LOGIC
+# Produces 3 next-step cards tailored to the student's mastery tier.
+# Steps are KC-graph-aware: we prioritise unblocking prerequisite chains.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_training_agenda(mastery_dict, G, kc_labels, threshold=0.80, n=3):
+    """
+    Return up to n action items.
+    Priority order:
+      1. Unblock: KCs that, once mastered, unlock the most downstream KCs
+      2. Quick wins: KCs close to threshold (p ≥ 0.60) with no unmastered prereqs
+      3. Foundational gaps: very low mastery KCs with no prerequisites
+    Each item carries context for the student-facing card.
+    """
+    weak = {kc: p for kc, p in mastery_dict.items() if p < threshold}
+    agenda = []
+
+    def unmastered_prereqs(kc):
+        return [pr for pr in G.predecessors(kc) if mastery_dict.get(pr, 0) < threshold]
+
+    def mastered_prereqs(kc):
+        return [pr for pr in G.predecessors(kc) if mastery_dict.get(pr, 0) >= threshold]
+
+    def downstream_unlocks(kc, depth=3):
+        """How many KCs become reachable once kc is mastered (up to depth hops)."""
+        reachable = set()
+        frontier = list(G.successors(kc))
+        for _ in range(depth):
+            next_f = []
+            for node in frontier:
+                if node not in reachable:
+                    reachable.add(node)
+                    next_f.extend(G.successors(node))
+            frontier = next_f
+        return [u for u in reachable if mastery_dict.get(u, 0) < threshold]
+
+    # Category A: quick wins — close to mastery, prereqs done
+    quick_wins = sorted(
+        [(kc, p) for kc, p in weak.items()
+         if p >= 0.60 and not unmastered_prereqs(kc)],
+        key=lambda x: -x[1]
+    )
+
+    # Category B: unblock opportunities — mastering this frees many downstream KCs
+    unblock_candidates = sorted(
+        [(kc, p) for kc, p in weak.items() if not unmastered_prereqs(kc)],
+        key=lambda x: -len(downstream_unlocks(x[0]))
+    )
+
+    # Category C: foundational gaps — very low, no prereqs at all (root KCs)
+    foundational = sorted(
+        [(kc, p) for kc, p in weak.items() if not list(G.predecessors(kc))],
+        key=lambda x: x[1]
+    )
+
+    seen = set()
+    def add_item(kc, p, action_type, action_label, rationale):
+        if kc not in seen:
+            seen.add(kc)
+            unlocks = downstream_unlocks(kc)
+            agenda.append({
+                "kc": kc,
+                "name": kc_labels.get(kc, kc),
+                "p_mastered": p,
+                "action_type": action_type,   # "quickwin" | "unblock" | "foundation"
+                "action_label": action_label,
+                "rationale": rationale,
+                "prereqs_mastered": [kc_labels.get(pr, pr) for pr in mastered_prereqs(kc)],
+                "prereqs_missing":  [kc_labels.get(pr, pr) for pr in unmastered_prereqs(kc)],
+                "unlocks": [kc_labels.get(u, u) for u in unlocks[:3]],  # show max 3
+                "unlocks_count": len(unlocks),
+            })
+
+    # Fill agenda slots in priority order
+    for kc, p in quick_wins:
+        if len(agenda) >= n: break
+        add_item(kc, p, "quickwin", "Almost there — push to mastery",
+                 f"You're at {p:.0%} — just a few more practice problems to cross the 80% line.")
+
+    for kc, p in unblock_candidates:
+        if len(agenda) >= n: break
+        n_unlocks = len(downstream_unlocks(kc))
+        if n_unlocks > 0:
+            add_item(kc, p, "unblock", f"Unlock {n_unlocks} more topic{'s' if n_unlocks>1 else ''}",
+                     f"Mastering this opens the path to {n_unlocks} dependent topic(s) in the unit.")
+
+    for kc, p in foundational:
+        if len(agenda) >= n: break
+        add_item(kc, p, "foundation", "Build your foundation",
+                 "This is a core building block. Strengthening it will make every later topic easier.")
+
+    # Fallback: just pick lowest mastery
+    for kc, p in sorted(weak.items(), key=lambda x: x[1]):
+        if len(agenda) >= n: break
+        add_item(kc, p, "gap", "Address gap",
+                 f"This skill is at {p:.0%} — consistent practice will move it forward.")
+
+    return agenda
+
+agenda = build_training_agenda(mastery_dict, G, KC_LABELS, MASTERY_THRESHOLD, n=3)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 5 ── COLOUR HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def mastery_color(p):
+    if p >= MASTERY_THRESHOLD: return "#1D9E75"
+    if p >= 0.50:              return "#EF9F27"
+    return "#E24B4A"
+
+ACTION_STYLES = {
+    "quickwin":    ("#1D9E75", "#E1F5EE", "🎯 Almost there"),
+    "unblock":     ("#185FA5", "#E6F1FB", "🔓 Key unlock"),
+    "foundation":  ("#854F0B", "#FAEEDA", "🏗 Foundation"),
+    "gap":         ("#A32D2D", "#FCEBEB", "⚠️ Gap"),
+}
+```
+
+## Row — Student header {height="7%"}
+
+```{python}
+#| content: valuebox
+#| title: "KCs mastered"
+dict(value=f"{len(mastered_kcs)} / {len(KC_IDS)}", icon="check-circle-fill", color="success")
+```
+
+```{python}
+#| content: valuebox
+#| title: "Overall accuracy"
+dict(value=f"{overall_accuracy:.0%}", icon="bar-chart-fill", color="primary")
+```
+
+```{python}
+#| content: valuebox
+#| title: "Performance band"
+dict(value=student_band, icon="award-fill", color=band_ui_color)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Blocked KCs"
+dict(
+    value=len(blocked),
+    icon="lock-fill",
+    color="danger" if len(blocked) > 2 else ("warning" if len(blocked) > 0 else "success")
+)
+```
+
+## Row — KC mastery & scores {height="35%"}
+
+### Column — KC mastery bar chart {width="58%"}
+
+```{python}
+#| title: "KC mastery: Your Current Status on every skill"
+
+sorted_kcs = sorted(mastery_dict.items(), key=lambda x: x[1])
+labels = [KC_LABELS.get(kc, kc) for kc, _ in sorted_kcs]
+values = [round(p * 100, 1) for _, p in sorted_kcs]
+colors = [mastery_color(p / 100) for p in values]
+
+fig = go.Figure(go.Bar(
+    x=values,
+    y=labels,
+    orientation='h',
+    marker_color=colors,
+    text=[f"{v}%" for v in values],
+    textposition='outside',
+    cliponaxis=False,
+    hovertemplate="%{y}<br>Mastery: %{x:.1f}%<extra></extra>",
+))
+_ = fig.add_vline(
+    x=80, line_dash='dash', line_color='#777',
+    annotation_text='Mastery threshold (80%)',
+    annotation_position='top right',
+    annotation_font_size=10,
+)
+_ = fig.update_layout(
+    margin=dict(l=10, r=70, t=10, b=30),
+    xaxis=dict(range=[0, 115], title='P(mastered) %', showgrid=False, fixedrange=True),
+    yaxis=dict(title='', automargin=True),
+    autosize=True,          # ← KEY FIX: let Quarto control the height
+    plot_bgcolor='white',
+    showlegend=False,
+    font=dict(size=11),
+)
+
+# ── FIX: return the figure object, never call fig.show() in a dashboard cell ─
+HTML(fig.to_html(full_html=False, include_plotlyjs="cdn"))
+```
+
+### Column - HW scores & KC graph {width="42%"}
+
+```{python}
+#| title: "Homework Scores By Assignment"
+
+hws    = hw_df["assignment_id"].tolist()
+scores = hw_df["percent_score"].tolist()
+colors_hw = [mastery_color(s / 100) for s in scores]
+
+fig2 = go.Figure(go.Bar(
+    x=hws,
+    y=scores,
+    marker_color=colors_hw,
+    text=[f"{s:.0f}%" for s in scores],
+    textposition='outside',
+    hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
+))
+_ = fig2.add_hline(y=80, line_dash='dot', line_color='#777',
+               annotation_text='80%', annotation_position='top right',
+               annotation_font_size=10)
+_ = fig2.update_layout(
+    margin=dict(l=10, r=30, t=10, b=30),
+    yaxis=dict(range=[0, 115], title='Score %', showgrid=False, fixedrange=True),
+    xaxis=dict(title=''),
+    autosize=True,          # ← KEY FIX
+    plot_bgcolor='white',
+    showlegend=False,
+    font=dict(size=11),
+)
+
+HTML(fig2.to_html(full_html=False, include_plotlyjs="cdn"))
+```
+
+```{python}
+#| title: "KC Prerequisite Graph: Your Mastery at a Glance"
+
+# Manual x/y layout so the graph renders in a small panel without needing networkx spring layout
+_pos = {
+    "KC.U1.01.statistical_context":         (0, 4),
+    "KC.U1.02.observational_unit_variable": (0, 3),
+    "KC.U1.03.categorical_quantitative":    (0, 2),
+    "KC.U1.05.distribution_shape":          (1, 4),
+    "KC.U1.06.measures_center":             (1, 2),
+    "KC.U1.10.measures_spread":             (1, 1),
+    "KC.U1.13.standard_deviation":          (2, 1),
+    "KC.U1.14.five_number_summary":         (2, 2),
+    "KC.U1.15.boxplots":                    (3, 2),
+    "KC.U1.16.outliers_iqr":               (4, 1),
+    "KC.U1.17.skewness":                   (2, 4),
+    "KC.U1.19.comparing_distributions":    (4, 3),
+    "KC.U1.20.normal_shape":               (3, 5),
+    "KC.U1.22.z_scores":                   (3, 0),
+    "KC.U1.23.normal_percentiles":         (4, 0),
+}
+
+edge_x, edge_y = [], []
+for src, tgt in zip(kc_edge_df.source_kc_id, kc_edge_df.target_kc_id):
+    if src in _pos and tgt in _pos:
+        x0, y0 = _pos[src]; x1, y1 = _pos[tgt]
+        edge_x += [x0, x1, None]
+        edge_y += [y0, y1, None]
+
+valid_kcs   = [kc for kc in KC_IDS if kc in _pos]
+node_x      = [_pos[kc][0] for kc in valid_kcs]
+node_y      = [_pos[kc][1] for kc in valid_kcs]
+node_colors = [mastery_color(mastery_dict.get(kc, 0)) for kc in valid_kcs]
+node_hover  = [
+    f"{KC_LABELS.get(kc, kc)}<br>Mastery: {mastery_dict.get(kc, 0):.0%}"
+    for kc in valid_kcs
+]
+short_labels = [kc.split(".")[-1][:6] for kc in valid_kcs]
+
+fig3 = go.Figure()
+_ = fig3.add_trace(go.Scatter(
+    x=edge_x, y=edge_y, mode='lines',
+    line=dict(width=1.2, color='#CCCCCC'), hoverinfo='none'
+))
+_ = fig3.add_trace(go.Scatter(
+    x=node_x, y=node_y, mode='markers+text',
+    marker=dict(size=20, color=node_colors, line=dict(width=1.5, color='white')),
+    text=short_labels,
+    textfont=dict(size=8, color='white'),
+    textposition='middle center',
+    hovertext=node_hover,
+    hoverinfo='text',
+))
+_ =fig3.update_layout(
+    margin=dict(l=5, r=5, t=5, b=5),
+    showlegend=False,
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, fixedrange=True),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, fixedrange=True),
+    autosize=True,          # ← KEY FIX
+    plot_bgcolor='white',
+    font=dict(size=10),
+)
+
+HTML(fig3.to_html(full_html=False, include_plotlyjs=False))
+```
+
+## Row — Training agenda {height="25%"}
+
+### Column {width="100%"}
+
+```{python}
+#| title: "🌟 Your Personalized Next Steps & Training Agenda"
+
+# ── Legend strip ──────────────────────────────────────────────────────────────
+legend_html = """
+<div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+  <span style="font-size:14px;color:#666;font-weight:500">Legend:</span>
+  <span style="display:flex;align-items:center;gap:5px;font-size:13px">
+    <span style="background:#E1F5EE;color:#1D9E75;border-radius:6px;padding:2px 8px;font-weight:500">🎯 Almost there</span>
+    Near mastery, no blockers. You can finish strong.
+  </span>
+  <span style="display:flex;align-items:center;gap:5px;font-size:13px">
+    <span style="background:#E6F1FB;color:#185FA5;border-radius:6px;padding:2px 8px;font-weight:500">🔓 Key unlock</span>
+    Mastering this opens many later topics.
+  </span>
+  <span style="display:flex;align-items:center;gap:5px;font-size:13px">
+    <span style="background:#FAEEDA;color:#854F0B;border-radius:6px;padding:2px 8px;font-weight:500">🏗 Foundation</span>
+    Core skill; Everything in the future builds on this.
+  </span>
+</div>"""
+
+# ── Agenda cards ──────────────────────────────────────────────────────────────
+def tag(label, fg, bg, border):
+    return (f'<span style="display:inline-block;background:{bg};color:{fg};'
+            f'border:0.5px solid {border};border-radius:4px;font-size:13px;'
+            f'padding:1px 6px;margin:1px 2px 0 0">{label}</span>')
+
+cards_html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
+
+for i, item in enumerate(agenda):
+    atype  = item["action_type"]
+    col, bg, badge = ACTION_STYLES.get(atype, ("#555", "#f5f5f5", item["action_label"]))
+
+    # Mastery bar
+    pct  = item["p_mastered"]
+    barw = int(pct * 100)
+    bar_color = mastery_color(pct)
+
+    prereq_done_tags = "".join(
+        tag(p, "#0F6E56", "#E1F5EE", "#9FE1CB")
+        for p in item["prereqs_mastered"]
+    ) or tag("None needed", "#888", "#f5f5f5", "#ddd")
+
+    prereq_miss_tags = "".join(
+        tag(p, "#A32D2D", "#FCEBEB", "#F7C1C1")
+        for p in item["prereqs_missing"]
+    )
+
+    unlock_tags = "".join(
+        tag(u, "#185FA5", "#E6F1FB", "#B5D4F4")
+        for u in item["unlocks"]
+    )
+    if item["unlocks_count"] > 3:
+        unlock_tags += tag(f"+{item['unlocks_count']-3} more", "#555", "#f0f0f0", "#ccc")
+
+    # Concrete next-step bullets (adaptive to tier)
+    pct_int = int(pct * 100)
+    if pct_int >= 70:
+        bullets = [
+            "Review 2–3 practice problems where you made errors.",
+            "Redo any homework items below 80% for this topic.",
+            "Try one AP free-response question using this skill.",
+        ]
+    elif pct_int >= 40:
+        bullets = [
+            "Re-read the relevant textbook section or class notes.",
+            "Complete at least 5 additional practice problems.",
+            "Ask your teacher to clarify the part you find hardest.",
+        ]
+    else:
+        bullets = [
+            "Start with the prerequisite skills shown below.",
+            "Watch a short explainer video for this concept.",
+            "Work through the scaffolded examples in your textbook.",
+        ]
+
+    bullet_html = "".join(
+        f'<li style="margin-bottom:2px">{b}</li>' for b in bullets
+    )
+
+    cards_html += f"""
+    <div style="border:0.5px solid #ddd;border-top:3px solid {col};
+                border-radius:0 0 10px 10px;
+                padding:14px 16px;background:white;display:flex;flex-direction:column;gap:8px">
+
+      <!-- Step number + name -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="background:{bg};color:{col};border-radius:50%;
+                     width:24px;height:24px;display:flex;align-items:center;
+                     justify-content:center;font-size:14px;font-weight:600;
+                     flex-shrink:0">{i+1}</span>
+        <strong style="font-size:15px;line-height:1.3">{item['name']}</strong>
+        <span style="margin-left:auto;background:{bg};color:{col};
+                     border-radius:6px;font-size:12px;padding:2px 7px;
+                     white-space:nowrap">{badge}</span>
+      </div>
+
+      <!-- Rationale -->
+      <div style="font-size:14px;color:#555;line-height:1.5">{item['rationale']}</div>
+
+      <!-- Mastery progress bar -->
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#777;margin-bottom:3px">
+          <span>Current mastery</span>
+          <strong style="color:{bar_color}">{pct:.0%}</strong>
+        </div>
+        <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden">
+          <div style="background:{bar_color};width:{barw}%;height:100%;border-radius:4px;
+                      transition:width .4s ease"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;font-size:13px;color:#bbb;margin-top:2px">
+          Target: 80%
+        </div>
+      </div>
+
+      <!-- Concrete next steps -->
+      <div>
+        <div style="font-size:13px;color:#888;font-weight:500;margin-bottom:4px">
+          ✅ What to do next:
+        </div>
+        <ul style="font-size:14px;color:#444;margin:0;padding-left:16px;line-height:1.7">
+          {bullet_html}
+        </ul>
+      </div>
+
+      <!-- Prerequisites & unlocks -->
+      <div style="border-top:0.5px solid #eee;padding-top:8px;display:flex;flex-direction:column;gap:6px">
+        <div>
+          <span style="font-size:12px;color:#999;display:block;margin-bottom:2px">
+            ✔ Prerequisites you've covered:
+          </span>
+          {prereq_done_tags}
+        </div>
+        {'<div><span style="font-size:12px;color:#999;display:block;margin-bottom:2px">⚠ Prerequisites still needed:</span>' + prereq_miss_tags + '</div>' if prereq_miss_tags else ''}
+        {'<div><span style="font-size:12px;color:#999;display:block;margin-bottom:2px">🔓 Will unlock:</span>' + unlock_tags + '</div>' if unlock_tags else ''}
+      </div>
+
+    </div>"""
+
+cards_html += "</div>"
+
+HTML(legend_html + cards_html)
+```
+
+
+
+
+
+
+
+
+
+
+
+
