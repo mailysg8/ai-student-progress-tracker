@@ -5,3 +5,11 @@ dependencies:
   - python=3.11
   - ipykernel
   - pandas
+  - pyyaml
+  - nbformat
+  - nbclient
+  - plotly
+  - shiny
+  - pip
+  - pip:
+      - shinywidgets
