@@ -1,52 +1,84 @@
 --- 
 title: "Teacher view - Class overview"
 format: 
-    dashboard:
-        scrolling: true 
+    dashboard :
+        scrolling: True
+        
 jupyter : python3
 --- 
 
 ```{python}
 import pandas as pd 
 import altair as alt
+data = pd.read_excel('data/raw/final_data.xlsx', sheet_name='Student_Observations')
 initial_model_output = pd.read_csv('data/output/group_initial_model.csv')
+kc = pd.read_excel('data/raw/final_data.xlsx', sheet_name='KC_Nodes')
+group = pd.read_excel('data/raw/grouped_data.xlsx', sheet_name=1)
+merged_data = initial_model_output.merge(group[['modeling_kc_id','modeling_kc_label']], left_on = 'skill_name', right_on='modeling_kc_id').drop(columns=['Unnamed: 0','modeling_kc_id'])
+
+kc['unit'] = kc['reporting_group'].str.split(':', expand=True)[0]
+kc['sub_unit'] = kc['reporting_group'].str.split(':', expand=True)[1]
 threshold = 0.7
 ```
 
-## Row {height=10%}
+## Row {height=5%}
+
+```{python}
+#| content: valuebox
+#| title: Number of Students
+kc_group = merged_data.groupby('skill_name')[['state_predictions']].mean()
+kc_below_threshold = len(kc_group.query(f'state_predictions < {threshold}'))
+nb_kc = len(kc_group) 
+dict(
+    value = merged_data['user_id'].nunique()
+)
+```
 
 ```{python}
 #| content: valuebox
 #| title: Number of KCs
-kc_group = initial_model_output.groupby('skill_name')[['state_predictions']].mean()
+kc_group = merged_data.groupby('skill_name')[['state_predictions']].mean()
 nb_kc = len(kc_group) 
 dict(
     value = nb_kc 
 )
 ```
+
 ```{python}
 #| content: valuebox
-#| title: Number of Students
-kc_group = initial_model_output.groupby('skill_name')[['state_predictions']].mean()
-kc_below_threshold = len(kc_group.query(f'state_predictions < {threshold}'))
-nb_kc = len(kc_group) 
+#| title: Number of Units 
 dict(
-    value = initial_model_output['user_id'].nunique()
+    value = kc['unit'].nunique()
 )
 ```
 
 ```{python}
 #| content: valuebox
+#| title: Number of Assignments 
+dict(
+    value = data['assignment_id'].nunique()
+)
+```
+```{python}
+#| content: valuebox
+#| title: Avg number of items per KC
+
+dict(
+    value = round(group['num_items'].mean())
+)
+```
+```{python}
+#| content: valuebox
 #| title: "Avg mastery — first attempt"
 
-first_attempt = initial_model_output.groupby(['user_id','skill_name'])['state_predictions'].first().mean() * 100
+first_attempt = merged_data.groupby(['user_id','skill_name'])['state_predictions'].first().mean() * 100
 dict(value = f"{first_attempt:.2f}%")
 ```
 
 ```{python}
 #| content: valuebox  
 #| title: "Avg mastery — latest attempt"
-last_attempt = initial_model_output.groupby(['user_id','skill_name'])['state_predictions'].last().mean()* 100
+last_attempt = merged_data.groupby(['user_id','skill_name'])['state_predictions'].last().mean()* 100
 dict(value = f"{last_attempt:.2f}%")
 ```
 
@@ -56,7 +88,7 @@ dict(value = f"{last_attempt:.2f}%")
 ```{python}
 #| content: valuebox
 #| title: KCs with mastery probability below 40%
-kc_group = initial_model_output.groupby('skill_name')[['state_predictions']].mean()
+kc_group = merged_data.groupby('skill_name')[['state_predictions']].mean()
 kc_below_threshold = len(kc_group.query('state_predictions < 0.4'))
 dict(
     value = kc_below_threshold,
@@ -66,7 +98,7 @@ dict(
 ```{python}
 #| content: valuebox
 #| title: KCs with mastery probability between  40-70% 
-kc_group = initial_model_output.groupby('skill_name')[['state_predictions']].mean()
+kc_group = merged_data.groupby('skill_name')[['state_predictions']].mean()
 kc_below_threshold = len(kc_group.query('state_predictions < 0.7 & state_predictions > 0.4'  ))
 dict(
     value = kc_below_threshold,
@@ -76,7 +108,7 @@ dict(
 ```{python}
 #| content: valuebox
 #| title: KCs with mastery probability above 70%
-kc_group = initial_model_output.groupby('skill_name')[['state_predictions']].mean()
+kc_group = merged_data.groupby('skill_name')[['state_predictions']].mean()
 kc_below_threshold = len(kc_group.query('state_predictions > 0.7'))
 dict(
     value = kc_below_threshold,
@@ -84,11 +116,11 @@ dict(
 )
 ```
 
-## Row {height=60%}
+## Row {height=30%}
 
 ```{python}
 #| title: Mastery Probability Distribution
-hist = alt.Chart(initial_model_output).transform_calculate(
+hist = alt.Chart(merged_data).transform_calculate(
     zone=f"""
         datum.state_predictions >= {threshold} ? 'Mastered' :
         datum.state_predictions >= 0.4 ? 'Developing' : 'At risk'
@@ -114,8 +146,8 @@ rule = alt.Chart(pd.DataFrame({'x': [threshold]})).mark_rule(
 ```{python}
 #| title: KC difficulty Ranking
 kc_difficulty = (
-    initial_model_output
-    .groupby('skill_name')['state_predictions']
+    merged_data
+    .groupby('modeling_kc_label')['state_predictions']
     .mean()
     .reset_index()
     .rename(columns={'state_predictions': 'avg_mastery'})
@@ -123,15 +155,15 @@ kc_difficulty = (
 )
 alt.Chart(kc_difficulty[:10]).mark_bar().encode(
     x=alt.X('avg_mastery', title = 'Average mastery'),
-    y=alt.Y('skill_name', sort='x', title = 'Skill name'),
+    y=alt.Y('modeling_kc_label', sort='x', title = 'Skill name'),
     tooltip=alt.Tooltip(['avg_mastery'], title = 'Average mastery')
 ).properties(
     title = 'Top 10 KCs with lowest Mastery Probability',
 )
 
 kc_difficulty = (
-    initial_model_output
-    .groupby('skill_name')['state_predictions']
+    merged_data
+    .groupby('modeling_kc_label')['state_predictions']
     .mean()
     .reset_index()
     .rename(columns={'state_predictions': 'avg_mastery'})
@@ -139,24 +171,24 @@ kc_difficulty = (
 )
 alt.Chart(kc_difficulty[-10:]).mark_bar().encode(
     x=alt.X('avg_mastery', title = 'Average mastery'),
-    y=alt.Y('skill_name', sort='x', title = 'Skill name'),
+    y=alt.Y('modeling_kc_label', sort='x', title = 'Skill name'),
     tooltip=alt.Tooltip(['avg_mastery'], title = 'Average mastery')
 ).properties(
     title = 'Top 10 KCs with highest Mastery Probability',
 )
 ```
-## Row {height=60%}
+## Row {height=30%}
 
 ```{python}
-initial_model_output = initial_model_output.sort_values(['user_id', 'skill_name', 'order_id'])
-initial_model_output['kc_attempt'] = (
-    initial_model_output
+merged_data = merged_data.sort_values(['user_id', 'skill_name', 'order_id'])
+merged_data['kc_attempt'] = (
+    merged_data
     .groupby(['user_id', 'skill_name'])
     .cumcount() + 1
 )
 # Then average across students for each KC at each attempt number
 mastery_over_time = (
-    initial_model_output
+    merged_data
     .groupby(['kc_attempt', 'skill_name'])['state_predictions']
     .mean()
     .reset_index()
