@@ -135,7 +135,6 @@ for sid, hws in assign_raw.items():
 assign_df = pd.DataFrame(assign_rows)
 
 # ── BKT mastery probabilities per student per KC ──────────────────────────────
-# These would come from your BKT run; simulated here to match three tiers.
 _profiles = {
     # Advanced student (S003)
     "S003": {kc: min(0.98, 0.78 + np.random.uniform(0.05, 0.20)) for kc in KC_IDS},
@@ -148,7 +147,7 @@ _profiles = {
     "S001": {kc: max(0.08, 0.25 + np.random.uniform(-0.10, 0.25)) for kc in KC_IDS},
     "S020": {kc: max(0.05, 0.15 + np.random.uniform(-0.05, 0.20)) for kc in KC_IDS},
 }
-# Pin specific KC values for realism
+# Pinning specific KC values to create interesting edge cases for the training agenda logic
 _overrides = {
     "KC.U1.01.statistical_context":         {"S003":0.96, "S002":0.88, "S015":0.84, "S008":0.71, "S001":0.45, "S020":0.28},
     "KC.U1.02.observational_unit_variable": {"S003":0.95, "S002":0.85, "S015":0.82, "S008":0.65, "S001":0.38, "S020":0.22},
@@ -168,10 +167,9 @@ bkt_mastery_df = pd.DataFrame([
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 3 ── STUDENT SELECTION
-# Change STUDENT_ID to any student in your roster.
-# In a deployed dashboard this would come from a parameter / URL query.
+# Change STUDENT_ID to any student in our roster.
 # ─────────────────────────────────────────────────────────────────────────────
-STUDENT_ID       = "S008"   # ← CHANGE THIS to switch student views
+STUDENT_ID       = "S008"  
 MASTERY_THRESHOLD = 0.80
 
 # Pull student data
@@ -220,7 +218,7 @@ band_color    = BAND_COLORS.get(student_band, "#555")
 band_ui_color = BAND_UI_COLORS.get(student_band, "secondary")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 4 ── TRAINING AGENDA LOGIC
+# SECTION 4 TRAINING AGENDA LOGIC
 # Produces 3 next-step cards tailored to the student's mastery tier.
 # Steps are KC-graph-aware: we prioritise unblocking prerequisite chains.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -244,7 +242,7 @@ def build_training_agenda(mastery_dict, G, kc_labels, threshold=0.80, n=3):
         return [pr for pr in G.predecessors(kc) if mastery_dict.get(pr, 0) >= threshold]
 
     def downstream_unlocks(kc, depth=3):
-        """How many KCs become reachable once kc is mastered (up to depth hops)."""
+        """How many KCs become reachable once kc is mastered."""
         reachable = set()
         frontier = list(G.successors(kc))
         for _ in range(depth):
@@ -256,20 +254,20 @@ def build_training_agenda(mastery_dict, G, kc_labels, threshold=0.80, n=3):
             frontier = next_f
         return [u for u in reachable if mastery_dict.get(u, 0) < threshold]
 
-    # Category A: quick wins — close to mastery, prereqs done
+    # Category A: quick wins, close to mastery, prereqs done
     quick_wins = sorted(
         [(kc, p) for kc, p in weak.items()
          if p >= 0.60 and not unmastered_prereqs(kc)],
         key=lambda x: -x[1]
     )
 
-    # Category B: unblock opportunities — mastering this frees many downstream KCs
+    # Category B: unblock opportunities, mastering this frees many downstream KCs
     unblock_candidates = sorted(
         [(kc, p) for kc, p in weak.items() if not unmastered_prereqs(kc)],
         key=lambda x: -len(downstream_unlocks(x[0]))
     )
 
-    # Category C: foundational gaps — very low, no prereqs at all (root KCs)
+    # Category C: foundational gaps very low, no prereqs at all (root KCs)
     foundational = sorted(
         [(kc, p) for kc, p in weak.items() if not list(G.predecessors(kc))],
         key=lambda x: x[1]
@@ -322,7 +320,7 @@ def build_training_agenda(mastery_dict, G, kc_labels, threshold=0.80, n=3):
 agenda = build_training_agenda(mastery_dict, G, KC_LABELS, MASTERY_THRESHOLD, n=3)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 5 ── COLOUR HELPERS
+# SECTION 5 COLOUR CODES
 # ─────────────────────────────────────────────────────────────────────────────
 
 def mastery_color(p):
@@ -446,7 +444,6 @@ HTML(fig2.to_html(full_html=False, include_plotlyjs="cdn"))
 ```{python}
 #| title: "KC Prerequisite Graph: Your Mastery at a Glance"
 
-# Manual x/y layout so the graph renders in a small panel without needing networkx spring layout
 _pos = {
     "KC.U1.01.statistical_context":         (0, 4),
     "KC.U1.02.observational_unit_variable": (0, 3),
@@ -516,7 +513,7 @@ HTML(fig3.to_html(full_html=False, include_plotlyjs=False))
 ```{python}
 #| title: "🌟 Your Personalized Next Steps & Training Agenda"
 
-# ── Legend strip ──────────────────────────────────────────────────────────────
+# ── Legend strip ─────────────────────────────────────────────────────────────
 legend_html = """
 <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
   <span style="font-size:14px;color:#666;font-weight:500">Legend:</span>
