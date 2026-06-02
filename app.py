@@ -32,6 +32,15 @@ app_ui = ui.page_navbar(
                 .navbar-nav .nav-link.active {
                     color: #8B9DBB !important;
                 }
+                
+                /* KC tab styling */
+                .nav-tabs .nav-link {
+                    color: #8B9DBB !important;
+                }
+                .nav-tabs .nav-link.active {
+                    color: #263744 !important;
+                    font-weight: 500;
+                }
             """)
         ),
         # ── Row 1: value boxes ───────────────────────────────────────────
@@ -39,22 +48,22 @@ app_ui = ui.page_navbar(
             ui.value_box(
                 "KCs Mastered",
                 ui.output_text("vb_mastered"),
-                theme=ui.value_box_theme(bg="#60D394", fg="#ffffff"),
+                theme=ui.value_box_theme(bg="#60D394", fg="#263744"),
             ),
             ui.value_box(
                 "KCs Progressing",
                 ui.output_text("vb_progressing"),
-                theme=ui.value_box_theme(bg="#FFD97D", fg="#5F5E5A"),
+                theme=ui.value_box_theme(bg="#FFD97D", fg="#263744"),
             ),
             ui.value_box(
                 "KCs Needing Attention",
                 ui.output_text("vb_needs"),
-                theme=ui.value_box_theme(bg="#EE6055", fg="#ffffff"),
+                theme=ui.value_box_theme(bg="#FF9B85", fg="#263744"),
             ),
             ui.value_box(
                 "Total KCs",
                 ui.output_text("vb_total"),
-                theme=ui.value_box_theme(bg="#8B9DBB", fg="#ffffff"),
+                theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
             ),
             col_widths=3,
         ),
