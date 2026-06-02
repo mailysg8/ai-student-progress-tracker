@@ -15,21 +15,29 @@ custom_css = ui.tags.style(
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 1px;
+    }
+    /* Kill the default top margin/gutter Bootstrap adds to the metric row */
+    .metric-row {
+        margin-top: 0 !important;
+        --bs-gutter-y: 0;
+    }
+    .tab-pane.bslib-gap-spacing {
+        gap: 0.7rem !important;
     }
     .dash-banner h1 {
-        font-size: 34px;
+        font-size: 36px;
         font-weight: 800;
         margin: 0;
     }
     .dashboard-subtitle {
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-style: italic;
     color: #FF9B85;
-    margin-top: 3px;
+    margin-top: 5px;
     }
     .brand { text-align: right; }
-    .brand .brand-name { font-size: 20px; font-weight: 800; }
+    .brand .brand-name { font-size: 20px; font-weight: 800; color: #ffffff;}
     .brand .brand-bars { margin-top: 6px; }
     .brand .bar {
         display: inline-block;
@@ -97,21 +105,49 @@ metric_cards = ui.layout_columns(
     ),
     col_widths=(3, 3, 3, 3),
     fill=False,
+    class_="metric-row",
+)
+
+kc_graph_card = ui.card(
+    ui.card_header("Modules Prerequisite Graph: Your Mastery at a Glance"),
+    ui.output_ui("kc_graph"),
+    class_="section-card",
+    height="320px",
+    full_screen=True,
+)
+
+next_steps_card = ui.card(
+    ui.card_header("\U0001F31F Your Personalized Next Steps & Training Agenda"),
+    ui.output_ui("agenda"),
+    class_="section-card",
+    height="420px",
+    full_screen=True,
 )
 
 
 # This is for Sitting's First Page
 home_page = ui.nav_panel(
     "Home",
+    ui.div(
+        ui.div("Stellar Education", class_="brand-name"),
+        ui.div(
+            ui.span(class_="bar bar-red"),
+            ui.span(class_="bar bar-yellow"),
+            ui.span(class_="bar bar-dot"),
+            class_="brand-bars",
+        ),
+        class_="brand"
+    )
     #banner
 )
-
 
 
 student_next_steps_page = ui.nav_panel(
     "Your Next Steps",
     banner,
     metric_cards,
+    kc_graph_card,
+    next_steps_card,
 )
 
 
@@ -125,7 +161,36 @@ app_ui = ui.page_navbar(
 
 
 def server(input, output, session):
-    pass
+    @output
+    @render.text
+    def kcs_mastered():
+        return "12"
+
+    @output
+    @render.text
+    def overall_accuracy():
+        return "85%"
+
+    @output
+    @render.text
+    def prior_performance_band():
+        return "Above Average"
+
+    @output
+    @render.text
+    def blocked_kcs():
+        return "3"
+    
+    @output
+    @render.ui
+    def kc_graph_card():
+        return ui.div()
+    
+    @output
+    @render.ui
+    def next_steps_card():
+        return ui.div()
+
 
 
 app = App(app_ui, server)
