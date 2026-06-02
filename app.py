@@ -120,7 +120,10 @@ app_ui = ui.page_navbar(
             ),
             col_widths=(4,8),
         ),  
-    ), 
+    ),
+    ui.nav_panel(
+        "Student Overview"
+    ),
     title=ui.tags.span("Stellar Education", style="color: white;"),
     navbar_options=ui.navbar_options(bg="#263744"),
     sidebar=ui.sidebar("Filters", bg="#263744"),
