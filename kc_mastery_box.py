@@ -152,20 +152,9 @@ def kc_mastery_box(
             text="Text:N"
         )
 
-    title_layer = alt.Chart(pd.DataFrame([{"text": kc_name}])).mark_text(
-    align="left",
-    baseline="top",
-    fontSize=20,
-    fontWeight="bold",
-    color="#000000",
-    ).encode(
-        x=alt.value(0),
-        y=alt.value(0),
-        text="text:N",
-    ).properties(width="container", height=30)
     
     bar_chart = (bar_track + bar_fill + label_bar).properties(
-        width=350,
+        width="container",
         height=20,
         title=alt.Title(
             text=f"Percentage of class that has mastered the KC:",
@@ -239,7 +228,7 @@ def kc_mastery_box(
     )
 
     tile_chart = (tile_bg + tile_labels).properties(
-        width=grid_w,
+        width="container",
         height=grid_h,
         title=alt.Title(
             text=f"Students  ({n_mastered} mastered · {n_total - n_mastered} working toward mastery)",
@@ -267,13 +256,12 @@ def kc_mastery_box(
             text="label:N",
             color=alt.Color("color:N", scale=None),
         )
-        .properties(width=grid_w, height=20)
+        .properties(width="container", height=20)
     )
 
     # ── assemble ─────────────────────────────────────────────────────────────
 
     full = alt.vconcat(
-        title_layer,
         bar_chart,
         tile_chart,
         legend,
