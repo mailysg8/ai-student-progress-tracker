@@ -47,4 +47,47 @@ custom_css = ui.tags.style(
     }
     """
 )
- 
+
+
+banner = ui.div(
+    ui.h1("Welcome to Your Progress Dashboard"),
+    ui.div(
+        ui.div("Stellar Education", class_="brand-name"),
+        ui.div(
+            ui.span(class_="bar bar-red"),
+            ui.span(class_="bar bar-yellow"),
+            ui.span(class_="bar bar-dot"),
+            class_="brand-bars",
+        ),
+        class_="brand"
+    ),
+    class_="dash-banner",
+)
+
+
+home_page = ui.nav_panel(
+    "Home",
+    #banner
+)
+
+
+student_next_steps_page = ui.nav_panel(
+    "Your Next Steps",
+    banner
+)
+
+
+app_ui = ui.page_navbar(
+    home_page,
+    student_next_steps_page,
+    #title="Stellar Education",
+    header=custom_css,
+    fillable=True
+)
+
+
+def server(input, output, session):
+    pass
+
+
+app = App(app_ui, server)
