@@ -1,0 +1,43 @@
+/*-- scss:defaults --*/
+$navbar-bg: #263744;        // Jet Black — matches dashboard palette
+$navbar-fg: #F5F7FA;
+$primary:   #EE6055;        // Vibrant Coral for buttons / links
+$body-color: #1F2933;
+$card-border-color: #E5E9EE;
+
+/*-- scss:rules --*/
+/* Hide the outer Quarto navbar entirely — the embedded HTML mockup has its
+   own dark header band, and we don't want two stacked layers on top. */
+body.quarto-dashboard > nav.navbar,
+body.quarto-dashboard .navbar,
+.quarto-dashboard-header,
+header.quarto-title-block {
+  display: none !important;
+}
+body.quarto-dashboard,
+body.quarto-dashboard .quarto-dashboard-content,
+body.quarto-dashboard > main,
+body.quarto-dashboard .page-layout-custom {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Strip every Quarto wrapper so the iframe is edge-to-edge with no white frame */
+html, body,
+body.quarto-dashboard,
+body.quarto-dashboard main,
+body.quarto-dashboard .page-layout-custom,
+body.quarto-dashboard .quarto-dashboard-content,
+body.quarto-dashboard .dashboard-toolbar,
+body.quarto-dashboard .quarto-dashboard-row,
+body.quarto-dashboard .quarto-dashboard-row > div,
+body.quarto-dashboard .card,
+body.quarto-dashboard .card-body,
+body.quarto-dashboard .card-header {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+body.quarto-dashboard .card { box-shadow: none !important; }
+body.quarto-dashboard iframe { display: block; margin: 0; padding: 0; border: 0; }
