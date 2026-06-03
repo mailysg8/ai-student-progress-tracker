@@ -31,6 +31,7 @@ def bs_info_icon(title: str):
 
 
 app_ui = ui.page_navbar(
+# ── Page 1: Class Overview ───────────────────────────────────────────   
     ui.nav_panel(
         "Class Overview",
         ui.head_content(
@@ -146,9 +147,11 @@ app_ui = ui.page_navbar(
             col_widths=(4,8),
         ),  
     ),
+# ── Page 2: Student Overview ─────────────────────────────────────────── 
     ui.nav_panel(
         "Student Overview"
     ),
+    
     title=ui.tags.span("Stellar Education", style="color: white;"),
     navbar_options=ui.navbar_options(bg="#263744"),
     sidebar=ui.sidebar("Filters", bg="#263744"),
