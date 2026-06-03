@@ -2,13 +2,13 @@ import pandas as pd
 import altair as alt
 from shiny import App, ui, render, reactive, req
 from shinywidgets import render_altair, output_widget, reactive_read
-from kc_mastery_box import kc_mastery_box, classify
-from unit_mastery_box import unit_mastery
+from src.kc_mastery_box import kc_mastery_box, classify
+from src.unit_mastery_box import unit_mastery
 
 
-mkc_data = pd.read_csv('data/processed/mkc_data.csv')
+mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
 
-kc_list_rank = list(mkc_data.groupby(['modeling_kc_label','rank']).count().sort_values('rank').reset_index().loc[0:3,'modeling_kc_label'])
+kc_list_rank = list(mkc_data.groupby(['modeling_kc_label_x','rank']).count().sort_values('rank').reset_index().loc[0:3,'modeling_kc_label_x'])
 
 
 ## Colour palette
@@ -21,6 +21,13 @@ PALETTE = [
     "#FF9B85",
     "#8B9DBB",
 ]
+
+# Info icon
+icon_title = "Information"
+def bs_info_icon(title: str):
+    # Enhanced from https://rstudio.github.io/bsicons/ via `bsicons::bs_icon(&quot;info-circle&quot;, title = icon_title)`
+    return ui.HTML(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="bi bi-info-circle " style="height:1em;width:1em;fill:currentColor;" aria-hidden="true" role="img" ><title>{title}</title><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"></path></svg>')
+
 
 
 app_ui = ui.page_navbar(
@@ -70,18 +77,36 @@ app_ui = ui.page_navbar(
         # ── Row 2: unit mastery grid (left) + KC boxes (right) ───────────
         ui.layout_columns(
             ui.card(
-                ui.card_header("Unit Mastery Overview"),
+                ui.card_header(
+                    ui.div(
+                        ui.span("Unit Mastery Overview", style="font-size: 22px;"),
+                        ui.tooltip(
+                            bs_info_icon(icon_title),
+                            "Text shown in the tooltip.",
+                        ),
+                        style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                    )
+                ),
                 output_widget("unit_mastery_chart"),
             ),
             ui.card(
-                ui.card_header("KC Progress"),
+                ui.card_header(
+                    ui.div(
+                        ui.span("KC Progress", style="font-size: 22px;"),
+                        ui.tooltip(
+                            bs_info_icon(icon_title),
+                            "Text shown in the tooltip.",
+                        ),
+                        style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                    )
+                ),
                 ui.navset_tab(
                     ui.nav_panel(
                         "Most Important KCs",
                         ui.layout_columns(
                             *[
                                 ui.card(
-                                    ui.card_header(ui.output_text(f"kc_rank_title_{i}")),
+                                    ui.card_header(ui.output_text(f"kc_rank_title_{i}"), style="font-size: 16px;"),
                                     output_widget(f"kc_rank_{i}"),
                                 )
                                 for i in range(4)
@@ -94,7 +119,7 @@ app_ui = ui.page_navbar(
                         ui.layout_columns(
                             *[
                                 ui.card(
-                                    ui.card_header(ui.output_text(f"kc_low_title_{i}")),
+                                    ui.card_header(ui.output_text(f"kc_low_title_{i}"), style="font-size: 16px;"),
                                     output_widget(f"kc_low_{i}"),
                                 )
                                 for i in range(4)
@@ -107,7 +132,7 @@ app_ui = ui.page_navbar(
                         ui.layout_columns(
                             *[
                                 ui.card(
-                                    ui.card_header(ui.output_text(f"kc_high_title_{i}")),
+                                    ui.card_header(ui.output_text(f"kc_high_title_{i}"), style="font-size: 16px;"),
                                     output_widget(f"kc_high_{i}"),
                                 )
                                 for i in range(4)
@@ -139,7 +164,7 @@ def server(input, output, session):
         bar_data = mkc_data.copy()
         last_attempt = (
             bar_data
-            .groupby(['user_id', 'skill_name'])
+            .groupby(['student_id', 'modeling_kc_id'])
             .last()
             .reset_index()
         )
@@ -149,7 +174,7 @@ def server(input, output, session):
     def kc_summary():
         df = (
             aggregated()
-            .groupby(['unit', 'skill_name', 'modeling_kc_label'])['state_predictions']
+            .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
             .apply(lambda x: (x >= 0.70).mean())
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
@@ -163,7 +188,7 @@ def server(input, output, session):
         return (
             kc_summary()
             .sort_values('pct_mastered', ascending=True)
-            .head(4)['modeling_kc_label']
+            .head(4)['modeling_kc_label_x']
             .tolist()
         )
     
@@ -173,7 +198,7 @@ def server(input, output, session):
         return (
             kc_summary()
             .sort_values('pct_mastered', ascending=False)
-            .head(4)['modeling_kc_label']
+            .head(4)['modeling_kc_label_x']
             .tolist()
         )
 
@@ -208,7 +233,7 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            last_attempt = aggregated()[aggregated()['modeling_kc_label'] == kc_name]
+            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
             return kc_mastery_box(kc_name, last_attempt)
 
     for i, kc_name in enumerate(kc_list_rank):
@@ -228,7 +253,7 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            last_attempt = aggregated()[aggregated()['modeling_kc_label'] == kc_name]
+            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
             return kc_mastery_box(kc_name, last_attempt)
 
     for i in range(4):
@@ -238,7 +263,7 @@ def server(input, output, session):
         @render_altair
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
-            last_attempt = aggregated()[aggregated()['modeling_kc_label'] == kc_name]
+            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
             return kc_mastery_box(kc_name, last_attempt)
         
     # ── titles for lowest tab ────────────────────────────────────────────
@@ -255,7 +280,7 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            last_attempt = aggregated()[aggregated()['modeling_kc_label'] == kc_name]
+            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
             return kc_mastery_box(kc_name, last_attempt)
     
     for i in range(4):
@@ -265,7 +290,7 @@ def server(input, output, session):
         @render_altair
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
-            last_attempt = aggregated()[aggregated()['modeling_kc_label'] == kc_name]
+            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
             return kc_mastery_box(kc_name, last_attempt)
     
     # ── titles for highest tab ────────────────────────────────────────────
