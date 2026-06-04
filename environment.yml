@@ -5,3 +5,10 @@ dependencies:
   - python=3.11
   - ipykernel
   - pandas
+  - scikit-learn=1.2.2
+  - matplotlib
+  - seaborn
+  - openpyxl
+  - pip
+  - pip:
+      - pybkt
