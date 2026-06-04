@@ -73,90 +73,107 @@ def tier_for_tile(t):
 per_stu_per_unit = (o.groupby(["student_id","unit"])["correct"].mean().unstack("unit"))
 class_avg = {u: float(per_stu_per_unit[u].mean()) for u in UNITS if u in per_stu_per_unit.columns}
 
-PICKS = [("S004","High performer"), ("S019","Middle performer"), ("S001","Low performer")]
-students = []
+DEFAULT_PICKS = [("S004","High performer"), ("S019","Middle performer"), ("S001","Low performer")]
 
-for sid, profile in PICKS:
-    rec  = scores[scores["student_id"]==sid].iloc[0]
-    sob  = o[o["student_id"]==sid]
-    overall = sob["correct"].mean()
-    mkc_mast = sob.groupby("mkc")["correct"].mean().to_dict()
 
-    tile_data = []
-    unit_avgs = {}
-    for u in UNITS:
-        total_in_unit = unit_mkcs[u]
-        attempted     = [m for m in total_in_unit if m in mkc_mast]
-        unattempted   = [m for m in total_in_unit if m not in mkc_mast]
-        mastered, developing, needs = [], [], []
-        for m in attempted:
-            v = mkc_mast[m]
-            entry = {"id": m, "label": mkc2label.get(m, m), "mastery": round(v*100, 1)}
-            if   v >= T_MASTERED:   mastered.append(entry)
-            elif v >= T_DEVELOPING: developing.append(entry)
-            else:                   needs.append(entry)
-        avg = sum(mkc_mast[m] for m in attempted) / len(attempted) if attempted else None
-        unit_avgs[u] = avg
+def build_html(picks=None):
+    """Generate the full HTML mockup as a string.
 
-        tile = {
-            "unit": u,
-            "avg_mastery": round(avg*100, 1) if avg is not None else None,
-            "total": len(total_in_unit),
-            "n_mastered": len(mastered),
-            "n_developing": len(developing),
-            "n_needs": len(needs),
-            "n_unattempted": len(unattempted),
-            "mastered_list":    sorted(mastered,   key=lambda x: -x["mastery"]),  # high first
-            "developing_list":  sorted(developing, key=lambda x:  x["mastery"]),  # priority first
-            "needs_list":       sorted(needs,      key=lambda x:  x["mastery"]),  # priority first
-            "unattempted_list": [{"id": m, "label": mkc2label.get(m, m)} for m in unattempted],
+    picks : list of (student_id, label) tuples.
+            Default = three demo students.
+            Pass [(sid, "")] for single-student rendering — picker/demo-banner/topbar auto-hidden.
+    """
+    picks = picks or DEFAULT_PICKS
+    students = []
+    for sid, profile in picks:
+        rec  = scores[scores["student_id"]==sid].iloc[0]
+        sob  = o[o["student_id"]==sid]
+        overall = sob["correct"].mean()
+        mkc_mast = sob.groupby("mkc")["correct"].mean().to_dict()
+
+        tile_data = []
+        unit_avgs = {}
+        for u in UNITS:
+            total_in_unit = unit_mkcs[u]
+            attempted     = [m for m in total_in_unit if m in mkc_mast]
+            unattempted   = [m for m in total_in_unit if m not in mkc_mast]
+            mastered, developing, needs = [], [], []
+            for m in attempted:
+                v = mkc_mast[m]
+                entry = {"id": m, "label": mkc2label.get(m, m), "mastery": round(v*100, 1)}
+                if   v >= T_MASTERED:   mastered.append(entry)
+                elif v >= T_DEVELOPING: developing.append(entry)
+                else:                   needs.append(entry)
+            avg = sum(mkc_mast[m] for m in attempted) / len(attempted) if attempted else None
+            unit_avgs[u] = avg
+
+            tile = {
+                "unit": u,
+                "avg_mastery": round(avg*100, 1) if avg is not None else None,
+                "total": len(total_in_unit),
+                "n_mastered": len(mastered),
+                "n_developing": len(developing),
+                "n_needs": len(needs),
+                "n_unattempted": len(unattempted),
+                "mastered_list":    sorted(mastered,   key=lambda x: -x["mastery"]),  # high first
+                "developing_list":  sorted(developing, key=lambda x:  x["mastery"]),  # priority first
+                "needs_list":       sorted(needs,      key=lambda x:  x["mastery"]),  # priority first
+                "unattempted_list": [{"id": m, "label": mkc2label.get(m, m)} for m in unattempted],
+            }
+            tile["tier"] = tier_for_tile(tile)
+            # advisor #4: recommended first action when student opens this unit
+            if   tile["needs_list"]:      tile["start_with"] = tile["needs_list"][0];      tile["start_verb"] = "Start with"
+            elif tile["developing_list"]: tile["start_with"] = tile["developing_list"][0]; tile["start_verb"] = "Keep practicing"
+            else:                         tile["start_with"] = None;                       tile["start_verb"] = None
+            tile_data.append(tile)
+
+        attempted_units = {u: v for u, v in unit_avgs.items() if v is not None}
+        strongest_unit = max(attempted_units, key=attempted_units.get)
+        weakest_unit   = min(attempted_units, key=attempted_units.get)
+
+        diffs = [(u, round((unit_avgs[u]-class_avg[u])*100, 1))
+                 for u in UNITS if unit_avgs.get(u) is not None and u in class_avg]
+        n_ahead  = sum(1 for _, d in diffs if d > 0)
+        n_behind = sum(1 for _, d in diffs if d < 0)
+        ahead_sorted  = sorted([(u,d) for u,d in diffs if d > 0], key=lambda x: -x[1])[:2]
+        behind_sorted = sorted([(u,d) for u,d in diffs if d < 0], key=lambda x:  x[1])[:2]
+
+        tier_id, tier_label, tier_color = tier_overall(overall)
+
+        totals = {
+            "mastered":     sum(t["n_mastered"]     for t in tile_data),
+            "developing":   sum(t["n_developing"]   for t in tile_data),
+            "needs":        sum(t["n_needs"]        for t in tile_data),
+            "unattempted":  sum(t["n_unattempted"]  for t in tile_data),
+            "all":          sum(t["total"]          for t in tile_data),
         }
-        tile["tier"] = tier_for_tile(tile)
-        # advisor #4: recommended first action when student opens this unit
-        if   tile["needs_list"]:      tile["start_with"] = tile["needs_list"][0];      tile["start_verb"] = "Start with"
-        elif tile["developing_list"]: tile["start_with"] = tile["developing_list"][0]; tile["start_verb"] = "Keep practicing"
-        else:                         tile["start_with"] = None;                       tile["start_verb"] = None
-        tile_data.append(tile)
 
-    attempted_units = {u: v for u, v in unit_avgs.items() if v is not None}
-    strongest_unit = max(attempted_units, key=attempted_units.get)
-    weakest_unit   = min(attempted_units, key=attempted_units.get)
+        students.append({
+            "id": sid, "name": rec["display_name"], "profile": profile,
+            "band": rec["performance_band"],
+            "overall": round(overall*100, 1),
+            "course_final": round(rec["course_final_dataset_percent"], 1),
+            "tier_id": tier_id, "tier_label": tier_label, "tier_color": tier_color,
+            "strongest_unit": strongest_unit, "strongest_unit_value": round(attempted_units[strongest_unit]*100, 1),
+            "weakest_unit": weakest_unit,     "weakest_unit_value": round(attempted_units[weakest_unit]*100, 1),
+            "unit_tiles": tile_data,
+            "totals": totals,
+            "n_ahead": n_ahead, "n_behind": n_behind, "n_total": len(diffs),
+            "ahead_units":  [{"unit": u, "diff": d} for u, d in ahead_sorted],
+            "behind_units": [{"unit": u, "diff": d} for u, d in behind_sorted],
+        })
 
-    diffs = [(u, round((unit_avgs[u]-class_avg[u])*100, 1))
-             for u in UNITS if unit_avgs.get(u) is not None and u in class_avg]
-    n_ahead  = sum(1 for _, d in diffs if d > 0)
-    n_behind = sum(1 for _, d in diffs if d < 0)
-    ahead_sorted  = sorted([(u,d) for u,d in diffs if d > 0], key=lambda x: -x[1])[:2]
-    behind_sorted = sorted([(u,d) for u,d in diffs if d < 0], key=lambda x:  x[1])[:2]
+    DATA_JSON = json.dumps(students, indent=2)
+    html = HTML_TEMPLATE.replace("__DATA__", DATA_JSON)
+    # Auto-hide picker / demo banner / topbar when a single student is embedded
+    if len(students) == 1:
+        html = html.replace('<div class="picker"', '<div class="picker" style="display:none"', 1)
+        html = html.replace('<div class="demo-banner">', '<div class="demo-banner" style="display:none">', 1)
+        html = html.replace('<div class="topbar">', '<div class="topbar" style="display:none">', 1)
+    return html
 
-    tier_id, tier_label, tier_color = tier_overall(overall)
 
-    totals = {
-        "mastered":     sum(t["n_mastered"]     for t in tile_data),
-        "developing":   sum(t["n_developing"]   for t in tile_data),
-        "needs":        sum(t["n_needs"]        for t in tile_data),
-        "unattempted":  sum(t["n_unattempted"]  for t in tile_data),
-        "all":          sum(t["total"]          for t in tile_data),
-    }
-
-    students.append({
-        "id": sid, "name": rec["display_name"], "profile": profile,
-        "band": rec["performance_band"],
-        "overall": round(overall*100, 1),
-        "course_final": round(rec["course_final_dataset_percent"], 1),
-        "tier_id": tier_id, "tier_label": tier_label, "tier_color": tier_color,
-        "strongest_unit": strongest_unit, "strongest_unit_value": round(attempted_units[strongest_unit]*100, 1),
-        "weakest_unit": weakest_unit,     "weakest_unit_value": round(attempted_units[weakest_unit]*100, 1),
-        "unit_tiles": tile_data,
-        "totals": totals,
-        "n_ahead": n_ahead, "n_behind": n_behind, "n_total": len(diffs),
-        "ahead_units":  [{"unit": u, "diff": d} for u, d in ahead_sorted],
-        "behind_units": [{"unit": u, "diff": d} for u, d in behind_sorted],
-    })
-
-DATA_JSON = json.dumps(students, indent=2)
-
-HTML = """<!doctype html>
+HTML_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -446,15 +463,6 @@ function openCategory(cat){
 
 function openUnit(i){
   const u = STUDENTS[currentStudent].unit_tiles[i];
-  const action = u.start_with ? `
-    <div class="action">
-      <div>
-        <div class="lbl">${u.start_verb}</div>
-        <div><b>${u.start_with.label}</b> &nbsp;<span style="color:${COLORS.red};font-weight:600">${u.start_with.mastery}%</span></div>
-      </div>
-      <button onclick="alert('Opens targeted practice for this skill (Godsgift\\'s page).')">Practice these skills →</button>
-    </div>` : "";
-
   document.getElementById("modal-content").innerHTML = `
     <div class="modal-header">
       <div>
@@ -466,8 +474,7 @@ function openUnit(i){
     ${modalSection("Needs practice",u.needs_list,      "needs",      COLORS.red,   true)}
     ${modalSection("Developing",    u.developing_list, "developing", COLORS.amber, true)}
     ${modalSection("Mastered",      u.mastered_list,   "mastered",   COLORS.green, true)}
-    ${modalSection("Unattempted",   u.unattempted_list,"unattempted","#6B7280",    false)}
-    ${action}`;
+    ${modalSection("Unattempted",   u.unattempted_list,"unattempted","#6B7280",    false)}`;
   document.getElementById("modal").classList.add("show");
 }
 
@@ -552,15 +559,7 @@ render(0);
 </html>
 """
 
-HTML = HTML.replace("__DATA__", DATA_JSON)
-OUT.write_text(HTML)
-print("WROTE", OUT, "size:", OUT.stat().st_size, "bytes")
-print("\nStudents embedded (with tile-tier breakdown):")
-for s in students:
-    tier_count = {"red":0,"yellow":0,"green":0,"gray":0}
-    for t in s["unit_tiles"]: tier_count[t["tier"]] += 1
-    print(f"  {s['id']} ({s['profile']:20s} {s['band']:11s})  "
-          f"tiles: {tier_count['red']} red / {tier_count['yellow']} yellow / "
-          f"{tier_count['green']} green / {tier_count['gray']} gray   "
-          f"KCs: {s['totals']['mastered']}M / {s['totals']['developing']}D / "
-          f"{s['totals']['needs']}N / {s['totals']['unattempted']}U")
+if __name__ == "__main__":
+    html = build_html()
+    OUT.write_text(html)
+    print("WROTE", OUT, "size:", OUT.stat().st_size, "bytes")

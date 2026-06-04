@@ -1751,15 +1751,6 @@ function openCategory(cat){
 
 function openUnit(i){
   const u = STUDENTS[currentStudent].unit_tiles[i];
-  const action = u.start_with ? `
-    <div class="action">
-      <div>
-        <div class="lbl">${u.start_verb}</div>
-        <div><b>${u.start_with.label}</b> &nbsp;<span style="color:${COLORS.red};font-weight:600">${u.start_with.mastery}%</span></div>
-      </div>
-      <button onclick="alert('Opens targeted practice for this skill (Godsgift\'s page).')">Practice these skills →</button>
-    </div>` : "";
-
   document.getElementById("modal-content").innerHTML = `
     <div class="modal-header">
       <div>
@@ -1771,8 +1762,7 @@ function openUnit(i){
     ${modalSection("Needs practice",u.needs_list,      "needs",      COLORS.red,   true)}
     ${modalSection("Developing",    u.developing_list, "developing", COLORS.amber, true)}
     ${modalSection("Mastered",      u.mastered_list,   "mastered",   COLORS.green, true)}
-    ${modalSection("Unattempted",   u.unattempted_list,"unattempted","#6B7280",    false)}
-    ${action}`;
+    ${modalSection("Unattempted",   u.unattempted_list,"unattempted","#6B7280",    false)}`;
   document.getElementById("modal").classList.add("show");
 }
 
