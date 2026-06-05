@@ -5,7 +5,8 @@ from shinywidgets import render_altair, output_widget, reactive_read
 from src.kc_mastery_box import kc_mastery_box, classify
 from src.unit_mastery_box import unit_mastery
 from src.opportunity_heatmap import opp_heatmap, opportunity_table, compute_opportunity_counts 
-
+from src.student_status_boxes import student_status_boxes
+from src.student_mastery_table import student_mastery_table
 
 
 mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
@@ -27,7 +28,7 @@ PALETTE = [
 # Info icon
 icon_title = "Information"
 def bs_info_icon(title: str):
-    # Enhanced from https://rstudio.github.io/bsicons/ via `bsicons::bs_icon(&quot;info-circle&quot;, title = icon_title)`
+    # Enhanced from https://rstudio.github.io/bsicons/ via `bsicons::bs_icon("info-circle", title = icon_title)`
     return ui.HTML(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="bi bi-info-circle " style="height:1em;width:1em;fill:currentColor;" aria-hidden="true" role="img" ><title>{title}</title><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"></path></svg>')
 
 
@@ -75,6 +76,10 @@ def kc_opp_rank(opp_counts : pd.DataFrame, n: int = 5):
     )
 
     return avg_opp[avg_opp['modeling_kc_label_x'].isin(kc_list_rank)]
+
+
+# Student dropdown choices (data is already loaded here)
+STUDENT_IDS = sorted(mkc_data["student_id"].unique().tolist())
 
 
 app_ui = ui.page_navbar(
@@ -266,7 +271,31 @@ app_ui = ui.page_navbar(
     ),
 # ── Page 2: Student Overview ─────────────────────────────────────────── 
     ui.nav_panel(
-        "Student Overview"
+        "Student Overview",
+        ui.div(
+            ui.layout_columns(
+                ui.input_select("so_student", "Student", choices=STUDENT_IDS, width="100%"),
+                ui.input_switch("so_quantile", "Relative (quantile) status", value=False),
+                ui.input_select(
+                    "so_status", "Status",
+                    choices=["All statuses", "Ahead", "On Track", "At Risk", "Behind"],
+                    selected="All statuses", width="100%",
+                ),
+                col_widths=(5, 3, 4),
+            ),
+            ui.card(
+                ui.card_header(ui.span("Status summary", style="font-size: 22px;")),
+                output_widget("so_status_boxes"),
+                style="height: 200px;",
+            ),
+            ui.card(
+                ui.card_header(ui.span("P(Mastery) by KC", style="font-size: 22px;")),
+                output_widget("so_mastery_table"),
+                full_screen=True,
+                style="min-height: 400px; overflow-y: auto;",
+            ),
+            style="padding: 1rem;",
+        ),
     ),
 
     title=ui.tags.span("Stellar Education", style="color: white;"),
@@ -449,5 +478,25 @@ def server(input, output, session):
             def _title():
                 return kc_list_highest()[idx]
         make_title_high(i)
+
+    # ── Student Overview ─────────────────────────────────────────────────
+    @output
+    @render_altair
+    def so_status_boxes():
+        return student_status_boxes(
+            student_id=input.so_student(),
+            data=mkc_data,
+            quantile=input.so_quantile(),
+        )
+
+    @output
+    @render_altair
+    def so_mastery_table():
+        return student_mastery_table(
+            student_id=input.so_student(),
+            data=mkc_data,
+            quantile=input.so_quantile(),
+            status_filter=input.so_status(),
+        )
 
 app = App(app_ui, server)
