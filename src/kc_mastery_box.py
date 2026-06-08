@@ -21,7 +21,7 @@ BAR_TRACK = "#DAE3DE"
 
 # ── helpers ─────────────────────────────────────────────────────────────────
 
-def classify(score, mastery_threshold=0.5, warning_threshold=0.1):
+def classify(score, mastery_threshold=0.7, warning_threshold=0.3):
     if score >= mastery_threshold:
         return "Mastered"
     elif score <= warning_threshold:

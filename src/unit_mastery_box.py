@@ -19,11 +19,11 @@ BG_COLOR            = "#F5F4F0"
  
 # ── helpers ─────────────────────────────────────────────────────────────────
  
-def classify(score, mastery_threshold=0.70, warning_threshold=0.30):
+def classify(score, mastery_threshold=0.7, warning_threshold=0.3):
     if score >= mastery_threshold:
         return "Mastered"
     elif score <= warning_threshold:
-        return "Needs Attention"
+        return "Need Attention" 
     else:
         return "Progressing"
  

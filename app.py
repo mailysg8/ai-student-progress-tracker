@@ -7,7 +7,10 @@ from src.unit_mastery_box import unit_mastery
 from src.opportunity_heatmap import opp_heatmap, opportunity_table, compute_opportunity_counts 
 from src.student_status_boxes import student_status_boxes
 from src.student_mastery_table import student_mastery_table
+from src.modal_builds import build_kc_modal, build_total_kc_modal
 
+MASTERY_THRESHOLD = 0.7
+ATTENTION_THRESHOLD = 0.3
 
 mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
 
@@ -130,29 +133,63 @@ app_ui = ui.page_navbar(
                                 )
                     ),
                     ui.layout_columns(
-                        ui.value_box(
-                            "Total KCs",
-                            ui.output_text("vb_total"),
-                            theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
-                        ),
-                        ui.value_box(
-                            "Number of KCs Mastered",
-                            ui.output_text("vb_mastered"),
-                            theme=ui.value_box_theme(bg="#60D394", fg="#263744"),
-                        ),
-                        ui.value_box(
-                            "Number of KCs Progressing",
-                            ui.output_text("vb_progressing"),
-                            theme=ui.value_box_theme(bg="#FFD97D", fg="#263744"),
-                        ),
-                        ui.value_box(
-                            "Number of KCs Needing Attention",
-                            ui.output_text("vb_needs"),
-                            theme=ui.value_box_theme(bg="#FF9B85", fg="#263744"),
-                        ),
-                        col_widths=3,
-                        col_heights=2
-                    ),
+                                # --- Total KCs ---
+                                ui.value_box(
+                                    "Total KCs",
+                                    ui.output_text("vb_total"),
+                                    theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
+                                    id="vb_total_box",
+                                    style="cursor: pointer;",
+                                ),
+
+                                # --- Mastered ---
+                                ui.value_box(
+                                    "Number of KCs Mastered",
+                                    ui.output_text("vb_mastered"),
+                                    theme=ui.value_box_theme(bg="#60D394", fg="#263744"),
+                                    id="vb_mastered_box",
+                                    style="cursor: pointer;",
+                                ),
+
+                                # --- Progressing ---
+                                ui.value_box(
+                                    "Number of KCs Progressing",
+                                    ui.output_text("vb_progressing"),
+                                    theme=ui.value_box_theme(bg="#FFD97D", fg="#263744"),
+                                    id="vb_progressing_box",
+                                    style="cursor: pointer;",
+                                ),
+
+                                # --- Need Attention ---
+                                ui.value_box(
+                                    "Number of KCs Needing Attention",
+                                    ui.output_text("vb_needs"),
+                                    theme=ui.value_box_theme(bg="#FF9B85", fg="#263744"),
+                                    id="vb_needs_box",
+                                    style="cursor: pointer;",
+                                ),
+
+                                col_widths=3,
+                                col_heights=2,
+                            ),
+
+                    # JS: wire up click events for all 4 boxes
+                    ui.tags.script("""
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const boxes = {
+                                'vb_total_box':      'vb_total_clicked',
+                                'vb_mastered_box':   'vb_mastered_clicked',
+                                'vb_progressing_box':'vb_progressing_clicked',
+                                'vb_needs_box':      'vb_needs_clicked',
+                            };
+                            Object.entries(boxes).forEach(([id, inputName]) => {
+                                const el = document.getElementById(id);
+                                if (el) el.addEventListener('click', () => {
+                                    Shiny.setInputValue(inputName, Math.random());
+                                });
+                            });
+                        });
+                    """),
                 ),
                 # ── Row 2: unit mastery grid (left) + KC boxes (right) ───────────
                 ui.layout_columns(
@@ -379,6 +416,7 @@ def server(input, output, session):
         return compute_opportunity_counts(mkc_data)
 
     # ── value boxes ──────────────────────────────────────────────────────
+    ## Values
     @render.text
     def vb_mastered():
         df = kc_summary()
@@ -397,6 +435,70 @@ def server(input, output, session):
     @render.text
     def vb_total():
         return str(len(kc_summary()))
+    
+    ## Pop up after clicking on box
+    # --- Total KCs modal ---
+    @reactive.effect
+    @reactive.event(input.vb_total_clicked)
+    def modal_total():
+        df = kc_summary()
+        n = len(df)
+        ui.modal_show(ui.modal(
+            build_total_kc_modal(df),
+            title=ui.tags.span(
+                ui.tags.span("● ", style="color:#8B9DBB;"),
+                f"All KCs — {n} skill{'s' if n > 1 else ''}",
+            ),
+            easy_close=True,
+            size="l",
+            footer=None,
+        ))
+    
+    # --- Mastered modal ---
+    @reactive.effect
+    @reactive.event(input.vb_mastered_clicked)
+    def modal_mastered():
+        df = kc_summary()   
+        n = len(df[df["status"] == "Mastered"])
+        ui.modal_show(ui.modal(
+            build_kc_modal(df, status="Mastered", mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
+            title=ui.tags.span(
+                ui.tags.span("● ", style="color:#60D394;"),
+                f"Skills Mastered — {n} skill{'s' if n > 1 else ''}",
+            ),
+            easy_close=True, size="l", footer=None,
+        ))
+
+    # --- Progressing modal ---
+    @reactive.effect
+    @reactive.event(input.vb_progressing_clicked)
+    def modal_progressing():
+        df = kc_summary()
+        n = len(df[df["status"] == "Progressing"])
+        ui.modal_show(ui.modal(
+            build_kc_modal(df, status="Progressing",mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
+            title=ui.tags.span(
+                ui.tags.span("● ", style="color:#FFD97D;"),
+                f"Skills Progressing — {n} skill{'s' if n > 1 else ''}",
+            ),
+            easy_close=True, size="l", footer=None,
+        ))
+
+    # --- Need Attention modal ---
+    @reactive.effect
+    @reactive.event(input.vb_needs_clicked)
+    def modal_needs():
+        df = kc_summary()
+        n = len(df[df["status"] == "Need Attention"])
+        ui.modal_show(ui.modal(
+            build_kc_modal(df, status="Need Attention",mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
+            title=ui.tags.span(
+                ui.tags.span("● ", style="color:#FF9B85;"),
+                f"Skills Needing Attention — {n} skill{'s' if n > 1 else ''}",
+            ),
+            easy_close=True, size="l", footer=None,
+        ))
+
 
     # ── unit mastery grid ────────────────────────────────────────────────
     @output
