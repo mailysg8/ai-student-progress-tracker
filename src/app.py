@@ -1,4 +1,124 @@
-from shiny import App, ui, render
+from pathlib import Path
+import numpy as np
+import re
+import pandas as pd
+import networkx as nx
+import plotly.graph_objects as go
+
+from shiny import App, ui, render, reactive
+from shinywidgets import output_widget, render_widget
+
+
+####################################################################################
+### Basic Configs
+####################################################################################
+
+MASTERY_THRESHOLD = 0.65   
+
+# Band cutoffs for "Your Level" (applied to the exam-readiness score)
+ADVANCED_CUTOFF = 0.65
+PROFICIENT_CUTOFF = 0.50
+EMERGING_CUTOFF = 0.35
+
+BANDS = [("Advanced", ADVANCED_CUTOFF), ("Proficient", PROFICIENT_CUTOFF), ("Emerging", EMERGING_CUTOFF)]
+# Background colours for the KPI cards / bands
+BAND_BG = {"Advanced": "#60D394", "Proficient": "#185FA5",
+           "Emerging": "#C77F0A", "Developing": "#C0392B"}
+
+
+def band_color(p):
+    """Grey = not attempted; green/amber/red by mastery band (for graph nodes)."""
+    if p is None or (isinstance(p, float) and np.isnan(p)):
+        return "#C9CDD2"
+    if p >= MASTERY_THRESHOLD:
+        return "#60D394"
+    if p >= EMERGING_CUTOFF:
+        return "#FFD97D"
+    return "#EE6055"
+
+
+####################################################################################
+### File paths and data loading 
+####################################################################################
+base_path = Path().resolve().parent
+file_path = base_path / "data" / "processed" 
+
+student_df = pd.read_csv(file_path / "final_student_kc_data.csv")
+nodes_df = pd.read_excel(file_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Nodes")
+edges_df = pd.read_excel(file_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Edges")
+
+for col in ["weight", "estimated_exam_share_pct", "downstream_dependents",
+            "direct_dependents", "order_id", "state_predictions",
+            "correct_predictions", "correct"]:
+    if col in student_df.columns:
+        student_df[col] = pd.to_numeric(student_df[col], errors="coerce")
+
+edges_df["fine_edge_count"] = (
+    pd.to_numeric(edges_df.get("fine_edge_count", 1), errors="coerce").fillna(1)
+    if "fine_edge_count" in edges_df.columns else 1)
+
+
+####################################################################################
+### VARIABLES 
+####################################################################################
+# MKC labels / units from the Nodes sheet.
+LABELS = dict(zip(nodes_df["modeling_kc_id"], nodes_df["modeling_kc_label"]))
+MKC_UNIT = dict(zip(nodes_df["modeling_kc_id"], nodes_df.get("unit", pd.Series())))
+
+# Total number of MKCs in the whole curriculum (denominator for "X / N").
+TOTAL_MKCS = nodes_df["modeling_kc_id"].nunique()
+
+# Prerequisite graph: source MKC --> target MKC.
+G = nx.DiGraph()
+G.add_edges_from(zip(edges_df["source_modeling_kc_id"], 
+                    edges_df["target_modeling_kc_id"]))
+
+# All student ids, for the dropdown.
+STUDENT_IDS = sorted(student_df["student_id"].astype(str).unique().tolist())
+
+def _unit_key(u):
+    """
+    Helper to sort unit labels by their number if possible (e.g. "Unit 2" before "Unit 10"). 
+    """
+    m = re.search(r"(\d+)", str(u))
+    return (int(m.group(1)) if m else 999, str(u))
+
+# All unit labels, sorted by unit number if possible (for the dropdown).
+UNIT_LIST = sorted({u for u in MKC_UNIT.values() if isinstance(u, str)}, key=_unit_key)
+OVERVIEW_LABEL = "Overview: All Units"
+
+# # Band cutoffs for "Your Level" (applied to the exam-readiness score, 0–1)
+# BANDS = [("Advanced", ADVANCED_CUTOFF), ("Proficient", PROFICIENT_CUTOFF), ("Emerging", EMERGING_CUTOFF)]  # else Developing
+# BAND_UI = {"Advanced": "success", "Proficient": "primary",
+#            "Emerging": "warning", "Developing": "danger"}
+
+
+# # Mastery colour (for the Sankey nodes and progress bars)
+# def band_color(p):
+#     """Grey = not attempted yet; green/amber/red by mastery band."""
+#     if p is None or (isinstance(p, float) and np.isnan(p)):
+#         return "#C9CDD2"
+#     if p >= MASTERY_THRESHOLD:
+#         return "#60D394"
+#     if p >= 0.50:
+#         return "#FFD97D"
+#     return "#E24B4A"
+ 
+
+########################################################################################
+### Checks to ensure numeric columns are valid 
+########################################################################################
+# for col in ["weight", "estimated_exam_share_pct", "downstream_dependents",
+#             "direct_dependents", "order_id", "state_predictions",
+#             "correct_predictions", "correct"]:
+#     if col in student_df.columns:
+#         student_df[col] = pd.to_numeric(student_df[col], errors="coerce")
+ 
+# if "fine_edge_count" in edges_df.columns:
+#     edges_df["fine_edge_count"] = pd.to_numeric(
+#         edges_df["fine_edge_count"], errors="coerce").fillna(1)
+# else:
+#     edges_df["fine_edge_count"] = 1
 
 
 custom_css = ui.tags.style(
