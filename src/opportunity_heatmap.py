@@ -200,7 +200,7 @@ def opportunity_table(avg_opp: pd.DataFrame, n: int = 5) -> alt.Chart:
         alt.Chart(avg_opp)
         .mark_rect(cornerRadius=6, width=60, height=26)
         .encode(
-            x=alt.value(490),
+            x=alt.value(510),
             y=alt.Y('row:O', axis=None),
             color=alt.Color('pill_color:N', scale=None),
         )
@@ -211,7 +211,7 @@ def opportunity_table(avg_opp: pd.DataFrame, n: int = 5) -> alt.Chart:
         alt.Chart(avg_opp)
         .mark_text(align='center', baseline='middle', fontSize=14, fontWeight=600)
         .encode(
-            x=alt.value(490),
+            x=alt.value(510),
             y=alt.Y('row:O', axis=None),
             text=alt.Text('avg_opportunities:Q', format='.1f'),
             color=alt.Color('text_color:N', scale=None),
@@ -220,8 +220,8 @@ def opportunity_table(avg_opp: pd.DataFrame, n: int = 5) -> alt.Chart:
 
     # ── column headers ────────────────────────────────────────────────────
     header_df = pd.DataFrame([
-        {'x': 10,  'label': 'KC'},
-        {'x': 420, 'label': 'Average opportunities'},
+        {'x': 10,  'label': 'Knowledge Components (KC)'},
+        {'x': 400, 'label': 'Average opportunities per student'},
     ])
     headers = (
         alt.Chart(header_df)

@@ -12,10 +12,10 @@ from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 
 MASTERY_THRESHOLD = 0.7
 ATTENTION_THRESHOLD = 0.3
+N_RANK = 4
 
 mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
-
-kc_list_rank = list(mkc_data.groupby(['modeling_kc_label_x','rank']).count().sort_values('rank').reset_index().loc[0:3,'modeling_kc_label_x'])
+kc_list_rank = list(mkc_data.groupby(['modeling_kc_label_x','rank']).count().sort_values('rank').reset_index().loc[0:N_RANK,'modeling_kc_label_x'])
 
 
 ## Colour palette
