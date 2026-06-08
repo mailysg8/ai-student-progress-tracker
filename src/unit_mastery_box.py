@@ -32,9 +32,9 @@ def status_color(status: str, key: str) -> str:
     mapping = {
         "Mastered":          {"fill": MASTERED_FILL,    "stroke": MASTERED_STROKE},
         "Progressing":       {"fill": PROGRESS_FILL,    "stroke": PROGRESS_STROKE},
-        "Needs Attention": {"fill": ATTENTION_FILL, "stroke": ATTENTION_STROKE},
+        "Need Attention": {"fill": ATTENTION_FILL, "stroke": ATTENTION_STROKE},
     }
-    return mapping.get(status, mapping["Needs Attention"])[key]
+    return mapping.get(status, mapping["Need Attention"])[key]
  
  
 def tile_positions(n: int, cols: int = 8):
@@ -66,7 +66,7 @@ def unit_kc_chart(
                           - modeling_kc_label_x   (str)  KC name shown in tooltip
                           - state_predictions   (float) mastery probability 0–1
     mastery_threshold : score >= this  → Mastered
-    warning_threshold : score <= this  → Needs Attention
+    warning_threshold : score <= this  → Need Attention
     cols              : max tiles per row inside the grid
     tile_size         : width/height of each square in px
     tile_gap          : gap between squares in px
@@ -157,7 +157,7 @@ def make_legend() -> alt.Chart:
     items = [
         {"status": "Mastered",          "fill": MASTERED_FILL,    "stroke": MASTERED_STROKE,    "x": 0},
         {"status": "Progressing",       "fill": PROGRESS_FILL,    "stroke": PROGRESS_STROKE,    "x": 1},
-        {"status": "Needs Attention", "fill": ATTENTION_FILL, "stroke": ATTENTION_STROKE, "x": 2},
+        {"status": "Need Attention", "fill": ATTENTION_FILL, "stroke": ATTENTION_STROKE, "x": 2},
     ]
     thresholds = ["≥ 70%", "30 – 70%", "≤ 30%"]
     for item, thr in zip(items, thresholds):
@@ -210,7 +210,7 @@ def unit_mastery(
     ----------
     data              : DataFrame with columns for unit, KC label, and mastery score
     mastery_threshold : score >= this  → Mastered          (default: 0.70)
-    warning_threshold : score <= this  → Needs Attention (default: 0.30)
+    warning_threshold : score <= this  → Need Attention (default: 0.30)
     cols              : max tiles per row                   (default: 8)
     tile_size         : tile width/height in px             (default: 38)
     tile_gap          : gap between tiles in px             (default: 6)
@@ -252,7 +252,7 @@ def unit_mastery(
     )
     n_mastered    = (df["_status"] == "Mastered").sum()
     n_progressing = (df["_status"] == "Progressing").sum()
-    n_needs       = (df["_status"] == "Needs Attention").sum()
+    n_needs       = (df["_status"] == "Need Attention").sum()
  
     grid_w = cols * (tile_size + tile_gap) - tile_gap
     total_w = label_width + 16 + grid_w  

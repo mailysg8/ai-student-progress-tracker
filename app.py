@@ -8,6 +8,7 @@ from src.opportunity_heatmap import opp_heatmap, opportunity_table, compute_oppo
 from src.student_status_boxes import student_status_boxes
 from src.student_mastery_table import student_mastery_table
 from src.modal_builds import build_kc_modal, build_total_kc_modal
+from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 
 MASTERY_THRESHOLD = 0.7
 ATTENTION_THRESHOLD = 0.3
@@ -34,51 +35,6 @@ def bs_info_icon(title: str):
     # Enhanced from https://rstudio.github.io/bsicons/ via `bsicons::bs_icon("info-circle", title = icon_title)`
     return ui.HTML(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="bi bi-info-circle " style="height:1em;width:1em;fill:currentColor;" aria-hidden="true" role="img" ><title>{title}</title><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"></path></svg>')
 
-
-# Helper functions
-def kc_opp_lowest(opp_counts : pd.DataFrame, n: int = 5):
-        """Lowest n KCs by opportunity average."""
-        return (
-            opp_counts
-            .groupby('modeling_kc_label_x')['n_opportunities']
-            .mean()
-            .reset_index()
-            .rename(columns={'n_opportunities': 'avg_opportunities'})
-            .sort_values('avg_opportunities')
-            .head(n)
-            .reset_index(drop=True)
-        )
-
-
-def kc_opp_highest(opp_counts : pd.DataFrame, n: int = 5):
-    """Highest n KCs by opportunity average."""
-    return (
-        opp_counts
-        .groupby('modeling_kc_label_x')['n_opportunities']
-        .mean()
-        .reset_index()
-        .rename(columns={'n_opportunities': 'avg_opportunities'})
-        .sort_values('avg_opportunities', ascending=False)
-        .head(n)
-        .reset_index(drop=True)
-    )
-
-
-def kc_opp_rank(opp_counts : pd.DataFrame, n: int = 5):
-    """n highest ranking KCs and their opportunity average."""
-    kc_list_rank = list(mkc_data.groupby(['modeling_kc_label_x','rank']).count().sort_values('rank').reset_index().loc[0:n-1,'modeling_kc_label_x'])
-
-    avg_opp = (
-        opp_counts
-        .groupby('modeling_kc_label_x')['n_opportunities']
-        .mean()
-        .reset_index()
-        .rename(columns={'n_opportunities': 'avg_opportunities'})
-        .sort_values('avg_opportunities', ascending=False)
-        .reset_index(drop=True)
-    )
-
-    return avg_opp[avg_opp['modeling_kc_label_x'].isin(kc_list_rank)]
 
 
 # Student dropdown choices (data is already loaded here)
@@ -191,9 +147,10 @@ app_ui = ui.page_navbar(
                         });
                     """),
                 ),
-                # ── Row 2: unit mastery grid (left) + KC boxes (right) ───────────
+                # ── Row 2 - Left Column ──────────────────────────────────
                 ui.layout_columns(
                     ui.div(
+                        # ── Unit mastery grid ────────────────────────────
                         ui.card(
                             ui.card_header(
                                 ui.div(
@@ -212,6 +169,7 @@ app_ui = ui.page_navbar(
                             output_widget("unit_mastery_chart"),
                             style="height: 650px; overflow-y: auto;",
                         ),
+                        # ── KC Opportunities ────────────────────────────
                         ui.card(
                             ui.card_header(
                                 ui.div(
@@ -236,12 +194,25 @@ app_ui = ui.page_navbar(
                                 ui.nav_panel(
                                     "Well Practiced",
                                     output_widget("high_opp_table")
-                                )
-
+                                ),
+                                ui.nav_panel(
+                                    "Search",
+                                    ui.input_selectize(
+                                        "opp_search",
+                                        "Select KCs to view:",
+                                        choices=[],          # populated server-side from real KC names
+                                        multiple=True,
+                                        options={"placeholder": "Type to search for a KC...", "maxItems": 8},
+                                    ),
+                                    # Dynamic output slots for up to 4 selected KCs
+                                    output_widget("search_opp_table"),
+                                ),
+                                id="opp_tabs",
                             ),
-                            style="height: 400px;",
+                            style="min-height: 500px;",
                         ),
                     ),
+                    # ── Row 3 - Right Column : KC Progress ──────────────────────────────
                     ui.card(
                         ui.card_header(
                             ui.div(
@@ -298,12 +269,25 @@ app_ui = ui.page_navbar(
                                     col_widths=6,   
                                 ),
                             ),
+                            ui.nav_panel(
+                                "Search",
+                                ui.input_selectize(
+                                    "kc_search",
+                                    "Select KCs to view:",
+                                    choices=[],          # populated server-side from real KC names
+                                    multiple=True,
+                                    options={"placeholder": "Type to search for a KC...", "maxItems": 4},
+                                ),
+                                # Dynamic output slots for up to 4 selected KCs
+                                ui.output_ui("search_results"),
+                            ),
                             id="kc_tabs",
                         )
                     ),
-                    col_widths=(4,8),
+                 col_widths=(4,8),
                 ),
             ),
+        # ── Tab 2 : Opportunity Heatmap ──────────────────────────────────
             ui.nav_panel(
                 "Opportunity Heatmap",
                 ui.div(
@@ -360,7 +344,6 @@ app_ui = ui.page_navbar(
 
     title=ui.tags.span("Stellar Education", style="color: white;"),
     navbar_options=ui.navbar_options(bg="#263744"),
-    sidebar=ui.sidebar("Filters", bg="#263744"),
 )
 
 
@@ -512,25 +495,47 @@ def server(input, output, session):
     def opp_heatmap_plot():
         return opp_heatmap(mkc_data)
     
-    # ── low opportunity list ──────────────────────────────────────────────
+    # ── opportunity list ──────────────────────────────────────────────
+    # ── Low tab ─────────────────────
     @output
     @render_altair
     def low_opp_table():
         return opportunity_table(kc_opp_lowest(opp_counts()))
 
-    # ── high opportunity list ──────────────────────────────────────────────
+    # ── High tab ─────────────────────
     @output
     @render_altair
     def high_opp_table():
         return opportunity_table(kc_opp_highest(opp_counts()))
 
-    # ── rank opportunity list ──────────────────────────────────────────────
+    # ── Rank tab ─────────────────────
     @output
     @render_altair
     def rank_opp_table():
-        return opportunity_table(kc_opp_rank(opp_counts()))
+        return opportunity_table(kc_opp_rank(kc_list_rank, opp_counts()))
+    
+    # ── Search tab ─────────────────────
+    @reactive.effect
+    def opp_search_choices():
+        choices = sorted(mkc_data["modeling_kc_label_x"].unique().tolist())
+        ui.update_selectize(
+            "opp_search",
+            choices=choices,
+            server=True,   # server-side filtering — important for large KC lists
+        )
 
-    # ── top 4 by rank ────────────────────────────────────────────────────
+    @output
+    @render_altair
+    def search_opp_table():
+        selected = list(input.opp_search()) 
+
+        if not selected:
+            return None
+
+        return opportunity_table(kc_opp_rank(selected, opp_counts()))
+
+    # ── KC progress ────────────────────────────────────────────────────
+    # ── Rank tab ─────────────────────
     def make_render_rank(kc_name, output_id):
         @output(id=output_id)
         @render_altair
@@ -550,7 +555,7 @@ def server(input, output, session):
                 return name
         make_title_rank(kc_name)
 
-    # ── lowest 4 by mastery ──────────────────────────────────────────────
+    # ── Low tab ─────────────────────
     def make_render_low(kc_name, output_id):
         @output(id=output_id)
         @render_altair
@@ -577,7 +582,7 @@ def server(input, output, session):
                 return kc_list_lowest()[idx]
         make_title_low(i)
         
-    # ── highest 4 by mastery ──────────────────────────────────────────────
+    # ── High tab ─────────────────────
     def make_render_high(kc_name, output_id):
         @output(id=output_id)
         @render_altair
@@ -595,7 +600,7 @@ def server(input, output, session):
             last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
             return kc_mastery_box(kc_name, last_attempt)
     
-        # ── titles for highest tab ────────────────────────────────────────────
+        # ── titles for highest tab ─────────────────────────────────────────
     for i in range(4):
         def make_title_high(idx):
             @output(id=f"kc_high_title_{idx}")
@@ -603,6 +608,76 @@ def server(input, output, session):
             def _title():
                 return kc_list_highest()[idx]
         make_title_high(i)
+
+    # ── Search tab ─────────────────────
+    @reactive.effect
+    def populate_search_choices():
+        choices = sorted(mkc_data["modeling_kc_label_x"].unique().tolist())
+        ui.update_selectize(
+            "kc_search",
+            choices=choices,
+            server=True,   # server-side filtering — important for large KC lists
+        )
+
+        # ── render selected KC charts dynamically ────────────────────────────
+    @output
+    @render.ui
+    def search_results():
+        selected = input.kc_search()
+
+        if not selected:
+            return ui.tags.p(
+                "Select one or more KCs above to view their mastery distribution.",
+                style="color:#6c757d; font-size:0.9rem; margin-top:1rem;",
+            )
+
+        cards = []
+        for kc_name in selected:
+            safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")
+            cards.append(
+                ui.card(
+                    ui.card_header(kc_name, style="font-weight:600; font-size:0.95rem;"),
+                    output_widget(f"search_chart_{safe_id}"),
+                )
+            )
+
+        # Pair cards into rows of 2, matching the layout of the other tabs
+        rows = []
+        for i in range(0, len(cards), 2):
+            pair = cards[i : i + 2]
+
+            # If only 1 card in the last row, pad with an empty div so the
+            # grid doesn't stretch it to full width
+            if len(pair) == 1:
+                pair.append(ui.tags.div())
+
+            rows.append(
+                ui.layout_columns(
+                    *pair,
+                    col_widths=6,
+                )
+            )
+
+        return ui.tags.div(*rows)
+
+        # ── render each selected KC chart ─────────────────────────────────────
+    # Uses a reactive effect that re-runs whenever the selection changes,
+    # registering a new altair renderer for each selected KC on the fly
+    @reactive.effect
+    def render_search_charts():
+        selected = input.kc_search()
+
+        for kc_name in selected:
+            # Pass both kc_name AND safe_id into the closure together
+            def make_chart(name, sid):
+                @output(id=f"search_chart_{sid}")
+                @render_altair
+                def _chart():
+                    last_attempt = aggregated()[aggregated()["modeling_kc_label_x"] == name]
+                    return kc_mastery_box(name, last_attempt)
+            
+            safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")
+            make_chart(kc_name, safe_id)
 
     # ── Student Overview ─────────────────────────────────────────────────
     @output
