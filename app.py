@@ -83,7 +83,7 @@ STUDENT_IDS = sorted(mkc_data["student_id"].unique().tolist())
 
 
 app_ui = ui.page_navbar(
-# ── Page 1: Class Overview ───────────────────────────────────────────   
+# ── Page 1: Class Overview ───────────────────────────────────────────
     ui.nav_panel(
         "Class Overview",
         ui.head_content(
@@ -104,32 +104,55 @@ app_ui = ui.page_navbar(
             """)
         ),
         ui.navset_tab(
+            # ── Tab 1: General ─────────────────────────────────────────
             ui.nav_panel(
                 "General",
-                # ── Row 1: value boxes ───────────────────────────────────────────
-                ui.layout_columns(
-                    ui.value_box(
-                        "KCs Mastered",
-                        ui.output_text("vb_mastered"),
-                        theme=ui.value_box_theme(bg="#60D394", fg="#263744"),
+                # ── Row 1: value boxes ─────────────────────────────────
+                ui.card(
+                    ui.card_header(
+                                ui.div(
+                                    ui.span("Key KC Insights", style="font-size: 22px;"),
+                                    ui.tooltip(
+                                        bs_info_icon(icon_title),
+                                        """
+                                        Each box provides insights into the
+                                        Knowledge Components (KCs).
+                                        For each KC, the proportion of students
+                                        with a BKT mastery probability above
+                                        the mastery threshold is computed.
+                                        Each KC is then assigned a status
+                                        based on that proportion. The boxes
+                                        display the count of KCs falling into
+                                        each status.
+                                        """,
+                                    ),
+                                    style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                                )
                     ),
-                    ui.value_box(
-                        "KCs Progressing",
-                        ui.output_text("vb_progressing"),
-                        theme=ui.value_box_theme(bg="#FFD97D", fg="#263744"),
+                    ui.layout_columns(
+                        ui.value_box(
+                            "Total KCs",
+                            ui.output_text("vb_total"),
+                            theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
+                        ),
+                        ui.value_box(
+                            "Number of KCs Mastered",
+                            ui.output_text("vb_mastered"),
+                            theme=ui.value_box_theme(bg="#60D394", fg="#263744"),
+                        ),
+                        ui.value_box(
+                            "Number of KCs Progressing",
+                            ui.output_text("vb_progressing"),
+                            theme=ui.value_box_theme(bg="#FFD97D", fg="#263744"),
+                        ),
+                        ui.value_box(
+                            "Number of KCs Needing Attention",
+                            ui.output_text("vb_needs"),
+                            theme=ui.value_box_theme(bg="#FF9B85", fg="#263744"),
+                        ),
+                        col_widths=3,
+                        col_heights=2
                     ),
-                    ui.value_box(
-                        "KCs Needing Attention",
-                        ui.output_text("vb_needs"),
-                        theme=ui.value_box_theme(bg="#FF9B85", fg="#263744"),
-                    ),
-                    ui.value_box(
-                        "Total KCs",
-                        ui.output_text("vb_total"),
-                        theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
-                    ),
-                    col_widths=3,
-                    col_heights=2
                 ),
                 # ── Row 2: unit mastery grid (left) + KC boxes (right) ───────────
                 ui.layout_columns(
