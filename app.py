@@ -691,7 +691,7 @@ def server(input, output, session):
                 @output(id=f"search_chart_{sid}")
                 @render_altair
                 def _chart():
-                    filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+                    filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == name]
                     return kc_mastery_box(name, filter)
             
             safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")
