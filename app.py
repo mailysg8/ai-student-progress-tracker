@@ -9,6 +9,7 @@ from src.student_status_boxes import student_status_boxes
 from src.student_mastery_table import student_mastery_table
 from src.modal_builds import build_kc_modal, build_total_kc_modal
 from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
+from src.kc_value_box import kpi_value_box
 
 MASTERY_THRESHOLD = 0.7
 ATTENTION_THRESHOLD = 0.3
@@ -89,45 +90,19 @@ app_ui = ui.page_navbar(
                                 )
                     ),
                     ui.layout_columns(
-                                # --- Total KCs ---
-                                ui.value_box(
-                                    "Total KCs",
-                                    ui.output_text("vb_total"),
-                                    theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
-                                    id="vb_total_box",
-                                    style="cursor: pointer;",
-                                ),
-
-                                # --- Mastered ---
-                                ui.value_box(
-                                    "Number of KCs Mastered",
-                                    ui.output_text("vb_mastered"),
-                                    theme=ui.value_box_theme(bg="#60D394", fg="#263744"),
-                                    id="vb_mastered_box",
-                                    style="cursor: pointer;",
-                                ),
-
-                                # --- Progressing ---
-                                ui.value_box(
-                                    "Number of KCs Progressing",
-                                    ui.output_text("vb_progressing"),
-                                    theme=ui.value_box_theme(bg="#FFD97D", fg="#263744"),
-                                    id="vb_progressing_box",
-                                    style="cursor: pointer;",
-                                ),
-
-                                # --- Need Attention ---
-                                ui.value_box(
-                                    "Number of KCs Needing Attention",
-                                    ui.output_text("vb_needs"),
-                                    theme=ui.value_box_theme(bg="#FF9B85", fg="#263744"),
-                                    id="vb_needs_box",
-                                    style="cursor: pointer;",
-                                ),
-
-                                col_widths=3,
-                                col_heights=2,
-                            ),
+                        ui.value_box(
+                            "Total KCs",
+                            ui.output_text("vb_total"),
+                            theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
+                            id="vb_total_box",
+                            style="cursor: pointer;",
+                        ),
+                        ui.output_ui("vb_mastered_box"),
+                        ui.output_ui("vb_progressing_box"),
+                        ui.output_ui("vb_needs_box"),
+                        col_widths=3,
+                        col_heights=2,
+                    ),
 
                     # JS: wire up click events for all 4 boxes
                     ui.tags.script("""
@@ -352,20 +327,41 @@ def server(input, output, session):
 
     # ── shared pre-computed data ─────────────────────────────────────────
     @reactive.calc
-    def aggregated():
-        bar_data = mkc_data.copy()
+    def last_attempt():
         last_attempt = (
-            bar_data
+            mkc_data
             .groupby(['student_id', 'modeling_kc_id'])
             .last()
             .reset_index()
         )
         return last_attempt
+    
+    @reactive.calc
+    def first_attempt():
+        first_attempt = (
+            mkc_data
+            .groupby(['student_id', 'modeling_kc_id'])
+            .first()
+            .reset_index()
+        )
+        return first_attempt
 
     @reactive.calc
-    def kc_summary():
+    def last_kc_summary():
         df = (
-            aggregated()
+            last_attempt()
+            .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
+            .apply(lambda x: (x >= 0.70).mean())
+            .reset_index()
+            .rename(columns={'state_predictions': 'pct_mastered'})
+        )
+        df['status'] = df['pct_mastered'].apply(classify)
+        return df
+    
+    @reactive.calc
+    def first_kc_summary():
+        df = (
+            first_attempt()
             .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
             .apply(lambda x: (x >= 0.70).mean())
             .reset_index()
@@ -378,7 +374,7 @@ def server(input, output, session):
     def kc_list_lowest():
         """Bottom 4 KCs by class mastery percentage."""
         return (
-            kc_summary()
+            last_kc_summary()
             .sort_values('pct_mastered', ascending=True)
             .head(4)['modeling_kc_label_x']
             .tolist()
@@ -388,7 +384,7 @@ def server(input, output, session):
     def kc_list_highest():
         """Top 4 KCs by class mastery percentage."""
         return (
-            kc_summary()
+            last_kc_summary()
             .sort_values('pct_mastered', ascending=False)
             .head(4)['modeling_kc_label_x']
             .tolist()
@@ -400,31 +396,53 @@ def server(input, output, session):
 
     # ── value boxes ──────────────────────────────────────────────────────
     ## Values
-    @render.text
-    def vb_mastered():
-        df = kc_summary()
-        return str((df['status'] == 'Mastered').sum())
+    @render.ui
+    def vb_mastered_box():
+        last_df  = last_kc_summary()
+        first_df = first_kc_summary()
+        return kpi_value_box(
+            data        = last_attempt(),
+            status      = "Mastered",
+            theme       = ui.value_box_theme(bg="#60D394", fg="#263744"),
+            value_now   = int((last_df['status'] == 'Mastered').sum()),
+            value_first = int((first_df['status'] == 'Mastered').sum()),
+        )
 
-    @render.text
-    def vb_progressing():
-        df = kc_summary()
-        return str((df['status'] == 'Progressing').sum())
+    @render.ui
+    def vb_progressing_box():
+        last_df  = last_kc_summary()
+        first_df = first_kc_summary()
+        return kpi_value_box(
+            data        = last_attempt(),
+            status      = "Progressing",
+            theme       = ui.value_box_theme(bg="#FFD97D", fg="#263744"),
+            value_now   = int((last_df['status'] == 'Progressing').sum()),
+            value_first = int((first_df['status'] == 'Progressing').sum()),
+        )
 
-    @render.text
-    def vb_needs():
-        df = kc_summary()
-        return str((df['status'] == 'Need Attention').sum())
+    @render.ui
+    def vb_needs_box():
+        last_df  = last_kc_summary()
+        first_df = first_kc_summary()
+        return kpi_value_box(
+            data        = last_attempt(),
+            status      = "Need Attention",
+            theme       = ui.value_box_theme(bg="#FF9B85", fg="#263744"),
+            value_now   = int((last_df['status'] == 'Need Attention').sum()),
+            value_first = int((first_df['status'] == 'Need Attention').sum()),
+        )
+
 
     @render.text
     def vb_total():
-        return str(len(kc_summary()))
+        return str(len(last_kc_summary()))
     
     ## Pop up after clicking on box
     # --- Total KCs modal ---
     @reactive.effect
     @reactive.event(input.vb_total_clicked)
     def modal_total():
-        df = kc_summary()
+        df = last_kc_summary()
         n = len(df)
         ui.modal_show(ui.modal(
             build_total_kc_modal(df),
@@ -441,7 +459,7 @@ def server(input, output, session):
     @reactive.effect
     @reactive.event(input.vb_mastered_clicked)
     def modal_mastered():
-        df = kc_summary()   
+        df = last_kc_summary()   
         n = len(df[df["status"] == "Mastered"])
         ui.modal_show(ui.modal(
             build_kc_modal(df, status="Mastered", mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
@@ -456,7 +474,7 @@ def server(input, output, session):
     @reactive.effect
     @reactive.event(input.vb_progressing_clicked)
     def modal_progressing():
-        df = kc_summary()
+        df = last_kc_summary()
         n = len(df[df["status"] == "Progressing"])
         ui.modal_show(ui.modal(
             build_kc_modal(df, status="Progressing",mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
@@ -471,7 +489,7 @@ def server(input, output, session):
     @reactive.effect
     @reactive.event(input.vb_needs_clicked)
     def modal_needs():
-        df = kc_summary()
+        df = last_kc_summary()
         n = len(df[df["status"] == "Need Attention"])
         ui.modal_show(ui.modal(
             build_kc_modal(df, status="Need Attention",mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
@@ -487,7 +505,7 @@ def server(input, output, session):
     @output
     @render_altair
     def unit_mastery_chart():
-        return unit_mastery(aggregated())
+        return unit_mastery(last_attempt())
 
     # ── opportunity heatmap ──────────────────────────────────────────────
     @output
@@ -540,8 +558,8 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, last_attempt)
+            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            return kc_mastery_box(kc_name, filter)
 
     for i, kc_name in enumerate(kc_list_rank):
         make_render_rank(kc_name, f"kc_rank_{i}")
@@ -560,8 +578,8 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, last_attempt)
+            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            return kc_mastery_box(kc_name, filter)
 
     for i in range(4):
         output_id = f"kc_low_{i}"
@@ -570,8 +588,8 @@ def server(input, output, session):
         @render_altair
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
-            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, last_attempt)
+            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            return kc_mastery_box(kc_name, filter)
         
         # ── titles for lowest tab ────────────────────────────────────────────
     for i in range(4):
@@ -587,8 +605,8 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, last_attempt)
+            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            return kc_mastery_box(kc_name, filter)
     
     for i in range(4):
         output_id = f"kc_high_{i}"
@@ -597,8 +615,8 @@ def server(input, output, session):
         @render_altair
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
-            last_attempt = aggregated()[aggregated()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, last_attempt)
+            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            return kc_mastery_box(kc_name, filter)
     
         # ── titles for highest tab ─────────────────────────────────────────
     for i in range(4):
@@ -673,8 +691,8 @@ def server(input, output, session):
                 @output(id=f"search_chart_{sid}")
                 @render_altair
                 def _chart():
-                    last_attempt = aggregated()[aggregated()["modeling_kc_label_x"] == name]
-                    return kc_mastery_box(name, last_attempt)
+                    filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+                    return kc_mastery_box(name, filter)
             
             safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")
             make_chart(kc_name, safe_id)
