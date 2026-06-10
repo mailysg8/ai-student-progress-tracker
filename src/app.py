@@ -96,7 +96,7 @@ def student_mkc_table(student_id):
     s = student_df[student_df["student_id"].astype(str) == str(student_id)].copy()
     if s.empty:
         return pd.DataFrame(columns=["modeling_kc_id", "mastery", "weight",
-                                     "tier", "downstream", "label", "unit"])
+                                    "tier", "downstream", "label", "unit"])
     s = s.sort_values(["modeling_kc_id", "order_id"])
     latest = s.groupby("modeling_kc_id", as_index=False).tail(1)
     latest = latest.rename(columns={"state_predictions": "mastery",
@@ -155,55 +155,84 @@ def _norm(x):
 
 def build_agenda(tbl, n=3):
     """
-    Weight-aware next steps. Prefer MKCs the student is READY for (prereqs met),
-    ranked by 0.5·weight + 0.3·downstream + 0.2·closeness. If fewer than n are
-    ready, fill with the highest-weight still-blocked MKCs (badged 'locked', with
-    their missing prerequisites shown). Each item carries the downstream KCs it
-    unlocks, so the card can list them.
+Build the student's top-`n` "next steps" cards.
+
+    Strategy
+    --------
+    1. Look only at WEAK topics (mastery < 0.80) — mastered ones need no action.
+    2. Split weak topics into READY (all prerequisites already mastered → the
+       student can tackle them now) vs BLOCKED (still missing a prerequisite).
+    3. Rank the READY ones by a weighted priority score (see below) and take n.
+    4. If there aren't n ready topics, top up with the highest-`weight` BLOCKED
+       topics so the agenda always shows n cards — these are badged "locked"
+       and list the prerequisites to clear first.
+
+    Priority score (ready topics only)
+    -----------------------------------
+        score =importance 
+      - importance = normalized `weight`     (partner's 1-100 priority)
+    importance is the stated business priority;
+    Returns
+    -------
+    list[dict] : one dict per card, each carrying the topic name, mastery,
+    weight, tier, downstream count, a badge/type, ready flag, the missing
+    prerequisites (for locked cards), and the downstream topics it unlocks.
     """
     if tbl.empty:
         return []
+    
+    # Fast lookup: modeling_kc_id - this student's mastery.
     mm = dict(zip(tbl["modeling_kc_id"], tbl["mastery"]))
     weak = tbl[tbl["mastery"] < MASTERY_THRESHOLD].copy()
+    
+    # only weak topics are candidates for "next steps".
     if weak.empty:
         return []
-
+    # which weak topics are learnable right now (prereqs satisfied)?
     weak["missing"] = weak["modeling_kc_id"].apply(lambda kc: _unmastered_prereqs(kc, mm))
     weak["ready"] = weak["missing"].apply(lambda m: len(m) == 0)
-
+    # rank the ready topics by the priority weight score.
     ready = weak[weak["ready"]].copy()
     if not ready.empty:
         w = ready["weight"] if "weight" in ready.columns else pd.Series(0.5, index=ready.index)
-        d = ready["downstream"] if "downstream" in ready.columns else pd.Series(0, index=ready.index)
-        closeness = (ready["mastery"] / MASTERY_THRESHOLD).clip(0, 1)
-        ready["score"] = 0.5 * _norm(w) + 0.3 * _norm(d) + 0.2 * closeness
+        #d = ready["downstream"] if "downstream" in ready.columns else pd.Series(0, index=ready.index)
+        #closeness = (ready["mastery"] / MASTERY_THRESHOLD).clip(0, 1)
+        # ready["score"] = 0.5 * _norm(w) + 0.3 * _norm(d) + 0.2 * closeness
+        ready["score"] = _norm(w)
         ready = ready.sort_values("score", ascending=False)
     chosen = ready.head(n)
 
+    # if fewer than n are ready, fill remaining slots with the most
+    # important BLOCKED topics so the agenda still shows n cards.
     if len(chosen) < n:  # top up with highest-weight blocked MKCs
         rest = weak[(~weak["ready"]) & (~weak["modeling_kc_id"].isin(chosen["modeling_kc_id"]))].copy()
         sort_col = "weight" if "weight" in rest.columns else "mastery"
         rest = rest.sort_values(sort_col, ascending=False)
         chosen = pd.concat([chosen, rest]).head(n)
 
+    # Build the display payload for each chosen topic.
     items = []
     for _, r in chosen.iterrows():
         p = float(r["mastery"])
         dn = int(r["downstream"]) if "downstream" in r and not pd.isna(r["downstream"]) else 0
         ready_flag = bool(r["ready"])
+        
+        # Badge = the KIND of recommendation, so the student sees WHY it's here.
         if not ready_flag:
             atype, badge = "locked", "🔒 Clear prerequisites"
-        elif p >= 0.60:
+        elif p >= PROFICIENT_CUTOFF:
             atype, badge = "quickwin", "🎯 Almost there"
         elif dn >= 3:
             atype, badge = "unblock", "🔓 Key unlock"
         else:
             atype, badge = "foundation", "🏗 Foundation"
 
+        # Downstream topics this one unlocks (for the card's "Will unlock" list).
+        # nx.descendants = every topic reachable from this one in the prereq graph.
         kc = r["modeling_kc_id"]
         desc = nx.descendants(G, kc) if kc in G else set()
         unlocks = sorted(((LABELS.get(x, x), mm.get(x, 0) >= MASTERY_THRESHOLD) for x in desc),
-                        key=lambda t: (t[1], t[0]))   # not-yet-mastered first
+                        key=lambda t: (t[1], t[0]))    # not-yet-mastered first, then alphabetical
         items.append({
             "name": r.get("label", kc), "mastery": p,
             "weight": (None if "weight" not in r or pd.isna(r["weight"]) else r["weight"]),
