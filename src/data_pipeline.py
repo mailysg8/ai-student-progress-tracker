@@ -1,14 +1,14 @@
 import pandas as pd
 from pathlib import Path
 
-from src.bkt import bkt
+from bkt import bkt
 
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
-BASE_PATH = Path().resolve().parent
+BASE_PATH = Path().resolve()
 FILE_PATH = BASE_PATH / "data" / "raw"
 OUTPUT_PATH = BASE_PATH / "data" / "output"
 PROCESSED_PATH = BASE_PATH / "data" / "processed"
@@ -32,6 +32,7 @@ weights = pd.read_excel(WEIGHTS_FILE, sheet_name="MKC_Weights")
 # ---------------------------------------------------------------------------
 # Build slim KC mapping
 # ---------------------------------------------------------------------------
+print(f'Creating final data set ...')
 
 KC_MAP_COLS = [
     "fine_kc_id",
@@ -104,3 +105,4 @@ df_final = df.merge(
 )
 
 df_final.to_csv(PROCESSED_PATH / "final_student_kc_data.csv", index=False)
+print(f'File saved to {PROCESSED_PATH}/final_student_kc_data.csv!')

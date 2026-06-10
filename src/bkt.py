@@ -1,5 +1,5 @@
 from pyBKT.models import Model
-from src.preprocess_split import preprocess 
+from preprocess_split import preprocess 
 import random
 import numpy as np
 
