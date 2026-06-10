@@ -1,7 +1,7 @@
 import pandas as pd
 import altair as alt
 import numpy as np
- 
+from src.classify import classify
 # ── colour constants ────────────────────────────────────────────────────────
  
 MASTERED_FILL       = "#60D394"
@@ -18,15 +18,6 @@ LABEL_COLOR         = "#888780"
 BG_COLOR            = "#F5F4F0"
  
 # ── helpers ─────────────────────────────────────────────────────────────────
- 
-def classify(score, mastery_threshold=0.7, warning_threshold=0.3):
-    if score >= mastery_threshold:
-        return "Mastered"
-    elif score <= warning_threshold:
-        return "Need Attention" 
-    else:
-        return "Progressing"
- 
  
 def status_color(status: str, key: str) -> str:
     mapping = {
@@ -50,7 +41,7 @@ def unit_kc_chart(
     unit_name: str,
     unit_df: pd.DataFrame,
     mastery_threshold: float = 0.70,
-    warning_threshold: float = 0.30,
+    attention_threshold: float = 0.30,
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
@@ -66,7 +57,7 @@ def unit_kc_chart(
                           - modeling_kc_label_x   (str)  KC name shown in tooltip
                           - state_predictions   (float) mastery probability 0–1
     mastery_threshold : score >= this  → Mastered
-    warning_threshold : score <= this  → Need Attention
+    attention_threshold : score <= this  → Need Attention
     cols              : max tiles per row inside the grid
     tile_size         : width/height of each square in px
     tile_gap          : gap between squares in px
@@ -74,7 +65,7 @@ def unit_kc_chart(
     """
     df = unit_df.copy().reset_index(drop=True)
     df["status"] = df["pct_mastered"].apply(
-        classify, args=(mastery_threshold, warning_threshold)
+        classify, args=(mastery_threshold, attention_threshold)
     )
  
     # grid positions (KC = one tile)
@@ -197,7 +188,7 @@ def make_legend() -> alt.Chart:
 def unit_mastery(
     data: pd.DataFrame,
     mastery_threshold: float = 0.70,
-    warning_threshold: float = 0.30,
+    attention_threshold: float = 0.30,
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
@@ -210,7 +201,7 @@ def unit_mastery(
     ----------
     data              : DataFrame with columns for unit, KC label, and mastery score
     mastery_threshold : score >= this  → Mastered          (default: 0.70)
-    warning_threshold : score <= this  → Need Attention (default: 0.30)
+    attention_threshold : score <= this  → Need Attention (default: 0.30)
     cols              : max tiles per row                   (default: 8)
     tile_size         : tile width/height in px             (default: 38)
     tile_gap          : gap between tiles in px             (default: 6)
@@ -237,7 +228,7 @@ def unit_mastery(
             unit_name=unit,
             unit_df=df[df["unit"] == unit][["modeling_kc_label_x", "pct_mastered"]],
             mastery_threshold=mastery_threshold,
-            warning_threshold=warning_threshold,
+            attention_threshold=attention_threshold,
             cols=cols,
             tile_size=tile_size,
             tile_gap=tile_gap,
@@ -248,7 +239,7 @@ def unit_mastery(
  
     # summary counts
     df["_status"] = df["pct_mastered"].apply(
-        classify, args=(mastery_threshold, warning_threshold)
+        classify, args=(mastery_threshold, attention_threshold)
     )
     n_mastered    = (df["_status"] == "Mastered").sum()
     n_progressing = (df["_status"] == "Progressing").sum()

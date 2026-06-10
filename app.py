@@ -2,7 +2,8 @@ import pandas as pd
 import altair as alt
 from shiny import App, ui, render, reactive, req
 from shinywidgets import render_altair, output_widget, reactive_read
-from src.kc_mastery_box import kc_mastery_box, classify
+from src.kc_mastery_box import kc_mastery_box
+from src.classify import classify
 from src.unit_mastery_box import unit_mastery
 from src.opportunity_heatmap import opp_heatmap, opportunity_table, compute_opportunity_counts 
 from src.student_status_boxes import student_status_boxes
@@ -11,8 +12,14 @@ from src.modal_builds import build_kc_modal, build_total_kc_modal
 from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 
-MASTERY_THRESHOLD = 0.7
-ATTENTION_THRESHOLD = 0.3
+# Thresholds for student mastery status
+STUDENT_MASTERY_THRESHOLD = 0.7
+STUDENT_ATTENTION_THRESHOLD = 0.3
+
+# Thresholds for KC class percentage mastery status
+KC_PERC_MASTERY_THRESHOLD = 0.75
+KC_PERC_ATTENTION_THRESHOLD = 0.25
+
 N_RANK = 4
 
 mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
@@ -64,10 +71,10 @@ app_ui = ui.page_navbar(
             """)
         ),
         ui.navset_tab(
-            # ── Tab 1: General ─────────────────────────────────────────
+    # ── Tab 1: General ─────────────────────────────────────────
             ui.nav_panel(
                 "General",
-                # ── Row 1: value boxes ─────────────────────────────────
+        # ── Row 1: value boxes ─────────────────────────────────
                 ui.card(
                     ui.card_header(
                                 ui.div(
@@ -122,10 +129,10 @@ app_ui = ui.page_navbar(
                         });
                     """),
                 ),
-                # ── Row 2 - Left Column ──────────────────────────────────
+        # ── Row 2 - Left Column ──────────────────────────────────
                 ui.layout_columns(
                     ui.div(
-                        # ── Unit mastery grid ────────────────────────────
+            # ── Unit mastery grid ────────────────────────────
                         ui.card(
                             ui.card_header(
                                 ui.div(
@@ -144,7 +151,7 @@ app_ui = ui.page_navbar(
                             output_widget("unit_mastery_chart"),
                             style="height: 650px; overflow-y: auto;",
                         ),
-                        # ── KC Opportunities ────────────────────────────
+            # ── KC Opportunities ────────────────────────────
                         ui.card(
                             ui.card_header(
                                 ui.div(
@@ -187,7 +194,7 @@ app_ui = ui.page_navbar(
                             style="min-height: 500px;",
                         ),
                     ),
-                    # ── Row 3 - Right Column : KC Progress ──────────────────────────────
+        # ── Row 3 - Right Column : KC Progress ──────────────────────────────
                     ui.card(
                         ui.card_header(
                             ui.div(
@@ -262,7 +269,7 @@ app_ui = ui.page_navbar(
                  col_widths=(4,8),
                 ),
             ),
-        # ── Tab 2 : Opportunity Heatmap ──────────────────────────────────
+    # ── Tab 2 : Opportunity Heatmap ──────────────────────────────────
             ui.nav_panel(
                 "Opportunity Heatmap",
                 ui.div(
@@ -351,11 +358,11 @@ def server(input, output, session):
         df = (
             last_attempt()
             .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
-            .apply(lambda x: (x >= 0.70).mean())
+            .apply(lambda x: (x >= STUDENT_MASTERY_THRESHOLD).mean())
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
         )
-        df['status'] = df['pct_mastered'].apply(classify)
+        df['status'] = df['pct_mastered'].apply(classify, args=(KC_PERC_MASTERY_THRESHOLD, KC_PERC_ATTENTION_THRESHOLD))
         return df
     
     @reactive.calc
@@ -363,11 +370,11 @@ def server(input, output, session):
         df = (
             first_attempt()
             .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
-            .apply(lambda x: (x >= 0.70).mean())
+            .apply(lambda x: (x >= STUDENT_MASTERY_THRESHOLD).mean())
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
         )
-        df['status'] = df['pct_mastered'].apply(classify)
+        df['status'] = df['pct_mastered'].apply(classify,args=(KC_PERC_MASTERY_THRESHOLD, KC_PERC_ATTENTION_THRESHOLD))
         return df
     
     @reactive.calc
@@ -462,7 +469,7 @@ def server(input, output, session):
         df = last_kc_summary()   
         n = len(df[df["status"] == "Mastered"])
         ui.modal_show(ui.modal(
-            build_kc_modal(df, status="Mastered", mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
+            build_kc_modal(df, status="Mastered", mastery=KC_PERC_MASTERY_THRESHOLD, attention=KC_PERC_ATTENTION_THRESHOLD),
             title=ui.tags.span(
                 ui.tags.span("● ", style="color:#60D394;"),
                 f"Skills Mastered — {n} skill{'s' if n > 1 else ''}",
@@ -477,7 +484,7 @@ def server(input, output, session):
         df = last_kc_summary()
         n = len(df[df["status"] == "Progressing"])
         ui.modal_show(ui.modal(
-            build_kc_modal(df, status="Progressing",mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
+            build_kc_modal(df, status="Progressing",mastery=KC_PERC_MASTERY_THRESHOLD, attention=KC_PERC_ATTENTION_THRESHOLD),
             title=ui.tags.span(
                 ui.tags.span("● ", style="color:#FFD97D;"),
                 f"Skills Progressing — {n} skill{'s' if n > 1 else ''}",
@@ -492,7 +499,7 @@ def server(input, output, session):
         df = last_kc_summary()
         n = len(df[df["status"] == "Need Attention"])
         ui.modal_show(ui.modal(
-            build_kc_modal(df, status="Need Attention",mastery=MASTERY_THRESHOLD, attention=ATTENTION_THRESHOLD),
+            build_kc_modal(df, status="Need Attention", mastery=KC_PERC_MASTERY_THRESHOLD, attention=KC_PERC_ATTENTION_THRESHOLD),
             title=ui.tags.span(
                 ui.tags.span("● ", style="color:#FF9B85;"),
                 f"Skills Needing Attention — {n} skill{'s' if n > 1 else ''}",
@@ -505,7 +512,7 @@ def server(input, output, session):
     @output
     @render_altair
     def unit_mastery_chart():
-        return unit_mastery(last_attempt())
+        return unit_mastery(last_attempt(), mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
 
     # ── opportunity heatmap ──────────────────────────────────────────────
     @output
@@ -559,7 +566,7 @@ def server(input, output, session):
         @render_altair
         def _render():
             filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, filter)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
 
     for i, kc_name in enumerate(kc_list_rank):
         make_render_rank(kc_name, f"kc_rank_{i}")
@@ -579,7 +586,7 @@ def server(input, output, session):
         @render_altair
         def _render():
             filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, filter)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
 
     for i in range(4):
         output_id = f"kc_low_{i}"
@@ -589,7 +596,7 @@ def server(input, output, session):
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, filter)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
         
         # ── titles for lowest tab ────────────────────────────────────────────
     for i in range(4):
@@ -606,7 +613,7 @@ def server(input, output, session):
         @render_altair
         def _render():
             filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, filter)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
     
     for i in range(4):
         output_id = f"kc_high_{i}"
@@ -616,7 +623,7 @@ def server(input, output, session):
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
-            return kc_mastery_box(kc_name, filter)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
     
         # ── titles for highest tab ─────────────────────────────────────────
     for i in range(4):
@@ -678,7 +685,7 @@ def server(input, output, session):
 
         return ui.tags.div(*rows)
 
-        # ── render each selected KC chart ─────────────────────────────────────
+     # ── render each selected KC chart ─────────────────────────────────────
     # Uses a reactive effect that re-runs whenever the selection changes,
     # registering a new altair renderer for each selected KC on the fly
     @reactive.effect
@@ -692,7 +699,7 @@ def server(input, output, session):
                 @render_altair
                 def _chart():
                     filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == name]
-                    return kc_mastery_box(name, filter)
+                    return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
             
             safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")
             make_chart(kc_name, safe_id)

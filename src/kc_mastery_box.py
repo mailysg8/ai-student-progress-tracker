@@ -1,6 +1,7 @@
 import pandas as pd
 import altair as alt
 import numpy as np
+from src.classify import classify
 
 # ── colour constants ────────────────────────────────────────────────────────
 
@@ -20,16 +21,6 @@ BAR_FILL = '#60D394'
 BAR_TRACK = "#DAE3DE"
 
 # ── helpers ─────────────────────────────────────────────────────────────────
-
-def classify(score, mastery_threshold=0.7, warning_threshold=0.3):
-    if score >= mastery_threshold:
-        return "Mastered"
-    elif score <= warning_threshold:
-        return "Need Attention" 
-    else:
-        return "Progressing"
-
-
 def tile_positions(n, cols = 8) :
     """Return (col_index, row_index) lists for n tiles in a left-to-right grid."""
     col_idx = [i % cols for i in range(n)]
@@ -48,10 +39,9 @@ def status_color(status: str, key: str) -> str:
 # ── main function ────────────────────────────────────────────────────────────
 
 def kc_mastery_box(
-    kc_name: str,
     data: pd.DataFrame,
     mastery_threshold: float = 0.70,
-    warning_threshold: float = 0.30,
+    attention_threshold: float = 0.30,
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
@@ -82,7 +72,7 @@ def kc_mastery_box(
 
     # ── prepare data ────────────────────────────────────────────────────────
     df = data.copy()
-    df['status']=df['state_predictions'].apply(classify, args=(mastery_threshold, warning_threshold))
+    df['status']=df['state_predictions'].apply(classify, args=(mastery_threshold, attention_threshold))
 
     # tile grid positions
     col_idx, row_idx = tile_positions(len(df), 8)
@@ -139,7 +129,7 @@ def kc_mastery_box(
             y=alt.Y("y:Q", scale=alt.Scale(domain=[-1, 1]), axis=None),
         )
     )
-    label_bar = alt.Chart(pd.DataFrame([{"Value": max(pct, 10), "Text": f"{pct}%"}])).mark_text(
+    label_bar = alt.Chart(pd.DataFrame([{"Value": max(pct, 7), "Text": f"{pct}%"}])).mark_text(
             align="right",
             dx=-10,
             dy=10,
