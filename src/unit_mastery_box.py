@@ -54,7 +54,7 @@ def unit_kc_chart(
     ----------
     unit_name         : display label shown on the left
     unit_df           : DataFrame with at least these columns:
-                          - modeling_kc_label_x   (str)  KC name shown in tooltip
+                          - modeling_kc_label   (str)  KC name shown in tooltip
                           - state_predictions   (float) mastery probability 0–1
     mastery_threshold : score >= this  → Mastered
     attention_threshold : score <= this  → Need Attention
@@ -110,7 +110,7 @@ def unit_kc_chart(
             stroke=alt.Stroke("stroke:N", scale=None, legend=None),
             strokeWidth=alt.value(1.5),
             tooltip=[
-                alt.Tooltip("modeling_kc_label_x:N", title="KC"),
+                alt.Tooltip("modeling_kc_label:N", title="KC"),
                 alt.Tooltip("pct_mastered:Q",  title="% of class mastered", format=".0%"),
                 alt.Tooltip("status:N",              title="Status"),
             ],
@@ -211,7 +211,7 @@ def unit_mastery(
 
     df = (
         data
-        .groupby(['unit','modeling_kc_id','modeling_kc_label_x'])['state_predictions']
+        .groupby(['unit','modeling_kc_id','modeling_kc_label'])['state_predictions']
         .apply(lambda x: (x >= mastery_threshold).mean())
         .reset_index()
         .rename(columns={'state_predictions': 'pct_mastered'})
@@ -226,7 +226,7 @@ def unit_mastery(
     rows = [
         unit_kc_chart(
             unit_name=unit,
-            unit_df=df[df["unit"] == unit][["modeling_kc_label_x", "pct_mastered"]],
+            unit_df=df[df["unit"] == unit][["modeling_kc_label", "pct_mastered"]],
             mastery_threshold=mastery_threshold,
             attention_threshold=attention_threshold,
             cols=cols,

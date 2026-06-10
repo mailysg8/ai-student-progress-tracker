@@ -110,9 +110,9 @@ def student_mastery_table(
         .encode(
             x=alt.X("kc_x:Q", scale=x_scale, axis=None),
             y=y_enc,
-            text="modeling_kc_label_x:N",
+            text="modeling_kc_label:N",
             tooltip=[
-                alt.Tooltip("modeling_kc_label_x:N", title="KC"),
+                alt.Tooltip("modeling_kc_label:N", title="KC"),
                 alt.Tooltip("state_predictions:Q", title="P(Mastery)", format=".2%"),
                 alt.Tooltip("status:N", title="Status"),
             ],

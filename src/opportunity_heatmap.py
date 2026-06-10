@@ -39,12 +39,12 @@ def compute_opportunity_counts(data: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     data : DataFrame containing 'student_id', 'modeling_kc_id',
-           'modeling_kc_label_x', and 'order_id' columns.
+           'modeling_kc_label', and 'order_id' columns.
 
     Returns
     -------
     DataFrame with columns:
-        student_id, modeling_kc_label_x, n_opportunities, status
+        student_id, modeling_kc_label, n_opportunities, status
     """
     # Opportunity number per student per KC
     data = data.copy()
@@ -57,7 +57,7 @@ def compute_opportunity_counts(data: pd.DataFrame) -> pd.DataFrame:
     # Max opportunity = total practice count
     opp_counts = (
         data
-        .groupby(['student_id', 'modeling_kc_label_x'])['opportunity']
+        .groupby(['student_id', 'modeling_kc_label'])['opportunity']
         .max()
         .reset_index()
         .rename(columns={'opportunity': 'n_opportunities'})
@@ -65,16 +65,16 @@ def compute_opportunity_counts(data: pd.DataFrame) -> pd.DataFrame:
 
     # Fill in every student × KC combination (including not started)
     all_students = opp_counts['student_id'].unique()
-    all_kcs      = opp_counts['modeling_kc_label_x'].unique()
+    all_kcs      = opp_counts['modeling_kc_label'].unique()
 
     full_index = pd.MultiIndex.from_product(
         [all_students, all_kcs],
-        names=['student_id', 'modeling_kc_label_x']
+        names=['student_id', 'modeling_kc_label']
     )
 
     opp_counts = (
         opp_counts
-        .set_index(['student_id', 'modeling_kc_label_x'])
+        .set_index(['student_id', 'modeling_kc_label'])
         .reindex(full_index)
         .reset_index()
     )
@@ -114,7 +114,7 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
         .mark_rect(cornerRadius=4)
         .encode(
             x=alt.X(
-                "modeling_kc_label_x:N",
+                "modeling_kc_label:N",
                 title=None,
                 axis=alt.Axis(
                     labelFontSize=14,
@@ -130,7 +130,7 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
             ),
             tooltip=[
                 alt.Tooltip("student_id:N",           title="Student"),
-                alt.Tooltip("modeling_kc_label_x:N",  title="KC"),
+                alt.Tooltip("modeling_kc_label:N",  title="KC"),
                 alt.Tooltip("n_opportunities:Q",       title="Opportunities"),
                 alt.Tooltip("status:N",                title="Practice Level"),
             ],
@@ -141,7 +141,7 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
         alt.Chart(opp_counts)
         .mark_text(fontSize=11)
         .encode(
-            x="modeling_kc_label_x:N",
+            x="modeling_kc_label:N",
             y=alt.Y("student_id:N", sort=None),
             text=alt.Text("n_opportunities:Q"),
             color=alt.Color("status:N", scale=text_scale, legend=None),
@@ -191,7 +191,7 @@ def opportunity_table(avg_opp: pd.DataFrame, n: int = 5) -> alt.Chart:
         .encode(
             x=alt.value(10),
             y=alt.Y('row:O', axis=None),
-            text='modeling_kc_label_x:N',
+            text='modeling_kc_label:N',
         )
     )
 

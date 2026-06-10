@@ -23,7 +23,7 @@ KC_PERC_ATTENTION_THRESHOLD = 0.25
 N_RANK = 4
 
 mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
-kc_list_rank = list(mkc_data.groupby(['modeling_kc_label_x','rank']).count().sort_values('rank').reset_index().loc[0:N_RANK,'modeling_kc_label_x'])
+kc_list_rank = list(mkc_data.groupby(['modeling_kc_label','rank']).count().sort_values('rank').reset_index().loc[0:N_RANK,'modeling_kc_label'])
 
 
 ## Colour palette
@@ -357,7 +357,7 @@ def server(input, output, session):
     def last_kc_summary():
         df = (
             last_attempt()
-            .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
+            .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label'])['state_predictions']
             .apply(lambda x: (x >= STUDENT_MASTERY_THRESHOLD).mean())
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
@@ -369,7 +369,7 @@ def server(input, output, session):
     def first_kc_summary():
         df = (
             first_attempt()
-            .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label_x'])['state_predictions']
+            .groupby(['unit', 'modeling_kc_id', 'modeling_kc_label'])['state_predictions']
             .apply(lambda x: (x >= STUDENT_MASTERY_THRESHOLD).mean())
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
@@ -383,7 +383,7 @@ def server(input, output, session):
         return (
             last_kc_summary()
             .sort_values('pct_mastered', ascending=True)
-            .head(4)['modeling_kc_label_x']
+            .head(4)['modeling_kc_label']
             .tolist()
         )
     
@@ -393,7 +393,7 @@ def server(input, output, session):
         return (
             last_kc_summary()
             .sort_values('pct_mastered', ascending=False)
-            .head(4)['modeling_kc_label_x']
+            .head(4)['modeling_kc_label']
             .tolist()
         )
     
@@ -542,7 +542,7 @@ def server(input, output, session):
     # ── Search tab ─────────────────────
     @reactive.effect
     def opp_search_choices():
-        choices = sorted(mkc_data["modeling_kc_label_x"].unique().tolist())
+        choices = sorted(mkc_data["modeling_kc_label"].unique().tolist())
         ui.update_selectize(
             "opp_search",
             choices=choices,
@@ -565,7 +565,7 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
 
     for i, kc_name in enumerate(kc_list_rank):
@@ -585,7 +585,7 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
 
     for i in range(4):
@@ -595,7 +595,7 @@ def server(input, output, session):
         @render_altair
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
-            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
         
         # ── titles for lowest tab ────────────────────────────────────────────
@@ -612,7 +612,7 @@ def server(input, output, session):
         @output(id=output_id)
         @render_altair
         def _render():
-            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
     
     for i in range(4):
@@ -622,7 +622,7 @@ def server(input, output, session):
         @render_altair
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
-            filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == kc_name]
+            filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
     
         # ── titles for highest tab ─────────────────────────────────────────
@@ -637,7 +637,7 @@ def server(input, output, session):
     # ── Search tab ─────────────────────
     @reactive.effect
     def populate_search_choices():
-        choices = sorted(mkc_data["modeling_kc_label_x"].unique().tolist())
+        choices = sorted(mkc_data["modeling_kc_label"].unique().tolist())
         ui.update_selectize(
             "kc_search",
             choices=choices,
@@ -698,7 +698,7 @@ def server(input, output, session):
                 @output(id=f"search_chart_{sid}")
                 @render_altair
                 def _chart():
-                    filter = last_attempt()[last_attempt()['modeling_kc_label_x'] == name]
+                    filter = last_attempt()[last_attempt()['modeling_kc_label'] == name]
                     return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
             
             safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")

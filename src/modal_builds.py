@@ -59,7 +59,7 @@ def build_total_kc_modal(df):
     df : pd.DataFrame
         Full, unfiltered KC dataframe. Expected columns:
             - 'unit'                 : str, e.g. "Unit 1"
-            - 'modeling_kc_label_x'  : str, the KC display name
+            - 'modeling_kc_label'  : str, the KC display name
             - 'pct_mastered'         : float in [0, 1], e.g. 0.895
             - 'status'               : str, one of "Mastered", "Progressing",
                                        "Need Attention"
@@ -114,7 +114,7 @@ def build_total_kc_modal(df):
                         "●",
                         style=f"color:{color}; margin-right:0.5rem; font-size:0.8rem;",
                     ),
-                    ui.tags.span(row["modeling_kc_label_x"]),
+                    ui.tags.span(row["modeling_kc_label"]),
                     style="flex:1; display:flex; align-items:center;",
                 ),
                 # Right: tinted status badge + right-aligned percentage
@@ -165,7 +165,7 @@ def build_kc_modal(df, status, mastery, attention):
     df : pd.DataFrame
         Full, unfiltered KC dataframe. Expected columns:
             - 'unit'                 : str, e.g. "Unit 1"
-            - 'modeling_kc_label_x'  : str, the KC display name
+            - 'modeling_kc_label'  : str, the KC display name
             - 'pct_mastered'         : float in [0, 1], e.g. 0.895
             - 'status'               : str, one of "Mastered", "Progressing",
                                        "Need Attention"
@@ -216,7 +216,7 @@ def build_kc_modal(df, status, mastery, attention):
         for _, row in group.iterrows():
             # Each row: KC name on the left, mastery percentage on the right
             kc_row = ui.tags.div(
-                ui.tags.span(row["modeling_kc_label_x"], style="flex:1;"),
+                ui.tags.span(row["modeling_kc_label"], style="flex:1;"),
                 ui.tags.span(
                     f"{row['pct_mastered'] * 100:.1f}%",
                     style="font-weight:600; color:#263744;",
