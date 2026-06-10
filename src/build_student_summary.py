@@ -486,7 +486,7 @@ HTML_TEMPLATE = """<!doctype html>
 
   <div class="cta">
     <div id="cta_text">—</div>
-    <button onclick="alert('Goes to the training-agenda page (Godsgift\\'s view).')">View my practice plan →</button>
+    <button onclick="parent.postMessage('go-practice-plan', '*')">View my practice plan →</button>
   </div>
 
   <div class="note">
