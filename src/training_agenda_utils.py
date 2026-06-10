@@ -381,8 +381,8 @@ def render_agenda_html(tbl):
         unlock_html = ""
         if it["unlocks"]:
             def utag(lbl, mastered):
-                fg = "#9aa0a6" if mastered else "#185FA5"
-                bgc = "#f1f3f4" if mastered else "#E6F1FB"
+                fg = "#9aa0a6" if mastered else "#185FA5" # text:  grey if mastered, blue if not
+                bgc = "#f1f3f4" if mastered else "#E6F1FB" # box:   light grey if mastered, light blue if not
                 return chip(lbl, fg, bgc)
             inline = it["unlocks"][:4]; rest = it["unlocks"][4:]
             inline_html = "".join(utag(l, m) for l, m in inline)
