@@ -1,8 +1,4 @@
-# Reproducible conda environment for stellar-proj (Apple Silicon).
-# pyBKT is installed from the prebuilt, self-contained wheel in ./wheels
-# (compiled C++ engine, no libomp/compiler needed) -- NOT from PyPI, because
-# the PyPI macOS install falls back to a broken pure-Python build.
-name: test
+name: stellar-proj
 channels:
   - conda-forge
 dependencies:
@@ -11,6 +7,8 @@ dependencies:
   - pandas=2.2.2
   - numpy=2.0.2
   - scikit-learn=1.6.1
+  - matplotlib
+  - seaborn
   - scipy=1.16.3
   - openpyxl=3.1.5
   - networkx=3.4.2
