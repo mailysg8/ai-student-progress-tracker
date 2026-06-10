@@ -12,7 +12,6 @@ from shinywidgets import output_widget, render_widget
 ####################################################################################
 ### Basic Configs
 ####################################################################################
-
 MASTERY_THRESHOLD = 0.65   
 
 # Band cutoffs for "Your Level" (applied to the exam-readiness score)
@@ -23,7 +22,7 @@ EMERGING_CUTOFF = 0.35
 BANDS = [("Advanced", ADVANCED_CUTOFF), ("Proficient", PROFICIENT_CUTOFF), ("Emerging", EMERGING_CUTOFF)]
 # Background colours for the KPI cards / bands
 BAND_BG = {"Advanced": "#60D394", "Proficient": "#185FA5",
-           "Emerging": "#C77F0A", "Developing": "#C0392B"}
+           "Emerging": "#FECD54", "Developing": "#EE6055"} # "#C77F0A" # red-other; "#C0392B"
 
 
 def band_color(p):
@@ -40,7 +39,8 @@ def band_color(p):
 ####################################################################################
 ### File paths and data loading 
 ####################################################################################
-base_path = Path().resolve().parent
+DATA_DIR = Path("data")
+base_path = Path().resolve()
 file_path = base_path / "data" / "processed" 
 
 student_df = pd.read_csv(file_path / "final_student_kc_data.csv")
@@ -259,7 +259,10 @@ def _unit_avg(unit, mastery_map):
 
 
 def build_unit_sankey(mm):
-    """OVERVIEW: nodes = units (colour = avg mastery), links = cross-unit prereqs."""
+    """
+    OVERVIEW: nodes = units (colour = avg mastery), 
+    links = cross-unit prereqs.
+    Note: this is a high-level overview for the student, so we only show links between units, not individual MKCs."""
     agg = {}
     for s, t, v in zip(edges_df["source_modeling_kc_id"],
                     edges_df["target_modeling_kc_id"], edges_df["fine_edge_count"]):
@@ -282,12 +285,15 @@ def build_unit_sankey(mm):
                 pad=20, thickness=22, line=dict(color="white", width=0.6)),
         link=dict(source=[idx[a] for a, _ in agg], target=[idx[b] for _, b in agg],
                 value=list(agg.values()), color="rgba(170,175,180,0.4)", hovercolor="#80ffdb",  
-                hovertemplate="%{source.label} → %{target.label}: %{value} links<extra></extra>")))
+                hovertemplate="%{value:.0f} topics in %{target.label} depend on %{source.label}<extra></extra>")))
     return _style(fig)
 
 
 def build_unit_detail_sankey(unit, mm):
-    """DRILL-DOWN: a unit's MKCs + immediate neighbours (few nodes, readable)."""
+    """
+    DRILL-DOWN: a unit's MKCs + immediate neighbours (few nodes, readable).
+    
+    """
     core = [k for k, u in MKC_UNIT.items() if u == unit]
     nodeset = set(core)
     for k in core:
@@ -318,8 +324,259 @@ def build_unit_detail_sankey(unit, mm):
                 hovertemplate="%{customdata}<extra></extra>",
                 pad=16, thickness=18, line=dict(color="white", width=0.5)),
         link=dict(source=[idx[s] for s, _, _ in pairs], target=[idx[t] for _, t, _ in pairs],
-                value=[v for _, _, v in pairs], color="rgba(170,175,180,0.35)", hovercolor="#80ffdb")))
+                value=[v for _, _, v in pairs], color="rgba(170,175,180,0.35)", hovercolor="#80ffdb",
+                hovertemplate="source: %{source.label}<br>target: %{target.label}<extra></extra>")))
     return _style(fig)
+
+def render_agenda_html(tbl):
+    items = build_agenda(tbl, n=3)
+    if not items:
+        return ("<div style='padding:24px;color:#1D9E75;font-size:16px'>"
+                "🎉 Every attempted modeling-KC is at or above mastery — no next steps needed.</div>")
+
+    style = {"quickwin": ("#1D9E75", "#E1F5EE"), "unblock": ("#185FA5", "#E6F1FB"),
+             "foundation": ("#854F0B", "#FAEEDA"), "locked": ("#6B7280", "#EEF0F2")}
+
+    def chip(lbl, fg, bg):
+        return (f"<span style='display:inline-block;background:{bg};color:{fg};border-radius:5px;"
+                f"font-size:12px;padding:1px 7px;margin:2px 3px 0 0'>{lbl}</span>")
+
+    cards = ("<div style='display:grid;grid-template-columns:repeat(3,1fr);"
+             "gap:12px;align-items:start'>")
+    for i, it in enumerate(items):
+        col, bg = style.get(it["atype"], ("#555", "#f3f3f3"))
+        pct = it["mastery"]; bar_col = band_color(pct)
+
+        if pct >= 0.70:
+            bullets = ["Review the few items you missed here.",
+                       "Redo homework questions below 80%.",
+                       "Try one exam-style question on this skill."]
+        elif pct >= 0.40:
+            bullets = ["Re-read the relevant notes / textbook section.",
+                       "Complete ~5 more practice problems.",
+                       "Ask your teacher about the hardest part."]
+        else:
+            bullets = ["Start from the scaffolded examples.",
+                       "Watch a short explainer for this concept.",
+                       "Build the basics before moving on."]
+        bullet_html = "".join(f"<li style='margin-bottom:2px'>{b}</li>" for b in bullets)
+
+        meta = []
+        if it["tier"]:
+            meta.append(chip(it["tier"], col, bg))
+        if it["weight"] is not None:
+            meta.append(chip(f"weight {it['weight']:g}", "#555", "#f0f0f0"))
+        meta_html = "".join(meta)
+
+        # Prerequisites still needed (for locked cards)
+        prereq_html = ""
+        if not it["ready"] and it["missing"]:
+            tags = "".join(chip(m, "#A32D2D", "#FCEBEB") for m in it["missing"])
+            prereq_html = (f"<div style='border-top:1px solid #eee;padding-top:8px'>"
+                           f"<div style='font-size:12px;color:#888;font-weight:600;margin-bottom:4px'>"
+                           f"⚠ Master these first:</div>{tags}</div>")
+
+        # Downstream KCs this unlocks — first 4 inline, the rest behind <details>
+        unlock_html = ""
+        if it["unlocks"]:
+            def utag(lbl, mastered):
+                fg = "#9aa0a6" if mastered else "#185FA5"
+                bgc = "#f1f3f4" if mastered else "#E6F1FB"
+                return chip(lbl, fg, bgc)
+            inline = it["unlocks"][:4]; rest = it["unlocks"][4:]
+            inline_html = "".join(utag(l, m) for l, m in inline)
+            more_html = ""
+            if rest:
+                rest_html = "".join(utag(l, m) for l, m in rest)
+                more_html = (f"<details style='margin-top:4px'>"
+                             f"<summary style='cursor:pointer;color:#185FA5;font-size:12px;"
+                             f"list-style:none;font-weight:600'>+{len(rest)} more ▾</summary>"
+                             f"<div style='margin-top:4px'>{rest_html}</div></details>")
+            unlock_html = (f"<div style='border-top:1px solid #eee;padding-top:8px'>"
+                           f"<div style='font-size:12px;color:#888;font-weight:600;margin-bottom:4px'>"
+                           f"🔓 Will unlock ({len(it['unlocks'])} downstream):</div>"
+                           f"{inline_html}{more_html}</div>")
+
+        cards += f"""
+        <div style="border:1px solid #e3e3e3;border-top:3px solid {col};border-radius:0 0 10px 10px;
+                    padding:14px 16px;background:white;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="background:{bg};color:{col};border-radius:50%;width:24px;height:24px;
+                         display:flex;align-items:center;justify-content:center;font-weight:700;
+                         font-size:14px;flex-shrink:0">{i+1}</span>
+            <strong style="font-size:15px;line-height:1.3">{it['name']}</strong>
+            <span style="margin-left:auto;background:{bg};color:{col};border-radius:6px;
+                         font-size:12px;padding:2px 7px;white-space:nowrap">{it['badge']}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">{meta_html}</div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#777;margin-bottom:3px">
+              <span>Current mastery</span><strong style="color:{bar_col}">{pct:.0%}</strong></div>
+            <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden">
+              <div style="background:{bar_col};width:{int(pct*100)}%;height:100%"></div></div>
+            <div style="text-align:right;font-size:11px;color:#bbb;margin-top:2px">Target 80%</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:4px">✅ What to do next:</div>
+            <ul style="font-size:13.5px;color:#444;margin:0;padding-left:16px;line-height:1.6">{bullet_html}</ul>
+          </div>
+          {prereq_html}
+          {unlock_html}
+        </div>"""
+    cards += "</div>"
+    return cards
+
+
+####################################################################################
+### STYLING
+####################################################################################
+custom_css = ui.tags.style("""
+    body { background:#20303d; }
+    .dash-banner 
+    {   background:#20303d;
+        color:#fff;padding:14px 24px;
+        border-radius:8px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:6px; }
+    .dash-banner h1 
+    { 
+        font-size:30px;
+        font-weight:800;
+        margin:0; }
+    .brand .brand-name 
+        { font-size:18px;
+        font-weight:800; }
+    .brand .bar 
+        { display:inline-block;
+        height:6px;
+        border-radius:4px;
+        vertical-align:middle; }
+    .bar-red{width:44px;background:#e2674a;} 
+    .bar-yellow{width:32px;background:#e8c93f;margin-left:6px;}
+    .bar-dot{width:6px;background:#fff;margin-left:6px;}
+    .student-pick { background:#20303d;padding:0 24px 8px;display:flex;align-items:center;gap:10px; }
+    .student-pick label { color:#cdd6df;font-weight:600;margin:0; }
+    .student-pick .form-group, .student-pick .shiny-input-container { margin:0; }
+    
+    /* compact, coloured KPI cards */
+    .metric-row { margin-top:0 !important; --bs-gutter-y:0; }
+    .metric-row .bslib-value-box { min-height:0 !important; }
+    .metric-row .value-box-area { padding:8px 14px !important; }
+    .metric-row .value-box-title { font-size:13px !important;margin:0 0 2px !important;opacity:.9; }
+    .metric-row .value-box-value { font-size:26px !important;margin:0 !important;line-height:1.1; }
+    
+    /* section cards */
+    .section-card .card-header { font-size:20px;font-weight:700;background:#fff;border-bottom:none; }
+    .kc-head { display:flex;justify-content:space-between;align-items:center;gap:12px; }
+    .kc-head .shiny-input-container { margin:0; }
+    .section-card .card-body { display:flex;flex-direction:column;padding-top:6px; }
+    .tab-pane.bslib-gap-spacing { gap:0.4rem !important; }
+""")
+
+banner = ui.div(
+    ui.h1("Your Progress Dashboard"),
+    ui.div(ui.div("Stellar Education", class_="brand-name"),
+        ui.div(ui.span(class_="bar bar-red"), ui.span(class_="bar bar-yellow"),
+                ui.span(class_="bar bar-dot"), style="margin-top:6px"),
+           class_="brand"),
+    class_="dash-banner")
+
+student_picker = ui.div(
+    ui.input_select("student", "Student:", choices=STUDENT_IDS,
+                    selected=STUDENT_IDS[0] if STUDENT_IDS else None, width="220px"),
+    class_="student-pick")
+
+
+####################################################################################
+### UI
+####################################################################################
+metric_row = ui.layout_columns(
+    ui.output_ui("kc_box"), ui.output_ui("readiness_box"),
+    ui.output_ui("level_box"), ui.output_ui("blocked_box"),
+    col_widths=(3, 3, 3, 3), fill=False, class_="metric-row")
+
+graph_card = ui.card(
+    ui.card_header(
+        ui.div("KC Prerequisite Graph: Your Mastery at a Glance",
+            ui.input_select("kc_view", None, choices=[OVERVIEW_LABEL] + UNIT_LIST,
+                            selected=OVERVIEW_LABEL, width="240px"),
+            class_="kc-head")),
+    output_widget("sankey", fillable=True),
+    class_="section-card", height="380px", full_screen=True, fill=True)
+
+agenda_card = ui.card(
+    ui.card_header("🌟 Your Personalized Next Steps & Training Agenda"),
+    ui.output_ui("agenda"),
+    class_="section-card", height="440px", full_screen=True)
+
+dashboard_page = ui.nav_panel("Dashboard", banner, student_picker,
+                            metric_row, graph_card, agenda_card)
+home_page = ui.nav_panel("Home", ui.div())
+
+app_ui = ui.page_navbar(home_page, dashboard_page,
+                        title="Stellar Education", header=custom_css, fillable=True)
+
+####################################################################################
+### SERVER
+####################################################################################
+def server(input, output, session):
+
+    @reactive.calc
+    def tbl():
+        return student_mkc_table(input.student())   # per-student entry point
+
+    @reactive.calc
+    def mastery_map():
+        t = tbl()
+        return dict(zip(t["modeling_kc_id"], t["mastery"]))
+
+    @reactive.calc
+    def readiness():
+        return exam_readiness(tbl())
+
+    # ---- coloured KPI cards (rendered reactively so colour reflects context) ----
+    def vbox(title, value, bg):
+        return ui.value_box(title, value,
+                            theme=ui.value_box_theme(bg=bg, fg="white"),
+                            max_height="92px")
+
+    @render.ui
+    def kc_box():
+        n = int((tbl()["mastery"] >= MASTERY_THRESHOLD).sum())
+        return vbox("KCs mastered", f"{n} / {TOTAL_MKCS}", "#0E7C86")
+
+    @render.ui
+    def readiness_box():
+        band, bg = level_band(readiness())
+        return vbox("Exam Readiness", f"{readiness():.0%}", bg)
+
+    @render.ui
+    def level_box():
+        band, bg = level_band(readiness())
+        return vbox("Your Level", band, bg)
+
+    @render.ui
+    def blocked_box():
+        nb = len(find_blocked(mastery_map()))
+        bg = "#60D394" if nb == 0 else "#a63c06" #ffd100 #"#e8c93f" #("#FFD97D" if nb <= 2 else "#EE6055")
+        return vbox("Blocked KCs", str(nb), bg)
+
+    @render_widget
+    def sankey():
+        v = input.kc_view()
+        if not v or v == OVERVIEW_LABEL:
+            return build_unit_sankey(mastery_map())
+        return build_unit_detail_sankey(v, mastery_map())
+
+    @render.ui
+    def agenda():
+        return ui.HTML(render_agenda_html(tbl()))
+
+
+app = App(app_ui, server)
+
 
 
 # # Band cutoffs for "Your Level" (applied to the exam-readiness score, 0–1)
@@ -356,196 +613,63 @@ def build_unit_detail_sankey(unit, mm):
 #     edges_df["fine_edge_count"] = 1
 
 
-custom_css = ui.tags.style(
-    """
-    /* App background */
-    body { background-color: #263744; }
+# custom_css = ui.tags.style(
+#     """
+#     /* App background */
+#     body { background-color: #263744; }
  
-    /* Dark banner header inside the dashboard page */
-    .dash-banner {
-        background-color: #263744;
-        color: #ffffff;
-        padding: 18px 24px;
-        border-radius: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1px;
-    }
-    /* Kill the default top margin/gutter Bootstrap adds to the metric row */
-    .metric-row {
-        margin-top: 0 !important;
-        --bs-gutter-y: 0;
-    }
-    .tab-pane.bslib-gap-spacing {
-        gap: 0.7rem !important;
-    }
-    .dash-banner h1 {
-        font-size: 36px;
-        font-weight: 800;
-        margin: 0;
-    }
-    .dashboard-subtitle {
-    font-size: 1.25rem;
-    font-style: italic;
-    color: #FF9B85;
-    margin-top: 5px;
-    }
-    .brand { text-align: right; }
-    .brand .brand-name { font-size: 20px; font-weight: 800; color: #ffffff;}
-    .brand .brand-bars { margin-top: 6px; }
-    .brand .bar {
-        display: inline-block;
-        height: 6px;
-        border-radius: 4px;
-        vertical-align: middle;
-    }
-    .brand .bar-red   { width: 46px; background:#EE6055; }
-    .brand .bar-yellow{ width: 34px; background:#FFD97D; margin-left:6px; }
-    .brand .bar-dot   { width: 6px;  background:#ffffff; margin-left:6px; }
+#     /* Dark banner header inside the dashboard page */
+#     .dash-banner {
+#         background-color: #263744;
+#         color: #ffffff;
+#         padding: 18px 24px;
+#         border-radius: 8px;
+#         display: flex;
+#         justify-content: space-between;
+#         align-items: center;
+#         margin-bottom: 1px;
+#     }
+#     /* Kill the default top margin/gutter Bootstrap adds to the metric row */
+#     .metric-row {
+#         margin-top: 0 !important;
+#         --bs-gutter-y: 0;
+#     }
+#     .tab-pane.bslib-gap-spacing {
+#         gap: 0.7rem !important;
+#     }
+#     .dash-banner h1 {
+#         font-size: 36px;
+#         font-weight: 800;
+#         margin: 0;
+#     }
+#     .dashboard-subtitle {
+#     font-size: 1.25rem;
+#     font-style: italic;
+#     color: #FF9B85;
+#     margin-top: 5px;
+#     }
+#     .brand { text-align: right; }
+#     .brand .brand-name { font-size: 20px; font-weight: 800; color: #ffffff;}
+#     .brand .brand-bars { margin-top: 6px; }
+#     .brand .bar {
+#         display: inline-block;
+#         height: 6px;
+#         border-radius: 4px;
+#         vertical-align: middle;
+#     }
+#     .brand .bar-red   { width: 46px; background:#EE6055; }
+#     .brand .bar-yellow{ width: 34px; background:#FFD97D; margin-left:6px; }
+#     .brand .bar-dot   { width: 6px;  background:#ffffff; margin-left:6px; }
  
-    /* Metric value boxes */
-    .metric-card .card-title { font-size: 20px; font-weight: 700; }
+#     /* Metric value boxes */
+#     .metric-card .card-title { font-size: 20px; font-weight: 700; }
  
-    /* Section cards */
-    .section-card .card-header {
-        font-size: 22px;
-        font-weight: 700;
-        background-color: #ffffff;
-        border-bottom: none;
-    }
-    """
-)
-
-
-banner = ui.div(
-    ui.div(
-        ui.h1("Welcome to Your Progress Dashboard"),
-        ui.p("Let's see what you've accomplished!", class_="dashboard-subtitle"),
-    ),
-    ui.div(
-        ui.div("Stellar Education", class_="brand-name"),
-        ui.div(
-            ui.span(class_="bar bar-red"),
-            ui.span(class_="bar bar-yellow"),
-            ui.span(class_="bar bar-dot"),
-            class_="brand-bars",
-        ),
-        class_="brand"
-    ),
-    class_="dash-banner",
-)
-
-########## This is for the KPI metric cards on the "Your Next Steps" page ##########
-metric_cards = ui.layout_columns(
-    ui.value_box(
-        "KCs Mastered",
-        ui.output_text("kcs_mastered"),
-        class_="metric-card",
-    ),
-    ui.value_box(
-        "Overall Accuracy",
-        ui.output_text("overall_accuracy"),
-        class_="metric-card",
-    ),
-    ui.value_box(
-        "Prior Performance Band",
-        ui.output_text("prior_performance_band"),
-        class_="metric-card",
-    ),
-    ui.value_box(
-        "Blocked KCs",
-        ui.output_text("blocked_kcs"),
-        class_="metric-card",
-    ),
-    col_widths=(3, 3, 3, 3),
-    fill=False,
-    class_="metric-row",
-)
-
-kc_graph_card = ui.card(
-    ui.card_header("Modules Prerequisite Graph: Your Mastery at a Glance"),
-    ui.output_ui("kc_graph"),
-    class_="section-card",
-    height="320px",
-    full_screen=True,
-)
-
-next_steps_card = ui.card(
-    ui.card_header("\U0001F31F Your Personalized Next Steps & Training Agenda"),
-    ui.output_ui("agenda"),
-    class_="section-card",
-    height="420px",
-    full_screen=True,
-)
-
-
-# This is for Sitting's First Page
-home_page = ui.nav_panel(
-    "Home",
-    ui.div(
-        ui.div("Stellar Education", class_="brand-name"),
-        ui.div(
-            ui.span(class_="bar bar-red"),
-            ui.span(class_="bar bar-yellow"),
-            ui.span(class_="bar bar-dot"),
-            class_="brand-bars",
-        ),
-        class_="brand"
-    )
-    #banner
-)
-
-
-student_next_steps_page = ui.nav_panel(
-    "Your Next Steps",
-    banner,
-    metric_cards,
-    kc_graph_card,
-    next_steps_card,
-)
-
-
-app_ui = ui.page_navbar(
-    home_page,
-    student_next_steps_page,
-    #title="Stellar Education",
-    header=custom_css,
-    fillable=True
-)
-
-
-def server(input, output, session):
-    @output
-    @render.text
-    def kcs_mastered():
-        return "12"
-
-    @output
-    @render.text
-    def overall_accuracy():
-        return "85%"
-
-    @output
-    @render.text
-    def prior_performance_band():
-        return "Above Average"
-
-    @output
-    @render.text
-    def blocked_kcs():
-        return "3"
-    
-    @output
-    @render.ui
-    def kc_graph_card():
-        return ui.div()
-    
-    @output
-    @render.ui
-    def next_steps_card():
-        return ui.div()
-
-
-
-app = App(app_ui, server)
+#     /* Section cards */
+#     .section-card .card-header {
+#         font-size: 22px;
+#         font-weight: 700;
+#         background-color: #ffffff;
+#         border-bottom: none;
+#     }
+#     """
+# )
