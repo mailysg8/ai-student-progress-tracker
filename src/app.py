@@ -124,8 +124,8 @@ def exam_readiness(tbl, mastery_col="mastery", weight_col="weight"):
     w = tbl[weight_col].fillna(0)
     if w.sum() == 0:
         return float(tbl[mastery_col].mean())
-    return float((tbl[mastery_col] * w).sum() / w.sum())
-    # return float(np.average(valid_data[mastery_col], weights=weights))
+    #return float((tbl[mastery_col] * w).sum() / w.sum())
+    return float(np.average(tbl[mastery_col], weights=w))
 
 
 def level_band(score):
@@ -335,23 +335,23 @@ def render_agenda_html(tbl):
                 "🎉 Every attempted modeling-KC is at or above mastery — no next steps needed.</div>")
 
     style = {"quickwin": ("#1D9E75", "#E1F5EE"), "unblock": ("#185FA5", "#E6F1FB"),
-             "foundation": ("#854F0B", "#FAEEDA"), "locked": ("#6B7280", "#EEF0F2")}
+            "foundation": ("#854F0B", "#FAEEDA"), "locked": ("#6B7280", "#EEF0F2")}
 
     def chip(lbl, fg, bg):
         return (f"<span style='display:inline-block;background:{bg};color:{fg};border-radius:5px;"
                 f"font-size:12px;padding:1px 7px;margin:2px 3px 0 0'>{lbl}</span>")
 
     cards = ("<div style='display:grid;grid-template-columns:repeat(3,1fr);"
-             "gap:12px;align-items:start'>")
+            "gap:12px;align-items:start'>")
     for i, it in enumerate(items):
         col, bg = style.get(it["atype"], ("#555", "#f3f3f3"))
         pct = it["mastery"]; bar_col = band_color(pct)
 
-        if pct >= 0.70:
+        if pct >= PROFICIENT_CUTOFF:
             bullets = ["Review the few items you missed here.",
-                       "Redo homework questions below 80%.",
-                       "Try one exam-style question on this skill."]
-        elif pct >= 0.40:
+                    "Redo homework questions below 60%.",
+                    "Try one exam-style question on this skill."]
+        elif pct >= EMERGING_CUTOFF:
             bullets = ["Re-read the relevant notes / textbook section.",
                        "Complete ~5 more practice problems.",
                        "Ask your teacher about the hardest part."]
@@ -560,7 +560,7 @@ def server(input, output, session):
     @render.ui
     def blocked_box():
         nb = len(find_blocked(mastery_map()))
-        bg = "#60D394" if nb == 0 else "#a63c06" #ffd100 #"#e8c93f" #("#FFD97D" if nb <= 2 else "#EE6055")
+        bg = "#60D394" if nb == 0 else "#EE6055" #"#a63c06" #ffd100 #"#e8c93f" #("#FFD97D" if nb <= 2 else "#EE6055")
         return vbox("Blocked KCs", str(nb), bg)
 
     @render_widget
