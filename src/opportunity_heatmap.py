@@ -9,8 +9,8 @@ MASTERED_STROKE = "#34714F"
 PROGRESS_FILL   = "#FFD97D"
 PROGRESS_STROKE = "#FFBA81"
 
-ATTENTION_FILL   = "#FF9B85"
-ATTENTION_STROKE = "#EE6055"
+PRACTICE_FILL   = "#FF9B85"
+PRACTICE_STROKE = "#EE6055"
 
 NOTSTARTED_FILL   = "#8B9DBB"
 NOTSTARTED_STROKE = "#888780"
@@ -102,11 +102,11 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
 
     color_scale = alt.Scale(
         domain=["well practiced", "some practice", "low practice", "not started"],
-        range=[MASTERED_FILL, PROGRESS_FILL, ATTENTION_FILL, NOTSTARTED_FILL],
+        range=[MASTERED_FILL, PROGRESS_FILL, PRACTICE_FILL, NOTSTARTED_FILL],
     )
     text_scale = alt.Scale(
         domain=["well practiced", "some practice", "low practice", "not started"],
-        range=[MASTERED_STROKE, PROGRESS_STROKE, ATTENTION_STROKE, NOTSTARTED_STROKE],
+        range=[MASTERED_STROKE, PROGRESS_STROKE, PRACTICE_STROKE, NOTSTARTED_STROKE],
     )
 
     heatmap = (
@@ -172,7 +172,7 @@ def opportunity_table(avg_opp: pd.DataFrame, n: int = 5) -> alt.Chart:
     avg_opp['pill_color'] = avg_opp['status'].map({
         'well practiced': MASTERED_FILL,
         'some practice':  PROGRESS_FILL,
-        'low practice':   ATTENTION_FILL,
+        'low practice':   PRACTICE_FILL,
         'not started':    NOTSTARTED_FILL,
     })
     avg_opp['text_color'] = avg_opp['status'].map({

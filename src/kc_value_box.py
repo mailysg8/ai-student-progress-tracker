@@ -31,7 +31,7 @@ def kpi_value_box(data, status, theme, value_now, value_first):
             style="font-size:0.85rem; font-weight:500; display:block; opacity:0.85;",
         ),
         ui.span(
-            f"Number of KCs {status}",
+            f"Number of KCs {status}" if status!='Needs Practice' else f"Number of KCs Needing Practice",
             style="font-size:1.25rem; font-weight:bold;",
         ),
     )

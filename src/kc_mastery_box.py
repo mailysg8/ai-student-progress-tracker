@@ -13,9 +13,9 @@ PROGRESS_FILL    = "#FFD97D"
 PROGRESS_STROKE  = "#FFBA81"
 PROGRESS_TEXT    = "#5F5E5A"
 
-ATTENTION_FILL      = "#FF9B85"
-ATTENTION_STROKE    = "#EE6055"
-ATTENTION_TEXT      = "#5F5E5A"
+PRACTICE_FILL      = "#FF9B85"
+PRACTICE_STROKE    = "#EE6055"
+PRACTICE_TEXT      = "#5F5E5A"
 
 BAR_FILL = '#60D394'
 BAR_TRACK = "#DAE3DE"
@@ -32,16 +32,16 @@ def status_color(status: str, key: str) -> str:
     mapping = {
         "Mastered":    {"fill": MASTERED_FILL, "stroke": MASTERED_STROKE, "text": MASTERED_TEXT},
         "Progressing": {"fill": PROGRESS_FILL,  "stroke": PROGRESS_STROKE,  "text": PROGRESS_TEXT},
-        "Need Attention": {"fill": ATTENTION_FILL,    "stroke": ATTENTION_STROKE,    "text": ATTENTION_TEXT},
+        "Needs Practice": {"fill": PRACTICE_FILL,    "stroke": PRACTICE_STROKE,    "text": PRACTICE_TEXT},
     }
-    return mapping.get(status, mapping["Need Attention"])[key]
+    return mapping.get(status, mapping["Needs Practice"])[key]
 
 # ── main function ────────────────────────────────────────────────────────────
 
 def kc_mastery_box(
     data: pd.DataFrame,
     mastery_threshold: float = 0.70,
-    attention_threshold: float = 0.30,
+    practice_threshold: float = 0.30,
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
@@ -72,7 +72,7 @@ def kc_mastery_box(
 
     # ── prepare data ────────────────────────────────────────────────────────
     df = data.copy()
-    df['status']=df['state_predictions'].apply(classify, args=(mastery_threshold, attention_threshold))
+    df['status']=df['state_predictions'].apply(classify, args=(mastery_threshold, practice_threshold))
 
     # tile grid positions
     col_idx, row_idx = tile_positions(len(df), 8)
@@ -234,7 +234,7 @@ def kc_mastery_box(
     legend_df = pd.DataFrame([
         {"x": 0,   "label": f"■  Mastered ({n_mastered})", "color": MASTERED_STROKE},
         {"x": 110, "label": f"■  Progressing ({(df['status']=='Progressing').sum()})", "color": PROGRESS_STROKE},
-        {"x": 220, "label": f"■  Need Attention ({(df['status']=='Need Attention').sum()})", "color": ATTENTION_STROKE},
+        {"x": 220, "label": f"■  Needs Practice ({(df['status']=='Needs Practice').sum()})", "color": PRACTICE_STROKE},
     ])
 
     legend = (

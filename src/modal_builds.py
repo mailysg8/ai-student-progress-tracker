@@ -12,7 +12,7 @@ from shiny import ui
 #   row_bg       : background color for each KC row in the modal list
 #   header_color : hex color for the unit section headers
 #   subtitle     : lambda that formats the modal subtitle string.
-#                  Args: mastery (float), attention (float), n_units (int)
+#                  Args: mastery (float), practice (float), n_units (int)
 # ---------------------------------------------------------------------------
 STATUS_CONFIG = {
     "Mastered": {
@@ -20,7 +20,7 @@ STATUS_CONFIG = {
         "row_bg":       "#f0faf5",
         "header_color": "#60D394",
         # Shown when all displayed KCs are above the mastery threshold
-        "subtitle": lambda mastery, attention, n_units: (
+        "subtitle": lambda mastery, practice, n_units: (
             f"≥ {mastery*100:.0f}% of the class mastered · across {n_units} unit{'s' if n_units > 1 else ''}"
         ),
     },
@@ -28,18 +28,18 @@ STATUS_CONFIG = {
         "dot_color":    "#FFD97D",
         "row_bg":       "#fffbf0",
         "header_color": "#e6b800",
-        # Shown when KCs fall between the attention and mastery thresholds
-        "subtitle": lambda mastery, attention, n_units: (
-            f"Between {attention*100:.0f}% and {mastery*100:.0f}% of the class mastered · across {n_units} unit{'s' if n_units > 1 else ''}"
+        # Shown when KCs fall between the practice and mastery thresholds
+        "subtitle": lambda mastery, practice, n_units: (
+            f"Between {practice*100:.0f}% and {mastery*100:.0f}% of the class mastered · across {n_units} unit{'s' if n_units > 1 else ''}"
         ),
     },
-    "Need Attention": {
+    "Needs Practice": {
         "dot_color":    "#FF9B85",
         "row_bg":       "#fff5f3",
         "header_color": "#e05c3a",
-        # Shown when KCs are below the attention threshold
-        "subtitle": lambda mastery, attention, n_units: (
-            f"≤ {attention*100:.0f}% of the class mastered · across {n_units} unit{'s' if n_units > 1 else ''}"
+        # Shown when KCs are below the practice threshold
+        "subtitle": lambda mastery, practice, n_units: (
+            f"≤ {practice*100:.0f}% of the class mastered · across {n_units} unit{'s' if n_units > 1 else ''}"
         ),
     },
 }
@@ -62,14 +62,14 @@ def build_total_kc_modal(df):
             - 'modeling_kc_label'  : str, the KC display name
             - 'pct_mastered'         : float in [0, 1], e.g. 0.895
             - 'status'               : str, one of "Mastered", "Progressing",
-                                       "Need Attention"
+                                       "Needs Practice"
     """
     # Map each status to its badge dot color; grey is the fallback for
     # any unexpected status values that might appear in the data
     badge_color = {
         "Mastered":      "#60D394",
         "Progressing":   "#FFD97D",
-        "Need Attention": "#FF9B85",
+        "Needs Practice": "#FF9B85",
     }
 
     # Extract unit number for correct numeric sort order (Unit 2 < Unit 10),
@@ -152,7 +152,7 @@ def build_total_kc_modal(df):
     return ui.tags.div(subtitle, *unit_blocks, style="padding: 0 0.25rem;")
 
 
-def build_kc_modal(df, status, mastery, attention):
+def build_kc_modal(df, status, mastery, practice):
     """
     Build the modal content for a single status-filtered KC value box.
 
@@ -168,15 +168,15 @@ def build_kc_modal(df, status, mastery, attention):
             - 'modeling_kc_label'  : str, the KC display name
             - 'pct_mastered'         : float in [0, 1], e.g. 0.895
             - 'status'               : str, one of "Mastered", "Progressing",
-                                       "Need Attention"
+                                       "Needs Practice"
     status : str
         The status category to display. Must be a key in STATUS_CONFIG:
-        "Mastered", "Progressing", or "Need Attention".
+        "Mastered", "Progressing", or "Needs Practice".
     mastery : float
         The mastery threshold (e.g. 0.7 for 70%). Used in the subtitle.
-    attention : float
-        The attention threshold (e.g. 0.4 for 40%). Used in the subtitle
-        for "Progressing" and "Need Attention" categories.
+    practice : float
+        The practice threshold (e.g. 0.4 for 40%). Used in the subtitle
+        for "Progressing" and "Needs Practice" categories.
 
     """
     # Look up colors and subtitle template for the requested status
@@ -236,7 +236,7 @@ def build_kc_modal(df, status, mastery, attention):
     # passing both thresholds so each status can format its own message
     n_units = df_filtered["unit"].nunique()
     subtitle = ui.tags.p(
-        config["subtitle"](mastery, attention, n_units),
+        config["subtitle"](mastery, practice, n_units),
         style="color:#6c757d; font-size:0.85rem; margin-top:0.1rem; margin-bottom:0.5rem;",
     )
 

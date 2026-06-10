@@ -10,8 +10,8 @@ MASTERED_STROKE     = "#34714F"
 PROGRESS_FILL       = "#FFD97D"
 PROGRESS_STROKE     = "#FFBA81"
  
-ATTENTION_FILL    = "#FF9B85"
-ATTENTION_STROKE  = "#EE6055"
+PRACTICE_FILL    = "#FF9B85"
+PRACTICE_STROKE  = "#EE6055"
  
 TEXT_COLOR          = "#263744"
 LABEL_COLOR         = "#888780"
@@ -23,9 +23,9 @@ def status_color(status: str, key: str) -> str:
     mapping = {
         "Mastered":          {"fill": MASTERED_FILL,    "stroke": MASTERED_STROKE},
         "Progressing":       {"fill": PROGRESS_FILL,    "stroke": PROGRESS_STROKE},
-        "Need Attention": {"fill": ATTENTION_FILL, "stroke": ATTENTION_STROKE},
+        "Needs Practice": {"fill": PRACTICE_FILL, "stroke": PRACTICE_STROKE},
     }
-    return mapping.get(status, mapping["Need Attention"])[key]
+    return mapping.get(status, mapping["Needs Practice"])[key]
  
  
 def tile_positions(n: int, cols: int = 8):
@@ -41,7 +41,7 @@ def unit_kc_chart(
     unit_name: str,
     unit_df: pd.DataFrame,
     mastery_threshold: float = 0.70,
-    attention_threshold: float = 0.30,
+    practice_threshold: float = 0.30,
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
@@ -57,7 +57,7 @@ def unit_kc_chart(
                           - modeling_kc_label   (str)  KC name shown in tooltip
                           - state_predictions   (float) mastery probability 0–1
     mastery_threshold : score >= this  → Mastered
-    attention_threshold : score <= this  → Need Attention
+    practice_threshold : score <= this  → Needs Practice
     cols              : max tiles per row inside the grid
     tile_size         : width/height of each square in px
     tile_gap          : gap between squares in px
@@ -65,7 +65,7 @@ def unit_kc_chart(
     """
     df = unit_df.copy().reset_index(drop=True)
     df["status"] = df["pct_mastered"].apply(
-        classify, args=(mastery_threshold, attention_threshold)
+        classify, args=(mastery_threshold, practice_threshold)
     )
  
     # grid positions (KC = one tile)
@@ -148,7 +148,7 @@ def make_legend() -> alt.Chart:
     items = [
         {"status": "Mastered",          "fill": MASTERED_FILL,    "stroke": MASTERED_STROKE,    "x": 0},
         {"status": "Progressing",       "fill": PROGRESS_FILL,    "stroke": PROGRESS_STROKE,    "x": 1},
-        {"status": "Need Attention", "fill": ATTENTION_FILL, "stroke": ATTENTION_STROKE, "x": 2},
+        {"status": "Needs Practice", "fill": PRACTICE_FILL, "stroke": PRACTICE_STROKE, "x": 2},
     ]
     thresholds = ["≥ 70%", "30 – 70%", "≤ 30%"]
     for item, thr in zip(items, thresholds):
@@ -188,7 +188,7 @@ def make_legend() -> alt.Chart:
 def unit_mastery(
     data: pd.DataFrame,
     mastery_threshold: float = 0.70,
-    attention_threshold: float = 0.30,
+    practice_threshold: float = 0.30,
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
@@ -201,7 +201,7 @@ def unit_mastery(
     ----------
     data              : DataFrame with columns for unit, KC label, and mastery score
     mastery_threshold : score >= this  → Mastered          (default: 0.70)
-    attention_threshold : score <= this  → Need Attention (default: 0.30)
+    practice_threshold : score <= this  → Needs Practice (default: 0.30)
     cols              : max tiles per row                   (default: 8)
     tile_size         : tile width/height in px             (default: 38)
     tile_gap          : gap between tiles in px             (default: 6)
@@ -228,7 +228,7 @@ def unit_mastery(
             unit_name=unit,
             unit_df=df[df["unit"] == unit][["modeling_kc_label", "pct_mastered"]],
             mastery_threshold=mastery_threshold,
-            attention_threshold=attention_threshold,
+            practice_threshold=practice_threshold,
             cols=cols,
             tile_size=tile_size,
             tile_gap=tile_gap,
@@ -239,18 +239,18 @@ def unit_mastery(
  
     # summary counts
     df["_status"] = df["pct_mastered"].apply(
-        classify, args=(mastery_threshold, attention_threshold)
+        classify, args=(mastery_threshold, practice_threshold)
     )
     n_mastered    = (df["_status"] == "Mastered").sum()
     n_progressing = (df["_status"] == "Progressing").sum()
-    n_needs       = (df["_status"] == "Need Attention").sum()
+    n_needs       = (df["_status"] == "Needs Practice").sum()
  
     grid_w = cols * (tile_size + tile_gap) - tile_gap
     total_w = label_width + 16 + grid_w  
 
     legend_df = pd.DataFrame([
         {"order": 0, "label": f"■  Mastered ({n_mastered})",       "color": MASTERED_STROKE},
-        {"order": 1, "label": f"■  Need Attention ({n_needs})",    "color": ATTENTION_STROKE},
+        {"order": 1, "label": f"■  Needs Practice ({n_needs})",    "color": PRACTICE_STROKE},
         {"order": 2, "label": f"■  Progressing ({n_progressing})", "color": PROGRESS_STROKE},
     ])
 

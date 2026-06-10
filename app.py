@@ -13,12 +13,12 @@ from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 
 # Thresholds for student mastery status
-STUDENT_MASTERY_THRESHOLD = 0.7
-STUDENT_ATTENTION_THRESHOLD = 0.3
+STUDENT_MASTERY_THRESHOLD = 0.65
+STUDENT_PRACTICE_THRESHOLD = 0.35
 
 # Thresholds for KC class percentage mastery status
 KC_PERC_MASTERY_THRESHOLD = 0.75
-KC_PERC_ATTENTION_THRESHOLD = 0.25
+KC_PERC_PRACTICE_THRESHOLD = 0.25
 
 N_RANK = 4
 
@@ -141,7 +141,7 @@ app_ui = ui.page_navbar(
                                         bs_info_icon(icon_title),
                                         """
                                         Each square is a Knowledge Component (KC). 
-                                        Green = class has largely mastered it, yellow = still in progress, red = needs attention.
+                                        Green = class has largely mastered it, yellow = still in progress, red = needs practice.
                                         Use this to spot which units may require additional support.
                                         """,
                                     ),
@@ -203,9 +203,9 @@ app_ui = ui.page_navbar(
                                     bs_info_icon(icon_title),
                                     """
                                     Each card shows one Knowledge Component (KC). 
-                                    Squares represent individual students — green = mastered, yellow = progressing, red = needs attention. 
+                                    Squares represent individual students — green = mastered, yellow = progressing, red = needs practice. 
                                     The progress bar shows the class mastery rate. 
-                                    Switch tabs to focus on KCs needing attention or showing good progress.
+                                    Switch tabs to focus on KCs needing practice or showing good progress.
                                     """,
                                 ),
                                 style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
@@ -226,7 +226,7 @@ app_ui = ui.page_navbar(
                                 ),
                             ),
                             ui.nav_panel(
-                                "Need Attention",
+                                "Needs Practice",
                                 ui.layout_columns(
                                     *[
                                         ui.card(
@@ -362,7 +362,7 @@ def server(input, output, session):
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
         )
-        df['status'] = df['pct_mastered'].apply(classify, args=(KC_PERC_MASTERY_THRESHOLD, KC_PERC_ATTENTION_THRESHOLD))
+        df['status'] = df['pct_mastered'].apply(classify, args=(KC_PERC_MASTERY_THRESHOLD, KC_PERC_PRACTICE_THRESHOLD))
         return df
     
     @reactive.calc
@@ -374,7 +374,7 @@ def server(input, output, session):
             .reset_index()
             .rename(columns={'state_predictions': 'pct_mastered'})
         )
-        df['status'] = df['pct_mastered'].apply(classify,args=(KC_PERC_MASTERY_THRESHOLD, KC_PERC_ATTENTION_THRESHOLD))
+        df['status'] = df['pct_mastered'].apply(classify,args=(KC_PERC_MASTERY_THRESHOLD, KC_PERC_PRACTICE_THRESHOLD))
         return df
     
     @reactive.calc
@@ -433,10 +433,10 @@ def server(input, output, session):
         first_df = first_kc_summary()
         return kpi_value_box(
             data        = last_attempt(),
-            status      = "Need Attention",
+            status      = "Needs Practice",
             theme       = ui.value_box_theme(bg="#FF9B85", fg="#263744"),
-            value_now   = int((last_df['status'] == 'Need Attention').sum()),
-            value_first = int((first_df['status'] == 'Need Attention').sum()),
+            value_now   = int((last_df['status'] == 'Needs Practice').sum()),
+            value_first = int((first_df['status'] == 'Needs Practice').sum()),
         )
 
 
@@ -469,7 +469,7 @@ def server(input, output, session):
         df = last_kc_summary()   
         n = len(df[df["status"] == "Mastered"])
         ui.modal_show(ui.modal(
-            build_kc_modal(df, status="Mastered", mastery=KC_PERC_MASTERY_THRESHOLD, attention=KC_PERC_ATTENTION_THRESHOLD),
+            build_kc_modal(df, status="Mastered", mastery=KC_PERC_MASTERY_THRESHOLD, practice=KC_PERC_PRACTICE_THRESHOLD),
             title=ui.tags.span(
                 ui.tags.span("● ", style="color:#60D394;"),
                 f"Skills Mastered — {n} skill{'s' if n > 1 else ''}",
@@ -484,7 +484,7 @@ def server(input, output, session):
         df = last_kc_summary()
         n = len(df[df["status"] == "Progressing"])
         ui.modal_show(ui.modal(
-            build_kc_modal(df, status="Progressing",mastery=KC_PERC_MASTERY_THRESHOLD, attention=KC_PERC_ATTENTION_THRESHOLD),
+            build_kc_modal(df, status="Progressing",mastery=KC_PERC_MASTERY_THRESHOLD, practice=KC_PERC_PRACTICE_THRESHOLD),
             title=ui.tags.span(
                 ui.tags.span("● ", style="color:#FFD97D;"),
                 f"Skills Progressing — {n} skill{'s' if n > 1 else ''}",
@@ -492,17 +492,17 @@ def server(input, output, session):
             easy_close=True, size="l", footer=None,
         ))
 
-    # --- Need Attention modal ---
+    # --- Needs Practice modal ---
     @reactive.effect
     @reactive.event(input.vb_needs_clicked)
     def modal_needs():
         df = last_kc_summary()
-        n = len(df[df["status"] == "Need Attention"])
+        n = len(df[df["status"] == "Needs Practice"])
         ui.modal_show(ui.modal(
-            build_kc_modal(df, status="Need Attention", mastery=KC_PERC_MASTERY_THRESHOLD, attention=KC_PERC_ATTENTION_THRESHOLD),
+            build_kc_modal(df, status="Needs Practice", mastery=KC_PERC_MASTERY_THRESHOLD, practice=KC_PERC_PRACTICE_THRESHOLD),
             title=ui.tags.span(
                 ui.tags.span("● ", style="color:#FF9B85;"),
-                f"Skills Needing Attention — {n} skill{'s' if n > 1 else ''}",
+                f"Skills Needing Practice — {n} skill{'s' if n > 1 else ''}",
             ),
             easy_close=True, size="l", footer=None,
         ))
@@ -512,7 +512,7 @@ def server(input, output, session):
     @output
     @render_altair
     def unit_mastery_chart():
-        return unit_mastery(last_attempt(), mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+        return unit_mastery(last_attempt(), mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
 
     # ── opportunity heatmap ──────────────────────────────────────────────
     @output
@@ -566,7 +566,7 @@ def server(input, output, session):
         @render_altair
         def _render():
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
-            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
 
     for i, kc_name in enumerate(kc_list_rank):
         make_render_rank(kc_name, f"kc_rank_{i}")
@@ -586,7 +586,7 @@ def server(input, output, session):
         @render_altair
         def _render():
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
-            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
 
     for i in range(4):
         output_id = f"kc_low_{i}"
@@ -596,7 +596,7 @@ def server(input, output, session):
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
-            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
         
         # ── titles for lowest tab ────────────────────────────────────────────
     for i in range(4):
@@ -613,7 +613,7 @@ def server(input, output, session):
         @render_altair
         def _render():
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
-            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
     
     for i in range(4):
         output_id = f"kc_high_{i}"
@@ -623,7 +623,7 @@ def server(input, output, session):
         def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
-            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+            return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
     
         # ── titles for highest tab ─────────────────────────────────────────
     for i in range(4):
@@ -699,7 +699,7 @@ def server(input, output, session):
                 @render_altair
                 def _chart():
                     filter = last_attempt()[last_attempt()['modeling_kc_label'] == name]
-                    return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, attention_threshold=KC_PERC_ATTENTION_THRESHOLD)
+                    return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
             
             safe_id = kc_name.replace(",", "_").replace(" ", "_").replace("/", "_").replace("-", "_")
             make_chart(kc_name, safe_id)
