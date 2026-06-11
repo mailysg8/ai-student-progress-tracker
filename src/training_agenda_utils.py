@@ -17,14 +17,18 @@ from shinywidgets import output_widget, render_widget
 MASTERY_THRESHOLD = 0.65   
 
 # Band cutoffs for "Your Level" (applied to the exam-readiness score)
-ADVANCED_CUTOFF = 0.65
-PROFICIENT_CUTOFF = 0.50
-EMERGING_CUTOFF = 0.35
+PROGRESSING_CUTOFF = 0.35
+#EMERGING_CUTOFF = 0.35
+# ADVANCED_CUTOFF = 0.65
+# PROFICIENT_CUTOFF = 0.50
+# EMERGING_CUTOFF = 0.35
 
-BANDS = [("Advanced", ADVANCED_CUTOFF), ("Proficient", PROFICIENT_CUTOFF), ("Emerging", EMERGING_CUTOFF)]
+# BAND_BG = {"Advanced": "#60D394", "Proficient": "#185FA5",
+#            "Emerging": "#FECD54", "Developing": "#EE6055"} # "#C77F0A" # red-other; "#C0392B"
+
+BANDS = [("Mastered", MASTERY_THRESHOLD), ("Progressing", PROGRESSING_CUTOFF)] #, ("Emerging", EMERGING_CUTOFF)]
 # Background colours for the KPI cards / bands
-BAND_BG = {"Advanced": "#60D394", "Proficient": "#185FA5",
-           "Emerging": "#FECD54", "Developing": "#EE6055"} # "#C77F0A" # red-other; "#C0392B"
+BAND_BG = {"Mastered": "#60D394","Progressing": "#FECD54", "Needs Practice": "#EE6055"} # "#C77F0A" # red-other; "#C0392B"
 
 
 def band_color(p):
@@ -33,7 +37,7 @@ def band_color(p):
         return "#C9CDD2"
     if p >= MASTERY_THRESHOLD:
         return "#60D394"
-    if p >= EMERGING_CUTOFF:
+    if p >= PROGRESSING_CUTOFF:
         return "#FFD97D"
     return "#EE6055"
 
@@ -160,12 +164,12 @@ Build the student's top-`n` "next steps" cards.
 
     Strategy
     --------
-    1. Look only at WEAK topics (mastery < 0.80) — mastered ones need no action.
-    2. Split weak topics into READY (all prerequisites already mastered → the
+    1. Look only at WEAK topics (mastery < 0.65) — mastered ones need no action.
+    2. Split weak topics into READY (all prerequisites already mastered, the
        student can tackle them now) vs BLOCKED (still missing a prerequisite).
     3. Rank the READY ones by a weighted priority score (see below) and take n.
     4. If there aren't n ready topics, top up with the highest-`weight` BLOCKED
-       topics so the agenda always shows n cards — these are badged "locked"
+       topics so the agenda always shows n cards, these are badged "locked"
        and list the prerequisites to clear first.
 
     Priority score (ready topics only)
@@ -182,7 +186,7 @@ Build the student's top-`n` "next steps" cards.
     if tbl.empty:
         return []
     
-    # Fast lookup: modeling_kc_id - this student's mastery.
+    # Fast lookup: modeling_kc_id; this student's mastery.
     mm = dict(zip(tbl["modeling_kc_id"], tbl["mastery"]))
     weak = tbl[tbl["mastery"] < MASTERY_THRESHOLD].copy()
     
@@ -221,7 +225,7 @@ Build the student's top-`n` "next steps" cards.
         # Badge = the KIND of recommendation, so the student sees WHY it's here.
         if not ready_flag:
             atype, badge = "locked", "🔒 Clear prerequisites"
-        elif p >= PROFICIENT_CUTOFF:
+        elif p >= PROGRESSING_CUTOFF:
             atype, badge = "quickwin", "🎯 Almost there"
         elif dn >= 3:
             atype, badge = "unblock", "🔓 Key unlock"
@@ -348,14 +352,14 @@ def render_agenda_html(tbl):
         col, bg = style.get(it["atype"], ("#555", "#f3f3f3"))
         pct = it["mastery"]; bar_col = band_color(pct)
 
-        if pct >= PROFICIENT_CUTOFF:
+        if pct >= PROGRESSING_CUTOFF:
             bullets = ["Review the few items you missed here.",
                     "Redo homework questions below 60%.",
-                    "Try one exam-style question on this skill."]
-        elif pct >= EMERGING_CUTOFF:
-            bullets = ["Re-read the relevant notes / textbook section.",
-                       "Complete ~5 more practice problems.",
-                       "Ask your teacher about the hardest part."]
+                    "Ask your teacher about the hardest part."]
+        # elif pct >= EMERGING_CUTOFF:
+        #     bullets = ["Re-read the relevant notes / textbook section.",
+        #                "Complete ~5 more practice problems.",
+        #                "Ask your teacher about the hardest part."]
         else:
             bullets = ["Start from the scaffolded examples.",
                        "Watch a short explainer for this concept.",
