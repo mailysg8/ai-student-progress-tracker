@@ -109,6 +109,13 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
         range=[MASTERED_STROKE, PROGRESS_STROKE, PRACTICE_STROKE, NOTSTARTED_STROKE],
     )
 
+    kc_selection = alt.selection_point(
+        name="kc_click",
+        fields=["modeling_kc_label", "student_id"],
+        on="click",
+        clear="dblclick",
+    )
+
     heatmap = (
         alt.Chart(opp_counts)
         .mark_rect(cornerRadius=4)
@@ -127,29 +134,23 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
                 "status:N",
                 scale=color_scale,
                 legend=alt.Legend(title="Practice Level"),
-            ),
+                ),
+            opacity=alt.condition(
+                    kc_selection, 
+                    alt.value(1.0), 
+                    alt.value(0.4)
+                ),
             tooltip=[
                 alt.Tooltip("student_id:N",           title="Student"),
                 alt.Tooltip("modeling_kc_label:N",  title="KC"),
                 alt.Tooltip("n_opportunities:Q",       title="Opportunities"),
                 alt.Tooltip("status:N",                title="Practice Level"),
             ],
-        )
+        ).add_params(kc_selection)
     )
 
-    text_layer = (
-        alt.Chart(opp_counts)
-        .mark_text(fontSize=11)
-        .encode(
-            x="modeling_kc_label:N",
-            y=alt.Y("student_id:N", sort=None),
-            text=alt.Text("n_opportunities:Q"),
-            color=alt.Color("status:N", scale=text_scale, legend=None),
-        )
-    )
-
-    return (
-        (heatmap + text_layer)
+    chart =  (
+        (heatmap)
         .properties(
             width="container",      # fills available width
             height=alt.Step(28),    # keep row height fixed per student,
@@ -160,6 +161,7 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
             view=alt.ViewConfig(strokeWidth=0),
         )
     )
+    return chart
 
 def opportunity_table(avg_opp: pd.DataFrame, n: int = 5) -> alt.Chart:
     """

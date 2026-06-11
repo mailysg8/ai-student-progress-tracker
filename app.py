@@ -11,6 +11,8 @@ from src.student_mastery_table import student_mastery_table
 from src.modal_builds import build_kc_modal, build_total_kc_modal
 from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
+from src.student_card import student_kc_card
+
 
 # Thresholds for student mastery status
 STUDENT_MASTERY_THRESHOLD = 0.65
@@ -291,7 +293,15 @@ app_ui = ui.page_navbar(
                         ),
                         output_widget("opp_heatmap_plot"),
                         full_screen=True,
-                        style="height: 100%;",
+                        style="height: 77%;",
+                    ),
+                    # -- Student info card
+                    ui.card(
+                        ui.card_header(
+                            ui.output_text("student_kc_card_title")
+                        ),
+                        output_widget("student_kc_detail"),
+                        ui.output_ui("student_kc_card_placeholder"),  # shown when nothing is selected
                     ),
                     style="height: calc(100vh - 120px); padding: 1rem;"
                 )
@@ -522,6 +532,60 @@ def server(input, output, session):
     @render_altair
     def opp_heatmap_plot():
         return opp_heatmap(mkc_data)
+    
+        # ── stores the last clicked student + KC ────────────────────────────
+    selected_tile = reactive.Value(None)
+
+    @reactive.effect
+    def _on_tile_click():
+        sel = reactive_read(opp_heatmap_plot.widget, "_vl_selections")
+        if not sel:
+            return
+        store = sel.get("kc_click", {}).get("store", [])
+        if not store:
+            return
+        values     = store[0]["values"]
+        kc_name    = values[0]
+        student_id = values[1]
+
+        selected_tile.set({"kc": kc_name, "student": student_id})
+
+
+    # ── card title (hidden until something is clicked) ───────────────────
+    @render.text
+    def student_kc_card_title():
+        sel = selected_tile.get()
+        
+        if sel is None:
+            return ""
+        # Look up the unit for this student/KC
+        row = mkc_data[
+            (mkc_data["student_id"] == sel['student']) &
+            (mkc_data["modeling_kc_label"] == sel['kc'])
+        ]
+        unit = row["unit"].iloc[0] if not row.empty else ""
+        return f"{sel['student']}  ·  {sel['kc']} · {unit}"
+
+    # ── placeholder message before first click ──────────────────────────
+    @render.ui
+    def student_kc_card_placeholder():
+        if selected_tile.get() is not None:
+            return ui.tags.div()   # empty — card is showing
+        return ui.p(
+            "Click any tile on the heatmap to see the student's attempt history.",
+            style="color:#888780; font-style:italic; padding: 1rem;"
+        )
+
+    # ── the card itself ──────────────────────────────────────────────────
+    @output
+    @render_altair
+    def student_kc_detail():
+        sel = selected_tile.get()
+        if sel is None:
+            return alt.Chart(pd.DataFrame()).mark_point()
+        return student_kc_card(mkc_data, sel["student"], sel["kc"])
+    
+    
     
     # ── opportunity list ──────────────────────────────────────────────
     # ── Low tab ─────────────────────
