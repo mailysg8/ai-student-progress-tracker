@@ -3,44 +3,86 @@ import altair as alt
 
 # ── colour constants (shared palette) ────────────────────────────────────────
 
-AHEAD_FILL    = "#34A853"
-ONTRACK_FILL  = "#7DC47F"
-ATRISK_FILL   = "#FFD24D"
-BEHIND_FILL   = "#F07070"
+MASTERED_FILL    = "#34A853"   # green
+PROGRESSING_FILL = "#FFD24D"   # yellow
+NEEDS_FILL       = "#F07070"   # red
 LABEL_DARK    = "#263744"
 LABEL_LIGHT   = "#FFFFFF"
 
-# ── status classification (4-tier, absolute) ─────────────────────────────────
+# ── status classification (3-tier, absolute) ─────────────────────────────────
 
-def classify_4(score: float) -> str:
-    """Four-tier absolute classification used by the Student Overview boxes."""
-    if score >= 0.80:
-        return "Ahead"
-    elif score >= 0.55:
-        return "On Track"
-    elif score >= 0.30:
-        return "At Risk"
+def classify_3(score: float) -> str:
+    """
+    Three-tier absolute classification used by the Student Overview boxes.
+
+    Mastered       : P(mastery) >= 0.65
+    Progressing    : 0.35 <= P(mastery) < 0.65
+    Needs Practice : P(mastery) < 0.35
+    """
+    if score >= 0.65:
+        return "Mastered"
+    elif score >= 0.35:
+        return "Progressing"
     else:
-        return "Behind"
+        return "Needs Practice"
 
 
-def assign_status(df: pd.DataFrame, quantile: bool) -> pd.Series:
+def compute_quantile_cuts(data: pd.DataFrame):
+    """
+    Compute class-wide quantile cut points from every student's last attempt
+    per KC. Returns the two thresholds (q33, q67) that split the whole class
+    distribution of P(mastery) into three equal-sized buckets.
+
+    These cuts are shared across all students so that a generally strong
+    student is not forced to have a third of their KCs marked "Needs Practice".
+    """
+    last = (
+        data.sort_values("order_id")
+        .groupby(["student_id", "modeling_kc_id"])
+        .last()
+        .reset_index()
+    )
+    q = last["state_predictions"].quantile([1 / 3, 2 / 3])
+    return float(q.loc[1 / 3]), float(q.loc[2 / 3])
+
+
+def classify_quantile(score: float, cuts) -> str:
+    """Classify a single score against class-wide quantile cut points."""
+    q33, q67 = cuts
+    if score >= q67:
+        return "Mastered"
+    elif score >= q33:
+        return "Progressing"
+    else:
+        return "Needs Practice"
+
+
+def assign_status(df: pd.DataFrame, quantile: bool, cuts=None) -> pd.Series:
     """
     Assign a status per row.
 
-    quantile=False : fixed absolute thresholds (classify_4)
-    quantile=True  : relative ranking, splitting rows into four ~equal buckets
-                     (top 25% Ahead ... bottom 25% Behind)
+    quantile=False        : fixed absolute thresholds (classify_3)
+    quantile=True, cuts   : class-wide relative status — each score is compared
+                            against shared class quantile cut points, so a
+                            student's mix reflects how they rank within the
+                            whole class rather than only within themselves
+    quantile=True, no cuts : fallback to within-student ranking (legacy)
     """
     scores = df["state_predictions"]
-    if not quantile or len(scores) < 4:
-        return scores.apply(classify_4)
+    if not quantile:
+        return scores.apply(classify_3)
 
+    if cuts is not None:
+        return scores.apply(lambda s: classify_quantile(s, cuts))
+
+    # Legacy fallback: rank within this student only
+    if len(scores) < 3:
+        return scores.apply(classify_3)
     ranks = scores.rank(method="first", ascending=True, pct=True)
     bins = pd.cut(
         ranks,
-        bins=[0.0, 0.25, 0.50, 0.75, 1.0],
-        labels=["Behind", "At Risk", "On Track", "Ahead"],
+        bins=[0.0, 1 / 3, 2 / 3, 1.0],
+        labels=["Needs Practice", "Progressing", "Mastered"],
         include_lowest=True,
     )
     return bins.astype(str)
@@ -52,15 +94,16 @@ def student_status_boxes(
     student_id: str,
     data: pd.DataFrame,
     quantile: bool = False,
+    cuts=None,
     box_height: int = 150,
 ):
     """
-    Build four status summary cards for a single student.
+    Build three status summary cards for a single student.
 
     Each card shows a status label (top-left), the percentage of the student's
     KCs in that status (large, centred) and the KC count (bottom-left).
 
-    All layers share one quantitative x scale (domain 0..100, four 25-wide
+    All layers share one quantitative x scale (domain 0..100, three equal
     slots) and one quantitative y scale (domain 0..box_height) so text always
     lands inside its card. x2 is always a field on the shared scale, never a
     standalone field against a constant x.
@@ -73,24 +116,26 @@ def student_status_boxes(
         .last()
         .reset_index()
     )
-    df["status"] = assign_status(df, quantile)
+    df["status"] = assign_status(df, quantile, cuts)
 
-    order = ["Ahead", "On Track", "At Risk", "Behind"]
+    order = ["Mastered", "Progressing", "Needs Practice"]
     fills = {
-        "Ahead": AHEAD_FILL, "On Track": ONTRACK_FILL,
-        "At Risk": ATRISK_FILL, "Behind": BEHIND_FILL,
+        "Mastered": MASTERED_FILL,
+        "Progressing": PROGRESSING_FILL,
+        "Needs Practice": NEEDS_FILL,
     }
     # Darker fills carry light text; lighter fills carry dark text
     text_colors = {
-        "Ahead": LABEL_LIGHT, "On Track": LABEL_DARK,
-        "At Risk": LABEL_DARK, "Behind": LABEL_LIGHT,
+        "Mastered": LABEL_LIGHT,
+        "Progressing": LABEL_DARK,
+        "Needs Practice": LABEL_LIGHT,
     }
 
     n_total = len(df)
     counts = df["status"].value_counts().reindex(order, fill_value=0)
 
-    # Four equal slots on a 0..100 x scale, with a small gap between cards
-    slot_w = 25.0
+    # Three equal slots on a 0..100 x scale, with a small gap between cards
+    slot_w = 100.0 / 3.0
     gap = 1.5
     rows = []
     for i, status in enumerate(order):
@@ -101,8 +146,8 @@ def student_status_boxes(
         rows.append({
             "x0": x0,
             "x1": x1,
-            "x_text": x0 + 1.2,          # left padding for labels
-            "x_pct": x1 - 1.2,           # right padding for the big number
+            "x_text": x0 + 1.0,          # left padding for labels
+            "x_pct": x1 - 1.0,           # right padding for the big number
             "status": status,
             "fill": fills[status],
             "text_c": text_colors[status],
@@ -115,8 +160,6 @@ def student_status_boxes(
     y_scale = alt.Scale(domain=[0, box_height])
 
     # ── card rectangles (x and x2 both fields on the shared scale) ───────────
-    # Cards span the full box height via a y / y2 field pair on a 0..box_height
-    # scale, so they always fill the card area regardless of layout.
     box_df["y0"] = 0
     box_df["y1"] = box_height
     cards = (
