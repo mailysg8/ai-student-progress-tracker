@@ -48,10 +48,11 @@ def band_color(p):
 DATA_DIR = Path("data")
 base_path = Path().resolve()
 file_path = base_path / "data" / "processed" 
+raw_path = base_path / "data" / "raw"
 
 student_df = pd.read_csv(file_path / "final_student_kc_data.csv")
-nodes_df = pd.read_excel(file_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Nodes")
-edges_df = pd.read_excel(file_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Edges")
+nodes_df = pd.read_excel(raw_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Nodes")
+edges_df = pd.read_excel(raw_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Edges")
 
 for col in ["weight", "estimated_exam_share_pct", "downstream_dependents",
             "direct_dependents", "order_id", "state_predictions",
