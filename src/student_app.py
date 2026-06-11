@@ -17,10 +17,12 @@ Data: reads data/raw/final_data.xlsx + data/raw/mkc_mapping_pack_v1.0..xlsx
 """
 import base64
 from shiny import App, ui, render, reactive
+from shinywidgets import output_widget, render_widget
+from training_agenda_utils import *
 
 # build_html generates the per-student HTML mockup; scores DataFrame gives us
 # the list of valid student IDs.
-from src.build_student_summary import build_html, scores
+from build_student_summary import build_html, scores
 
 
 VALID_IDS = sorted(scores["student_id"].unique())
@@ -62,36 +64,26 @@ def login_card_ui():
 
 
 def practice_plan_ui():
-    return ui.div(
-        ui.card(
-            ui.card_header(
-                ui.span(
-                    "My Practice Plan",
-                    style="font-size:20px;color:#263744;font-weight:600;",
-                )
-            ),
-            ui.div(
-                ui.p(
-                    "Personalised practice recommendations will appear here.",
-                    style="font-size:15px;color:#263744;margin-bottom:14px;",
-                ),
-                ui.p(
-                    ui.tags.em(
-                        "Coming soon — to be filled by Godsgift "
-                        "(branch: feat/student_next_steps)."
-                    ),
-                    style="color:#888780;",
-                ),
-                ui.p(
-                    "This page will show targeted exercises based on the weak "
-                    "skills surfaced in the Student Summary tab.",
-                    style="color:#888780;",
-                ),
-                style="padding:20px 24px;",
-            ),
-            style="margin:20px auto;max-width:760px;",
-        ),
-    )
+    metric_row = ui.layout_columns(
+        ui.output_ui("kc_box"), ui.output_ui("readiness_box"),
+        ui.output_ui("level_box"), ui.output_ui("blocked_box"),
+        col_widths=(3, 3, 3, 3), fill=False, class_="metric-row")
+
+    graph_card = ui.card(
+        ui.card_header(
+            ui.div("KC Prerequisite Graph: Your Mastery at a Glance",
+                ui.input_select("kc_view", None, choices=[OVERVIEW_LABEL] + UNIT_LIST,
+                                selected=OVERVIEW_LABEL, width="240px"),
+                class_="kc-head")),
+        output_widget("sankey", fillable=True),
+        class_="section-card", height="380px", full_screen=True, fill=True)
+
+    agenda_card = ui.card(
+        ui.card_header("🌟 Your Personalized Next Steps & Training Agenda"),
+        ui.output_ui("agenda"),
+        class_="section-card", height="440px", full_screen=True)
+
+    return ui.div(metric_row, graph_card, agenda_card, style="padding:16px 24px;")
 
 
 # ─── App UI ───────────────────────────────────────────────────────────────────
@@ -114,7 +106,15 @@ app_ui = ui.page_navbar(
             .nav-tabs + .tab-content,
             .tab-pane                      { padding: 0 !important; }
             """
-        )
+        ),
+        custom_css, 
+        ui.tags.script("""
+            window.addEventListener('message', function(e) {
+            if (e.data === 'go-practice-plan') {
+            Shiny.setInputValue('jump_to_plan', Date.now());
+            }
+            });
+        """),
     ),
     title=ui.tags.span("Stellar Education — Student Portal", style="color:white;"),
     navbar_options=ui.navbar_options(bg="#263744"),
@@ -193,18 +193,68 @@ def server(input, output, session):
             f'</iframe>'
         )
 
-    # ── My Practice Plan tab ────────────────────────────────────────────────
+    # ── Training Agenda Tab ────────────────────────────────────────────────
     @render.ui
     def practice_panel():
         sid = logged_in.get()
         if sid is None:
-            return ui.div(
-                ui.p(
-                    "Please log in from the Student Summary tab first.",
-                    style="margin:40px;color:#888780;text-align:center;",
-                )
-            )
+            return ui.div(ui.p("Please log in from the Student Summary tab first.",
+                            style="margin:40px;color:#888780;text-align:center;"))
         return practice_plan_ui()
+    
+    @reactive.effect
+    @reactive.event(input.jump_to_plan)
+    def _jump():
+        ui.update_navs("main_navbar", selected="My Practice Plan")
 
+    @reactive.calc
+    def tbl():
+        sid = logged_in.get()              
+        if sid is None:
+            return student_mkc_table(None) 
+        return student_mkc_table(sid)
+
+    @reactive.calc
+    def mastery_map():
+        t = tbl()
+        return dict(zip(t["modeling_kc_id"], t["mastery"]))
+
+    @reactive.calc
+    def readiness():
+        return exam_readiness(tbl())
+
+    def vbox(title, value, bg):
+        return ui.value_box(title, value,
+                            theme=ui.value_box_theme(bg=bg, fg="white"), max_height="92px")
+
+    @render.ui
+    def kc_box():
+        n = int((tbl()["mastery"] >= MASTERY_THRESHOLD).sum())
+        return vbox("KCs mastered", f"{n} / {TOTAL_MKCS}", "#0E7C86")
+
+    @render.ui
+    def readiness_box():
+        band, bg = level_band(readiness());  return vbox("Exam Readiness", f"{readiness():.0%}", bg)
+
+    @render.ui
+    def level_box():
+        band, bg = level_band(readiness());  return vbox("Your Level", band, bg)
+
+    @render.ui
+    def blocked_box():
+        nb = len(find_blocked(mastery_map()))
+        bg = "#60D394" if nb == 0 else "#EE6055"
+        return vbox("Blocked KCs", str(nb), bg)
+
+    @render_widget
+    def sankey():
+        v = input.kc_view()
+        if not v or v == OVERVIEW_LABEL:
+            return build_unit_sankey(mastery_map())
+        return build_unit_detail_sankey(v, mastery_map())
+
+    @render.ui
+    def agenda():
+        return ui.HTML(render_agenda_html(tbl()))   
 
 app = App(app_ui, server)
