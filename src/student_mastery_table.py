@@ -10,16 +10,14 @@ TEXT_COLOR = "#263744"
 PCT_COLOR  = "#888780"
 
 BADGE_FILL = {
-    "Ahead":    "#34A853",
-    "On Track": "#7DC47F",
-    "At Risk":  "#FFD24D",
-    "Behind":   "#F07070",
+    "Mastered":       "#34A853",
+    "Progressing":    "#FFD24D",
+    "Needs Practice": "#F07070",
 }
 BADGE_TEXT = {
-    "Ahead":    "#FFFFFF",
-    "On Track": "#263744",
-    "At Risk":  "#263744",
-    "Behind":   "#FFFFFF",
+    "Mastered":       "#FFFFFF",
+    "Progressing":    "#263744",
+    "Needs Practice": "#FFFFFF",
 }
 
 # Canvas geometry (single shared 0..1000 x scale for every layer)
@@ -28,8 +26,8 @@ KC_X     = 10
 BAR_X0   = 430
 BAR_X1   = 800
 PCT_X    = 815
-BADGE_X0 = 880
-BADGE_X1 = 970
+BADGE_X0 = 840
+BADGE_X1 = 975
 
 
 def student_mastery_table(
@@ -37,12 +35,13 @@ def student_mastery_table(
     data: pd.DataFrame,
     quantile: bool = False,
     status_filter: str = "All statuses",
+    cuts=None,
     row_height: int = 44,
     max_rows: int = 40,
 ):
     """
     Build a P(Mastery) table for a single student: one row per KC with a
-    progress bar and a status badge. Mirrors the Streamlit Overview table.
+    progress bar and a status badge.
 
     All layers share one quantitative x scale with a fixed [0, CANVAS_W]
     domain. Every horizontal position is an x / x2 field pair on that scale;
@@ -58,7 +57,7 @@ def student_mastery_table(
         .reset_index()
     )
 
-    df["status"] = assign_status(df, quantile)
+    df["status"] = assign_status(df, quantile, cuts)
     df["pct"] = (df["state_predictions"] * 100).round().astype(int)
 
     if status_filter != "All statuses":
@@ -165,7 +164,7 @@ def student_mastery_table(
     )
     badge_label = (
         alt.Chart(df)
-        .mark_text(align="center", baseline="middle", fontSize=12, fontWeight="bold")
+        .mark_text(align="center", baseline="middle", fontSize=10.5, fontWeight="bold")
         .encode(
             x=alt.X("badge_cx:Q", scale=x_scale, axis=None),
             y=y_enc,

@@ -6,7 +6,7 @@ from src.kc_mastery_box import kc_mastery_box
 from src.classify import classify
 from src.unit_mastery_box import unit_mastery
 from src.opportunity_heatmap import opp_heatmap, opportunity_table, compute_opportunity_counts 
-from src.student_status_boxes import student_status_boxes
+from src.student_status_boxes import student_status_boxes, compute_quantile_cuts
 from src.student_mastery_table import student_mastery_table
 from src.modal_builds import build_kc_modal, build_total_kc_modal
 from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
@@ -47,6 +47,9 @@ def bs_info_icon(title: str):
 
 # Student dropdown choices (data is already loaded here)
 STUDENT_IDS = sorted(mkc_data["student_id"].unique().tolist())
+
+# Class-wide quantile cut points for relative status (computed once).
+QUANTILE_CUTS = compute_quantile_cuts(mkc_data)
 
 
 app_ui = ui.page_navbar(
@@ -304,7 +307,7 @@ app_ui = ui.page_navbar(
                 ui.input_switch("so_quantile", "Relative (quantile) status", value=False),
                 ui.input_select(
                     "so_status", "Status",
-                    choices=["All statuses", "Ahead", "On Track", "At Risk", "Behind"],
+                    choices=["All statuses", "Mastered", "Progressing", "Needs Practice"],
                     selected="All statuses", width="100%",
                 ),
                 col_widths=(5, 3, 4),
@@ -712,6 +715,7 @@ def server(input, output, session):
             student_id=input.so_student(),
             data=mkc_data,
             quantile=input.so_quantile(),
+            cuts=QUANTILE_CUTS,
         )
 
     @output
@@ -722,6 +726,7 @@ def server(input, output, session):
             data=mkc_data,
             quantile=input.so_quantile(),
             status_filter=input.so_status(),
+            cuts=QUANTILE_CUTS,
         )
 
 app = App(app_ui, server)
