@@ -17,7 +17,12 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent if (HERE.name == "src" and (HERE.parent / "notebooks").exists()) else HERE
 
-SEARCH = [REPO_ROOT/"data"/"raw", REPO_ROOT/"data", REPO_ROOT, Path.cwd(), Path.cwd()/"data"/"raw"]
+SEARCH = [
+    REPO_ROOT/"data"/"processed",      # Mailys's unified pipeline output
+    REPO_ROOT/"data"/"raw",            # legacy xlsx files (scores sheet, KC pack)
+    REPO_ROOT/"data", REPO_ROOT,
+    Path.cwd(), Path.cwd()/"data"/"processed", Path.cwd()/"data"/"raw",
+]
 def find_file(name):
     for b in SEARCH:
         f = b / name
@@ -25,33 +30,41 @@ def find_file(name):
             return f
     raise FileNotFoundError(f"{name} not found in any of: {[str(s) for s in SEARCH]}")
 
-DATA = find_file("final_data.xlsx")
-PACK = find_file("mkc_mapping_pack_v1.0..xlsx")
+CSV  = find_file("final_student_kc_data.csv")   # Mailys's unified pipeline output
+DATA = find_file("final_data.xlsx")              # still needed for Overall_Scores sheet
+PACK = find_file("mkc_mapping_pack_v1.0..xlsx")  # canonical KC structure (for unit_mkcs)
 OUT  = REPO_ROOT / "notebooks" / "student_summary.html"
 OUT.parent.mkdir(parents=True, exist_ok=True)
-print(f"  Using data: {DATA}")
+print(f"  Using CSV: {CSV}")
+print(f"  Using xlsx (scores only): {DATA}")
 print(f"  Using MKC pack: {PACK}")
 print(f"  Output: {OUT}")
 
-obs    = pd.read_excel(DATA, sheet_name="Student_Observations")
-scores = pd.read_excel(DATA, sheet_name="Overall_Scores")
-mnodes = pd.read_excel(PACK, sheet_name="Modeling_KC_Nodes")
-fmap   = pd.read_excel(PACK, sheet_name="FineKC_to_ModelingKC_Map")
+# Mailys's CSV has every observation joined with the modeling-KC mapping, the
+# unit, the precomputed `correct` flag, AND class_date. So we no longer need the
+# fine-KC → MKC mapping step or the obs xlsx sheet for the per-attempt data.
+csv_df = pd.read_csv(CSV)
+scores = pd.read_excel(DATA, sheet_name="Overall_Scores")  # student-level metadata
+mnodes = pd.read_excel(PACK, sheet_name="Modeling_KC_Nodes")  # canonical KC list
 
-fine2mkc  = dict(zip(fmap["fine_kc_id"], fmap["modeling_kc_id"]))
 mkc2unit  = dict(zip(mnodes["modeling_kc_id"], mnodes["unit"]))
 mkc2label = dict(zip(mnodes["modeling_kc_id"], mnodes["modeling_kc_label"]))
 
 UNITS = [f"Unit {i}" for i in range(1, 11)]
 unit_mkcs = {u: list(mnodes[mnodes["unit"]==u]["modeling_kc_id"]) for u in UNITS}
 
-o = obs[obs["score"] != 0.5].copy()
-o["correct"] = o["score"].astype(int)
-o["mkc"]     = o["primary_kc_id"].map(fine2mkc)
-o["unit"]    = o["mkc"].map(mkc2unit)
+# Build `o` from the unified CSV instead of the xlsx — `correct`, `modeling_kc_id`,
+# and `unit` are already present. We just alias modeling_kc_id → mkc for backward
+# compatibility with the rest of the file.
+o = csv_df[csv_df["score"] != 0.5].copy()
+o["correct"] = o["correct"].astype(int)
+o["mkc"]     = o["modeling_kc_id"]
+# `unit` and `class_num` already exist in the CSV — used for weekly trend buckets
 
 T_MASTERED   = 0.70
 T_DEVELOPING = 0.40
+N_TREND_BUCKETS = 5   # number of bars per KPI sparkline (snapshots over the term)
+TOTAL_MKCS = sum(len(unit_mkcs[u]) for u in UNITS)
 
 def tier_overall(overall):
     # badge background colors — match the dashboard palette
@@ -124,6 +137,82 @@ def _get_class_avg_totals():
     return result
 
 
+def _compute_student_unit_trends(sid):
+    """For each unit, return list of avg correctness snapshots at the same
+    class_num cutoffs as _compute_student_weekly_trends.
+
+    Used to render a tiny sparkline + 'since first class' delta on each Unit
+    tile so students see momentum per unit ('Unit 3 jumped +12pp this term').
+    """
+    sob = o[o["student_id"] == sid]
+    if sob.empty:
+        return {u: [] for u in UNITS}
+    classes = sorted(sob["class_num"].unique().tolist())
+    if len(classes) < 2:
+        return {u: [] for u in UNITS}
+
+    if len(classes) <= N_TREND_BUCKETS:
+        cutoffs = classes
+    else:
+        idxs = [int(round(i * (len(classes) - 1) / (N_TREND_BUCKETS - 1)))
+                for i in range(N_TREND_BUCKETS)]
+        cutoffs = [classes[i] for i in idxs]
+
+    unit_trends = {u: [] for u in UNITS}
+    for cutoff in cutoffs:
+        history = sob[sob["class_num"] <= cutoff]
+        # per-unit MKC-level avg, then mean across MKCs
+        per_unit_mkc = history.groupby(["unit","mkc"])["correct"].mean()
+        unit_avg = per_unit_mkc.groupby("unit").mean().to_dict()
+        for u in UNITS:
+            v = unit_avg.get(u)
+            unit_trends[u].append(None if v is None else round(v*100, 1))
+    return unit_trends
+
+
+def _compute_student_weekly_trends(sid):
+    """Return N_TREND_BUCKETS snapshots of (mastered, developing, needs, unattempted)
+    counts for one student, taken at evenly-spaced class_num cutoffs from their
+    first attempted class to the last. Each snapshot is CUMULATIVE — it shows
+    where the student stood at that point in the term.
+
+    Used to draw a mini sparkline on each KPI card so students see momentum
+    ("am I getting better?") not just a static snapshot.
+    """
+    sob = o[o["student_id"] == sid]
+    if sob.empty:
+        return []
+    classes = sorted(sob["class_num"].unique().tolist())
+    if len(classes) < 2:
+        return []
+
+    # Evenly spaced cutoffs across the class_num range
+    if len(classes) <= N_TREND_BUCKETS:
+        cutoffs = classes
+    else:
+        idxs = [int(round(i * (len(classes) - 1) / (N_TREND_BUCKETS - 1)))
+                for i in range(N_TREND_BUCKETS)]
+        cutoffs = [classes[i] for i in idxs]
+
+    trends = []
+    for cutoff in cutoffs:
+        history = sob[sob["class_num"] <= cutoff]
+        mkc_mast = history.groupby("mkc")["correct"].mean()
+        n_mast  = int((mkc_mast >= T_MASTERED).sum())
+        n_dev   = int(((mkc_mast >= T_DEVELOPING) & (mkc_mast < T_MASTERED)).sum())
+        n_need  = int((mkc_mast < T_DEVELOPING).sum())
+        n_attempted = len(mkc_mast)
+        n_unatt = TOTAL_MKCS - n_attempted
+        trends.append({
+            "class_num":  int(cutoff),
+            "mastered":   n_mast,
+            "developing": n_dev,
+            "needs":      n_need,
+            "unattempted": n_unatt,
+        })
+    return trends
+
+
 DEFAULT_PICKS = [("S004","High performer"), ("S019","Middle performer"), ("S001","Low performer")]
 
 
@@ -141,6 +230,7 @@ def build_html(picks=None):
         sob  = o[o["student_id"]==sid]
         overall = sob["correct"].mean()
         mkc_mast = sob.groupby("mkc")["correct"].mean().to_dict()
+        unit_trends_data = _compute_student_unit_trends(sid)
 
         tile_data = []
         unit_avgs = {}
@@ -170,6 +260,8 @@ def build_html(picks=None):
                 "developing_list":  sorted(developing, key=lambda x:  x["mastery"]),  # priority first
                 "needs_list":       sorted(needs,      key=lambda x:  x["mastery"]),  # priority first
                 "unattempted_list": [{"id": m, "label": mkc2label.get(m, m)} for m in unattempted],
+                "mastery_trend":    unit_trends_data.get(u, []),
+                "class_avg":        round(class_avg[u]*100, 1) if u in class_avg else None,
             }
             tile["tier"] = tier_for_tile(tile)
             # advisor #4: recommended first action when student opens this unit
@@ -211,6 +303,7 @@ def build_html(picks=None):
             "totals": totals,
             "class_avg_totals": _get_class_avg_totals(),   # for KPI card comparison
             "at_risk": (tier_id == "at_risk"),             # hide class-comparison for at-risk students (empathetic UX)
+            "weekly_trends": _compute_student_weekly_trends(sid),  # mini sparkline data
             "n_ahead": n_ahead, "n_behind": n_behind, "n_total": len(diffs),
             "ahead_units":  [{"unit": u, "diff": d} for u, d in ahead_sorted],
             "behind_units": [{"unit": u, "diff": d} for u, d in behind_sorted],
@@ -250,11 +343,12 @@ HTML_TEMPLATE = """<!doctype html>
     --gray:#8B9DBB;           /* Lavender Grey */
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:"Helvetica Neue",Arial,sans-serif;background:#fff;color:var(--ink);line-height:1.45}
+  html{margin:0;padding:0;background:#1F303D}
+  body{margin:0;padding:0;font-family:"Helvetica Neue",Arial,sans-serif;background:#fff;color:var(--ink);line-height:1.45}
 
-  /* Jet Black header band — the only dark area on the page (Quarto's outer
-     navbar is hidden in the dashboard wrapper). */
-  .hdr{background:var(--bg);color:var(--on-dark);padding:22px 0 20px}
+  /* Jet Black header band — matches the parent Shiny navbar bg color so they
+     visually merge into one continuous dark band (no perceived "frame"). */
+  .hdr{background:#1F303D;color:var(--on-dark);padding:22px 0 20px;margin:0}
   .hdr-inner{max-width:1080px;margin:0 auto;padding:0 24px}
   .wrap{max-width:1080px;margin:0 auto;padding:20px 24px 64px}
 
@@ -270,6 +364,10 @@ HTML_TEMPLATE = """<!doctype html>
   .badge{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;color:#1F2933;vertical-align:middle;margin-left:8px}
   h2{font-size:16px;font-weight:700;color:var(--ink);margin:22px 0 10px;display:flex;align-items:center;justify-content:space-between}
   h2 .hint{color:var(--mute);font-weight:400;font-size:12px}
+
+  /* How-to note above the KPI strip — explains the categorisation */
+  .kpi-howto{background:#F5F8FB;border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12.5px;line-height:1.55;color:var(--ink);margin-bottom:14px}
+  .kpi-howto b{font-weight:700}
 
   /* KPI strip — enhanced cards: number + context + visual + comparison + action */
   .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
@@ -300,6 +398,14 @@ HTML_TEMPLATE = """<!doctype html>
   .kcard .compare.neutral{background:#F0F2F5;color:var(--mute)}
   .kcard .compare strong{font-weight:700}
 
+  /* sparkline + "vs last check" trend indicator */
+  .kcard .trend{margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .kcard .trend svg{height:20px;flex-shrink:0}
+  .kcard .trend .delta{font-size:11px;font-weight:600;white-space:nowrap;line-height:1.2}
+  .kcard .trend .delta.up{color:#2D8D5B}
+  .kcard .trend .delta.down{color:#B53C32}
+  .kcard .trend .delta.flat{color:var(--mute);font-weight:400}
+
   /* action tagline at bottom */
   .kcard .tagline{font-size:11px;color:var(--mute);font-style:italic;margin-top:auto;padding-top:6px;line-height:1.35}
   .kcard .tagline.action{color:var(--primary);font-weight:600;font-style:normal}
@@ -327,6 +433,11 @@ HTML_TEMPLATE = """<!doctype html>
   .seg-red{background:var(--red)} .seg-gray{background:var(--gray)}
   .counts{font-size:11px;line-height:1.5;color:var(--ink)}
   .counts .row{display:flex;align-items:center;gap:5px}
+  .tile-trend{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:6px;border-top:1px dashed var(--line)}
+  .tile-trend-delta{font-size:10px;font-weight:600;line-height:1.2;white-space:nowrap}
+  .tile-trend-delta.up{color:#2D8D5B}
+  .tile-trend-delta.down{color:#B53C32}
+  .tile-trend-delta.flat{color:var(--mute);font-weight:400}
   .dot{display:inline-block;width:8px;height:8px;border-radius:2px;flex-shrink:0}
   .legend{font-size:11px;color:var(--mute);margin:8px 0 18px;display:flex;gap:14px;flex-wrap:wrap}
   .legend .dot{margin-right:5px;vertical-align:middle}
@@ -358,6 +469,28 @@ HTML_TEMPLATE = """<!doctype html>
   .modal-header h2{font-family:Georgia,serif;font-size:24px;margin:0;color:var(--ink);display:block}
   .modal-header .meta{color:var(--mute);font-size:12px;margin-top:4px}
   .modal-header .close{cursor:pointer;color:var(--mute);font-size:26px;line-height:1;background:none;border:0;padding:0}
+  /* ── Unit-drill modal: trend section + at-a-glance ──────────────────────── */
+  .unit-modal-trend{margin:14px 0 10px;padding:12px 14px;background:#F7F9FB;border-radius:6px;border:1px solid var(--line)}
+  .unit-modal-trend .trend-row{display:flex;align-items:center;gap:14px;margin-top:6px}
+  .unit-modal-trend .trend-meta{display:flex;flex-direction:column;gap:4px}
+  .unit-modal-trend .trend-delta-big{font-size:15px;font-weight:700}
+  .unit-modal-trend .trend-delta-big.up{color:#2D8D5B}
+  .unit-modal-trend .trend-delta-big.down{color:#B53C32}
+  .unit-modal-trend .trend-delta-big.flat{color:var(--mute);font-weight:500}
+  .unit-modal-trend .trend-interp{font-size:12px;color:var(--mute);font-style:italic}
+  .trend-label{font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+
+  .unit-glance-section{margin:12px 0 14px;padding:12px 14px;background:#F7F9FB;border-radius:6px;border:1px solid var(--line)}
+  .ag-stat{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .ag-stat:last-child{border-bottom:0}
+  .ag-label{color:var(--mute);font-weight:500;flex-shrink:0;font-size:12px}
+  .ag-val{font-weight:600;text-align:right}
+  .ag-val.up{color:#2D8D5B}
+  .ag-val.down{color:#B53C32}
+  .ag-val.flat{color:var(--mute);font-weight:500}
+  .ag-context{font-weight:400;color:var(--mute);font-size:11px;margin-left:4px}
+
+  /* ── Unit-drill modal (clicked from Your units grid): original style ──── */
   .msec{margin-top:14px}
   .msec h3{font-size:12px;font-weight:700;margin:0 0 5px;text-transform:uppercase;letter-spacing:.5px}
   .msec ul{list-style:none;padding:0;margin:0}
@@ -367,6 +500,37 @@ HTML_TEMPLATE = """<!doctype html>
   .msec.needs     li{background:rgba(238,96,85,0.12)}
   .msec.unattempted li{background:rgba(139,157,187,0.14);color:var(--mute)}
   .msec li .pct{font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* ── Modal analytics: sparkline + stats + flat skill list ───────────────── */
+  .modal-spark-row{display:flex;align-items:center;gap:14px;margin:14px 0 4px;padding:10px 12px;background:rgba(0,0,0,0.025);border-radius:6px}
+  .modal-spark{flex-shrink:0}
+  .modal-spark svg{height:36px;width:auto}
+  .modal-spark-meta{display:flex;flex-direction:column;gap:3px;line-height:1.2}
+  .modal-spark-meta .delta{font-size:13px;font-weight:600}
+  .modal-spark-meta .delta.up{color:#2D8D5B}
+  .modal-spark-meta .delta.down{color:#B53C32}
+  .modal-spark-meta .delta.flat{color:var(--mute);font-weight:400}
+  .modal-spark-label{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+
+  .modal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 14px}
+  .modal-stat{background:#F7F9FB;border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+  .modal-stat-label{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .modal-stat-value{font-size:14px;font-weight:700;color:var(--ink)}
+
+  .modal-list-head{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .modal-skill-list{list-style:none;padding:0;margin:0}
+  .mskill{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;margin-bottom:3px;font-size:13px}
+  .mskill.mastered{background:rgba(96,211,148,0.10)}
+  .mskill.developing{background:rgba(255,217,125,0.14)}
+  .mskill.needs{background:rgba(238,96,85,0.10)}
+  .mskill.unattempted{background:rgba(139,157,187,0.10);color:var(--mute)}
+  .mskill .skill-row-main{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+  .mskill .unit-tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+  .mskill .skill-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .mskill .skill-row-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .mskill .skill-bar{display:inline-block;width:60px;height:5px;background:#E5E9EE;border-radius:3px;overflow:hidden}
+  .mskill .skill-bar > span{display:block;height:100%;border-radius:3px}
+  .mskill .pct{font-weight:600;font-variant-numeric:tabular-nums;min-width:42px;text-align:right}
   .empty{padding:24px 0;text-align:center;color:var(--mute);font-size:13px;font-style:italic}
 
   .action{margin-top:18px;background:rgba(238,96,85,0.10);border-left:4px solid var(--primary);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:14px;border-radius:0 6px 6px 0;font-size:13px}
@@ -393,11 +557,19 @@ HTML_TEMPLATE = """<!doctype html>
 </header>
 
 <div class="wrap">
+  <div class="kpi-howto">
+    💡 <b>How these cards work:</b> Each skill is sorted by your average correctness this term —
+    <b style="color:#2D8D5B">Mastered</b> (≥ 70%) ·
+    <b style="color:#B8860B">Progressing</b> (40–69%) ·
+    <b style="color:#B53C32">Needs Practice</b> (&lt; 40%) ·
+    <b style="color:#5B7271">Unattempted</b> (not tried yet).
+    Click any card to see the skills behind the number.
+  </div>
   <div class="kpi">
-    <!-- ───── Skills mastered ───── -->
+    <!-- ───── Mastered ───── -->
     <div class="kcard" onclick="openCategory('mastered')">
       <div class="accent" style="background:var(--green)"></div><div class="arrow">›</div>
-      <h3>Skills mastered</h3>
+      <h3>Mastered</h3>
       <div class="bignum-row">
         <span class="bignum" id="kc_mastered_num">—</span>
         <span class="denom"  id="kc_mastered_denom">/ —</span>
@@ -406,13 +578,14 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="bar"><div class="bar-fill" id="kc_mastered_bar" style="background:var(--green);width:0%"></div></div>
       <div class="pct-label" id="kc_mastered_pct" style="color:#2D8D5B">—</div>
       <div class="compare" id="kc_mastered_cmp"></div>
-      <div class="tagline" id="kc_mastered_tag">—</div>
+      <div class="trend"    id="kc_mastered_trend"></div>
+      <div class="tagline"  id="kc_mastered_tag">—</div>
     </div>
 
-    <!-- ───── Still developing ───── -->
+    <!-- ───── Progressing ───── -->
     <div class="kcard" onclick="openCategory('developing')">
       <div class="accent" style="background:var(--amber)"></div><div class="arrow">›</div>
-      <h3>Still developing</h3>
+      <h3>Progressing</h3>
       <div class="bignum-row">
         <span class="bignum" id="kc_developing_num">—</span>
         <span class="denom"  id="kc_developing_denom">/ —</span>
@@ -421,13 +594,14 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="bar"><div class="bar-fill" id="kc_developing_bar" style="background:var(--amber);width:0%"></div></div>
       <div class="pct-label" id="kc_developing_pct" style="color:#B8860B">—</div>
       <div class="compare" id="kc_developing_cmp"></div>
+      <div class="trend"   id="kc_developing_trend"></div>
       <div class="tagline" id="kc_developing_tag">—</div>
     </div>
 
-    <!-- ───── Need practice ───── -->
+    <!-- ───── Needs Practice ───── -->
     <div class="kcard" onclick="openCategory('needs')">
       <div class="accent" style="background:var(--red)"></div><div class="arrow">›</div>
-      <h3>Need practice</h3>
+      <h3>Needs Practice</h3>
       <div class="bignum-row">
         <span class="bignum" id="kc_needs_num">—</span>
         <span class="denom"  id="kc_needs_denom">/ —</span>
@@ -436,6 +610,7 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="bar"><div class="bar-fill" id="kc_needs_bar" style="background:var(--red);width:0%"></div></div>
       <div class="pct-label" id="kc_needs_pct" style="color:#B53C32">—</div>
       <div class="compare" id="kc_needs_cmp"></div>
+      <div class="trend"   id="kc_needs_trend"></div>
       <div class="tagline" id="kc_needs_tag">—</div>
     </div>
 
@@ -451,6 +626,7 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="bar"><div class="bar-fill" id="kc_unattempted_bar" style="background:var(--gray);width:0%"></div></div>
       <div class="pct-label" id="kc_unattempted_pct" style="color:#5B7271">—</div>
       <div class="compare" id="kc_unattempted_cmp"></div>
+      <div class="trend"   id="kc_unattempted_trend"></div>
       <div class="tagline" id="kc_unattempted_tag">—</div>
     </div>
   </div>
@@ -486,7 +662,7 @@ HTML_TEMPLATE = """<!doctype html>
 
   <div class="cta">
     <div id="cta_text">—</div>
-    <button onclick="alert('Goes to the training-agenda page (Godsgift\\'s view).')">View my practice plan →</button>
+    <button onclick="window.parent.postMessage('go-practice-plan', '*')">View my practice plan →</button>
   </div>
 
   <div class="note">
@@ -504,6 +680,47 @@ const COLORS = {green:"#60D394", amber:"#FFD97D", red:"#EE6055", gray:"#8B9DBB",
 const TIER_RANK = {red:0, yellow:1, green:2, gray:3};
 let currentStudent = 0;
 let currentSort = "order";
+
+// ─── Sparkline + trend delta (Ilya's "sparkline" essential) ──────────────────
+function sparklineSVG(values, color){
+  if(!values || values.length < 2) return "";
+  const max = Math.max(...values, 1);
+  const barWidth = 8, barGap = 3, height = 20;
+  const totalWidth = values.length * (barWidth + barGap) - barGap;
+  let bars = "";
+  for(let i = 0; i < values.length; i++){
+    const h = Math.max(2, (values[i] / max) * height);  // min h=2 so empty bars still show
+    const y = height - h;
+    const isLast = (i === values.length - 1);
+    const fill = isLast ? color : "#D0D6DD";
+    bars += `<rect x="${i*(barWidth+barGap)}" y="${y}" width="${barWidth}" height="${h}" fill="${fill}" rx="1"/>`;
+  }
+  return `<svg viewBox="0 0 ${totalWidth} ${height}" preserveAspectRatio="xMinYMid">${bars}</svg>`;
+}
+
+function trendDelta(trends, cat, biggerIsBetter){
+  if(!trends || trends.length < 2) return "";
+  const last = trends[trends.length - 1][cat];
+  const prev = trends[trends.length - 2][cat];
+  const delta = last - prev;
+  if(delta === 0) return `<span class="delta flat">→ no change</span>`;
+  const isUp = delta > 0;
+  // biggerIsBetter true → up is good; false → up is bad; null → neutral
+  let kind = "flat";
+  if(biggerIsBetter === true)  kind = isUp ? "up" : "down";
+  if(biggerIsBetter === false) kind = isUp ? "down" : "up";
+  const arrow = isUp ? "↑" : "↓";
+  const sign  = isUp ? "+" : "";
+  return `<span class="delta ${kind}">${arrow} ${sign}${delta} since last check</span>`;
+}
+
+function renderTrend(cat, trends, color, biggerIsBetter){
+  const el = document.getElementById("kc_" + cat + "_trend");
+  if(!el) return;
+  if(!trends || trends.length < 2){ el.innerHTML = ""; return; }
+  const values = trends.map(t => t[cat]);
+  el.innerHTML = sparklineSVG(values, color) + trendDelta(trends, cat, biggerIsBetter);
+}
 
 // ─── KPI card population (Ilya's redesign: every number gets context) ─────────
 function taglineFor(cat, value){
@@ -538,39 +755,44 @@ function setKpiCard(cat, value, denom, classAvg, atRisk, biggerIsBetter){
   document.getElementById("kc_"+cat+"_bar").style.width = pct + "%";
   document.getElementById("kc_"+cat+"_pct").textContent = pct + "% of all skills";
 
-  // comparison badge
+  // comparison badge — removed (was: "matches class average (X)")
+  // Now we rely on the sparkline + "since last check" delta for context.
   const cmpEl = document.getElementById("kc_"+cat+"_cmp");
-  if(atRisk || classAvg === undefined || classAvg === null){
-    // empathetic UX: at-risk students don't get hit with class rankings
-    cmpEl.classList.add("hidden");
-    cmpEl.innerHTML = "";
-  } else {
-    cmpEl.classList.remove("hidden");
-    const delta = value - classAvg;
-    let arrow, kind, text;
-    if(delta === 0){
-      arrow = "→"; kind = "neutral"; text = "matches class average ("+classAvg+")";
-    } else if(delta > 0){
-      arrow = "↑";
-      kind = (biggerIsBetter === true)  ? "good"
-           : (biggerIsBetter === false) ? "bad"
-           : "neutral";
-      text = "above class average ("+classAvg+")";
-    } else {
-      arrow = "↓";
-      kind = (biggerIsBetter === true)  ? "bad"
-           : (biggerIsBetter === false) ? "good"
-           : "neutral";
-      text = "below class average ("+classAvg+")";
-    }
-    cmpEl.className = "compare " + kind;
-    cmpEl.innerHTML = "<strong>" + arrow + " " + Math.abs(delta) + "</strong>&nbsp;" + text;
-  }
+  if(cmpEl){ cmpEl.classList.add("hidden"); cmpEl.innerHTML = ""; }
 
   // tagline
   const tagEl = document.getElementById("kc_"+cat+"_tag");
   tagEl.textContent = taglineFor(cat, value);
   tagEl.className = "tagline" + (cat === "needs" && value > 0 ? " action" : "");
+}
+
+// Tile trend: tiny sparkline + "since first class" pp delta
+function tileTrendHTML(trend, color){
+  const vals = (trend || []).filter(v => v !== null);
+  if(vals.length < 2) return "";
+  // Mini line sparkline (smaller than bar version, fits in tile)
+  const w = 56, h = 16;
+  const max = Math.max(...vals, 1);
+  const min = Math.min(...vals, 0);
+  const range = (max - min) || 1;
+  const step = w / (vals.length - 1);
+  const pts = vals.map((v, i) => `${(i*step).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`).join(" ");
+  // Endpoint dot
+  const lastX = (vals.length - 1) * step;
+  const lastY = h - ((vals[vals.length-1] - min) / range) * h;
+  // pp delta = current - first
+  const delta = vals[vals.length - 1] - vals[0];
+  const sign = delta > 0 ? "+" : "";
+  const arrow = delta > 0 ? "↑" : (delta < 0 ? "↓" : "→");
+  const deltaCls = delta > 0.5 ? "up" : (delta < -0.5 ? "down" : "flat");
+  return `
+    <div class="tile-trend">
+      <svg viewBox="0 0 ${w} ${h}" style="height:14px;width:${w}px;flex-shrink:0">
+        <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" />
+        <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2" fill="${color}" />
+      </svg>
+      <span class="tile-trend-delta ${deltaCls}">${arrow} ${sign}${delta.toFixed(1)}pp this term</span>
+    </div>`;
 }
 
 function tileHTML(t, origIdx){
@@ -580,6 +802,8 @@ function tileHTML(t, origIdx){
     {n: t.n_needs,       cls:"seg-red"},
     {n: t.n_unattempted, cls:"seg-gray"},
   ].map(x => x.n>0 ? `<div class="${x.cls}" style="flex:${x.n}"></div>` : "").join("");
+  // Pick sparkline color by tier
+  const trendColor = ({green:COLORS.green, yellow:COLORS.amber, red:COLORS.red, gray:COLORS.gray})[t.tier] || COLORS.gray;
   return `
     <div class="tile ${t.tier}" onclick="openUnit(${origIdx})">
       <div class="accent"></div>
@@ -592,6 +816,7 @@ function tileHTML(t, origIdx){
         <div class="row"><span class="dot" style="background:${COLORS.red}"></span>${t.n_needs} needs practice</div>
         <div class="row"><span class="dot" style="background:${COLORS.gray}"></span>${t.n_unattempted} unattempted</div>
       </div>
+      ${tileTrendHTML(t.mastery_trend, trendColor)}
     </div>`;
 }
 
@@ -605,34 +830,99 @@ function modalSection(title, items, cls, color, withPct){
 }
 
 const CATEGORY_META = {
-  mastered:    {title:"Skills mastered",   color: COLORS.green, sub:"≥ 70% correctness", listKey:"mastered_list",    withPct:true,  emptyMsg:"No mastered skills yet."},
-  developing:  {title:"Still developing", color: COLORS.amber, sub:"40–69% correctness — keep practicing", listKey:"developing_list", withPct:true, emptyMsg:"No skills in this category."},
-  needs:       {title:"Need practice",  color: COLORS.red,   sub:"Below 40% — focus here", listKey:"needs_list",  withPct:true, emptyMsg:"No skills need practice — well done!"},
-  unattempted: {title:"Unattempted",    color: COLORS.gray,  sub:"No practice yet", listKey:"unattempted_list", withPct:false, emptyMsg:"You've attempted every skill."},
+  mastered:    {title:"Mastered",       color: COLORS.green, sub:"≥ 70% correctness",                    listKey:"mastered_list",    withPct:true,  biggerIsBetter:true,  emptyMsg:"No mastered skills yet."},
+  developing:  {title:"Progressing",    color: COLORS.amber, sub:"40–69% correctness — keep practicing", listKey:"developing_list",  withPct:true,  biggerIsBetter:null,  emptyMsg:"No skills in this category."},
+  needs:       {title:"Needs Practice", color: COLORS.red,   sub:"Below 40% — focus here",               listKey:"needs_list",       withPct:true,  biggerIsBetter:false, emptyMsg:"No skills need practice — well done!"},
+  unattempted: {title:"Unattempted",    color: COLORS.gray,  sub:"No practice yet",                       listKey:"unattempted_list", withPct:false, biggerIsBetter:false, emptyMsg:"You've attempted every skill."},
 };
 
 function openCategory(cat){
   const s = STUDENTS[currentStudent];
   const cfg = CATEGORY_META[cat];
-  // collect items per unit
-  const sections = s.unit_tiles
-    .map(t => ({unit:t.unit, items:t[cfg.listKey] || []}))
-    .filter(sec => sec.items.length > 0);
-  const total = sections.reduce((a, sec) => a + sec.items.length, 0);
 
+  // Flatten all skills from all units into one list with unit tag
+  const allItems = [];
+  s.unit_tiles.forEach(t => {
+    (t[cfg.listKey] || []).forEach(item => {
+      allItems.push({...item, unit: t.unit});
+    });
+  });
+  const total = allItems.length;
+  const units = new Set(allItems.map(x => x.unit));
+
+  // Sort: mastered/developing high-first; needs low-first (worst first → focus area)
+  if(cfg.withPct){
+    if(cat === "needs") allItems.sort((a,b) => a.mastery - b.mastery);
+    else                allItems.sort((a,b) => b.mastery - a.mastery);
+  } else {
+    allItems.sort((a,b) => a.label.localeCompare(b.label));
+  }
+
+  // Analytics: avg mastery + most-concentrated unit
+  let avgMastery = null;
+  if(cfg.withPct && total > 0){
+    avgMastery = allItems.reduce((sum, x) => sum + x.mastery, 0) / total;
+  }
+  const unitCounts = {};
+  allItems.forEach(x => { unitCounts[x.unit] = (unitCounts[x.unit] || 0) + 1; });
+  let mostUnit = "", mostUnitN = 0;
+  Object.keys(unitCounts).forEach(u => {
+    if(unitCounts[u] > mostUnitN){ mostUnit = u; mostUnitN = unitCounts[u]; }
+  });
+
+  // Sparkline for THIS category's count over time + delta
+  const trends = s.weekly_trends || [];
+  let sparkHTML = "";
+  if(trends.length >= 2){
+    const values = trends.map(t => t[cat]);
+    sparkHTML = `
+      <div class="modal-spark-row">
+        <div class="modal-spark">${sparklineSVG(values, cfg.color)}</div>
+        <div class="modal-spark-meta">
+          ${trendDelta(trends, cat, cfg.biggerIsBetter)}
+          <div class="modal-spark-label">Count over the term</div>
+        </div>
+      </div>`;
+  }
+
+  // Header analytics section
+  let statsHTML = "";
+  if(total > 0){
+    const statCards = [];
+    if(avgMastery !== null){
+      statCards.push(`<div class="modal-stat"><span class="modal-stat-label">Average mastery</span><span class="modal-stat-value">${avgMastery.toFixed(0)}%</span></div>`);
+    }
+    if(mostUnitN > 0){
+      statCards.push(`<div class="modal-stat"><span class="modal-stat-label">Most concentrated in</span><span class="modal-stat-value">${mostUnit} (${mostUnitN})</span></div>`);
+    }
+    statCards.push(`<div class="modal-stat"><span class="modal-stat-label">Spread across</span><span class="modal-stat-value">${units.size} unit${units.size===1?"":"s"}</span></div>`);
+    statsHTML = `<div class="modal-stats">${statCards.join("")}</div>`;
+  }
+
+  // Skill list — flat with unit tag and mini progress bar
   const body = total === 0
     ? `<div class="empty">${cfg.emptyMsg}</div>`
-    : sections.map(sec => `
-        <div class="msec ${cat}">
-          <h3 style="color:${cfg.color}">${sec.unit} <span style="color:var(--mute);font-weight:400;text-transform:none;letter-spacing:0">— ${sec.items.length} skill${sec.items.length===1?"":"s"}</span></h3>
-          <ul>${sec.items.map(m => `<li><span>${m.label}</span><span class="pct">${cfg.withPct ? (m.mastery+'%') : '—'}</span></li>`).join("")}</ul>
-        </div>`).join("");
+    : `${sparkHTML}${statsHTML}
+       <div class="modal-list-head">All ${total} skill${total===1?"":"s"} · ${cat === "needs" ? "lowest mastery first" : (cfg.withPct ? "highest mastery first" : "A–Z")}</div>
+       <ul class="modal-skill-list">${allItems.map(m => {
+         const pct = cfg.withPct ? m.mastery : 0;
+         const barW = Math.max(0, Math.min(100, pct));
+         return `<li class="mskill ${cat}">
+           <span class="skill-row-main">
+             <span class="unit-tag" style="background:${cfg.color}22;color:${cfg.color};border:1px solid ${cfg.color}55">${m.unit}</span>
+             <span class="skill-name">${m.label}</span>
+           </span>
+           <span class="skill-row-right">
+             ${cfg.withPct ? `<span class="skill-bar"><span style="width:${barW}%;background:${cfg.color}"></span></span><span class="pct">${m.mastery}%</span>` : `<span class="pct" style="color:var(--mute)">not yet</span>`}
+           </span>
+         </li>`;
+       }).join("")}</ul>`;
 
   document.getElementById("modal-content").innerHTML = `
     <div class="modal-header">
       <div>
         <h2><span style="color:${cfg.color}">●</span> ${cfg.title} — ${total} skill${total===1?"":"s"}</h2>
-        <div class="meta">${cfg.sub} · across ${sections.length} unit${sections.length===1?"":"s"}</div>
+        <div class="meta">${cfg.sub} · across ${units.size} unit${units.size===1?"":"s"}</div>
       </div>
       <button class="close" onclick="document.getElementById('modal').classList.remove('show')">×</button>
     </div>
@@ -642,6 +932,98 @@ function openCategory(cat){
 
 function openUnit(i){
   const u = STUDENTS[currentStudent].unit_tiles[i];
+  const tierColor = ({green:COLORS.green, yellow:COLORS.amber, red:COLORS.red, gray:COLORS.gray})[u.tier] || COLORS.gray;
+
+  // ── Trend over the term ─────────────────────────────────────────────────
+  const trend = (u.mastery_trend || []).filter(v => v !== null);
+  let trendHTML = "";
+  if(trend.length >= 2){
+    // Improved chart: area fill + dots at every snapshot + start/end value labels
+    const w = 280, h = 90;
+    const padLeft = 28, padRight = 36, padTop = 14, padBot = 22;
+    const chartW = w - padLeft - padRight;
+    const chartH = h - padTop - padBot;
+    const max = Math.max(...trend);
+    const min = Math.min(...trend);
+    const range = (max - min) || 1;
+    const step = chartW / (trend.length - 1);
+
+    const pts = trend.map((v, idx) => ({
+      x: padLeft + idx*step,
+      y: padTop + chartH - ((v - min) / range) * chartH,
+      v
+    }));
+    const polyStr = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+    const areaPath = `M ${pts[0].x.toFixed(1)},${(padTop+chartH).toFixed(1)} L ` +
+                     pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ") +
+                     ` L ${pts[pts.length-1].x.toFixed(1)},${(padTop+chartH).toFixed(1)} Z`;
+
+    const dots = pts.map((p, idx) => {
+      const isLast = idx === pts.length - 1;
+      return isLast
+        ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="${tierColor}" stroke="white" stroke-width="2.5"/>`
+        : `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="${tierColor}" opacity="0.55"/>`;
+    }).join("");
+
+    const firstP = pts[0], lastP = pts[pts.length-1];
+    // Start label (left of first dot) — small gray
+    const startLabel = `<text x="${(firstP.x - 4).toFixed(1)}" y="${(firstP.y + 4).toFixed(1)}" font-size="11" fill="#888" text-anchor="end" font-weight="600">${firstP.v.toFixed(1)}%</text>`;
+    // End label (right of last dot) — bold tier color
+    const endLabel   = `<text x="${(lastP.x + 8).toFixed(1)}" y="${(lastP.y + 4).toFixed(1)}" font-size="13" fill="${tierColor}" font-weight="700">${lastP.v.toFixed(1)}%</text>`;
+    // X-axis: simple "this term" caption at bottom
+    const xAxisStart = `<text x="${firstP.x.toFixed(1)}" y="${(h - 6).toFixed(1)}" font-size="10" fill="#aaa" text-anchor="middle">start</text>`;
+    const xAxisEnd   = `<text x="${lastP.x.toFixed(1)}" y="${(h - 6).toFixed(1)}" font-size="10" fill="#aaa" text-anchor="middle">now</text>`;
+
+    const delta = trend[trend.length-1] - trend[0];
+    const arrow = delta > 0.5 ? "↑" : (delta < -0.5 ? "↓" : "→");
+    const sign  = delta > 0 ? "+" : "";
+    const cls   = delta > 0.5 ? "up" : (delta < -0.5 ? "down" : "flat");
+    const interp = delta > 0.5  ? "trending up — keep the momentum going"
+                 : delta < -0.5 ? "slipping — worth refreshing this unit"
+                 : "holding steady";
+
+    trendHTML = `
+      <div class="unit-modal-trend">
+        <div class="trend-label">📈 Mastery over the term</div>
+        <div class="trend-row">
+          <svg viewBox="0 0 ${w} ${h}" style="height:90px;width:${w}px;flex-shrink:0">
+            <path d="${areaPath}" fill="${tierColor}" opacity="0.18"/>
+            <polyline points="${polyStr}" fill="none" stroke="${tierColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            ${dots}
+            ${startLabel}${endLabel}
+            ${xAxisStart}${xAxisEnd}
+          </svg>
+          <div class="trend-meta">
+            <div class="trend-delta-big ${cls}">${arrow} ${sign}${delta.toFixed(1)}pp this term</div>
+            <div class="trend-interp">${interp}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── At a glance: strongest / weakest / class delta ──────────────────────
+  const allRanked = [...u.mastered_list, ...u.developing_list, ...u.needs_list];
+  const strongest = allRanked.length > 0 ? allRanked.reduce((a,b) => a.mastery >= b.mastery ? a : b) : null;
+  const weakest   = allRanked.length > 0 ? allRanked.reduce((a,b) => a.mastery <= b.mastery ? a : b) : null;
+  let classCompareHTML = "";
+  if(u.avg_mastery != null && u.class_avg != null){
+    const d = (u.avg_mastery - u.class_avg).toFixed(1);
+    const cls = d > 0.5 ? "up" : (d < -0.5 ? "down" : "flat");
+    const sign = d > 0 ? "+" : "";
+    const arrow = d > 0.5 ? "↑" : (d < -0.5 ? "↓" : "→");
+    classCompareHTML = `<div class="ag-stat"><div class="ag-label">vs Class avg</div><div class="ag-val ${cls}">${arrow} ${sign}${d}pp <span class="ag-context">(class: ${u.class_avg}%)</span></div></div>`;
+  }
+  let glanceHTML = "";
+  if(strongest || weakest || classCompareHTML){
+    const sH = strongest ? `<div class="ag-stat"><div class="ag-label">Your strongest here</div><div class="ag-val"><b>${strongest.label}</b> — ${strongest.mastery}%</div></div>` : "";
+    const wH = weakest && weakest !== strongest ? `<div class="ag-stat"><div class="ag-label">Worth focusing on</div><div class="ag-val"><b>${weakest.label}</b> — ${weakest.mastery}%</div></div>` : "";
+    glanceHTML = `
+      <div class="unit-glance-section">
+        <div class="trend-label">🔍 At a glance</div>
+        ${sH}${wH}${classCompareHTML}
+      </div>`;
+  }
+
   document.getElementById("modal-content").innerHTML = `
     <div class="modal-header">
       <div>
@@ -650,10 +1032,13 @@ function openUnit(i){
       </div>
       <button class="close" onclick="document.getElementById('modal').classList.remove('show')">×</button>
     </div>
-    ${modalSection("Needs practice",u.needs_list,      "needs",      COLORS.red,   true)}
-    ${modalSection("Developing",    u.developing_list, "developing", COLORS.amber, true)}
-    ${modalSection("Mastered",      u.mastered_list,   "mastered",   COLORS.green, true)}
-    ${modalSection("Unattempted",   u.unattempted_list,"unattempted","#6B7280",    false)}`;
+    ${trendHTML}
+    ${glanceHTML}
+    <div class="trend-label" style="margin-top:18px">📚 Skill breakdown</div>
+    ${modalSection("Needs Practice", u.needs_list,      "needs",      COLORS.red,   true)}
+    ${modalSection("Progressing",    u.developing_list, "developing", COLORS.amber, true)}
+    ${modalSection("Mastered",       u.mastered_list,   "mastered",   COLORS.green, true)}
+    ${modalSection("Unattempted",    u.unattempted_list,"unattempted","#6B7280",    false)}`;
   document.getElementById("modal").classList.add("show");
 }
 
@@ -702,6 +1087,13 @@ function render(idx){
   setKpiCard("developing",  s.totals.developing,  s.totals.all, ca.developing,  atRisk, /*biggerIsBetter*/ null);  // neutral
   setKpiCard("needs",       s.totals.needs,       s.totals.all, ca.needs,       atRisk, /*biggerIsBetter*/ false);
   setKpiCard("unattempted", s.totals.unattempted, s.totals.all, ca.unattempted, atRisk, /*biggerIsBetter*/ false);
+
+  // Sparklines + "vs last check" delta (Ilya's "sparkline" essential)
+  const trends = s.weekly_trends || [];
+  renderTrend("mastered",    trends, COLORS.green, true);
+  renderTrend("developing",  trends, COLORS.amber, null);   // neutral
+  renderTrend("needs",       trends, COLORS.red,   false);
+  renderTrend("unattempted", trends, COLORS.gray,  false);
 
   renderGrid();
 
