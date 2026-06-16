@@ -39,6 +39,7 @@ STU_OBS_COLS = [
     "assignment_id",
     "class_num",
     "observation_id",
+    "source_question",
     "primary_kc_id",
     "score",
     "max_score"
