@@ -104,10 +104,6 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
         domain=["well practiced", "some practice", "low practice", "not started"],
         range=[MASTERED_FILL, PROGRESS_FILL, PRACTICE_FILL, NOTSTARTED_FILL],
     )
-    text_scale = alt.Scale(
-        domain=["well practiced", "some practice", "low practice", "not started"],
-        range=[MASTERED_STROKE, PROGRESS_STROKE, PRACTICE_STROKE, NOTSTARTED_STROKE],
-    )
 
     kc_selection = alt.selection_point(
         name="kc_click",
@@ -152,8 +148,8 @@ def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
     chart =  (
         (heatmap)
         .properties(
-            width="container",      # fills available width
-            height=alt.Step(28),    # keep row height fixed per student,
+            width="container",      
+            height=alt.Step(28),    
         )
         .configure(
             font="system-ui, sans-serif",

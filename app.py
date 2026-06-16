@@ -261,11 +261,10 @@ app_ui = ui.page_navbar(
                                 ui.input_selectize(
                                     "kc_search",
                                     "Select KCs to view:",
-                                    choices=[],          # populated server-side from real KC names
+                                    choices=[],          
                                     multiple=True,
                                     options={"placeholder": "Type to search for a KC...", "maxItems": 4},
                                 ),
-                                # Dynamic output slots for up to 4 selected KCs
                                 ui.output_ui("search_results"),
                             ),
                             id="kc_tabs",
@@ -284,7 +283,7 @@ app_ui = ui.page_navbar(
                             ui.output_text("student_kc_card_title")
                         ),
                         output_widget("student_kc_detail"),
-                        ui.output_ui("student_kc_card_placeholder"),  # shown when nothing is selected
+                        ui.output_ui("student_kc_card_placeholder"),  
                     ),
                     ui.card(
                         ui.card_header(

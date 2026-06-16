@@ -82,6 +82,14 @@ def unit_kc_chart(
     grid_w = cols * step - tile_gap
     n_rows = int(np.ceil(len(df) / cols))
     grid_h = n_rows * step - tile_gap
+
+    kc_selection = alt.selection_point(
+        name=f"{unit_name}_click",
+        fields=["col", "row"],
+        toggle=True,
+        on="click",
+        clear="dblclick",
+    )
  
     # ── tile rectangles ──────────────────────────────────────────────────────
     tiles = (
@@ -107,6 +115,11 @@ def unit_kc_chart(
                 axis=None,
             ),
             color=alt.Color("fill:N",   scale=None, legend=None),
+            opacity=alt.condition(
+                    kc_selection, 
+                    alt.value(1.0), 
+                    alt.value(0.4)
+                ),
             stroke=alt.Stroke("stroke:N", scale=None, legend=None),
             strokeWidth=alt.value(1.5),
             tooltip=[
@@ -116,7 +129,7 @@ def unit_kc_chart(
             ],
         )
         .properties(width=grid_w, height=grid_h)
-    )
+    ).add_params(kc_selection)
  
     # ── unit label on the left ───────────────────────────────────────────────
     label_df = pd.DataFrame({"x": [0], "y": [0], "label": [unit_name]})
