@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _resolve(env_var: str) -> Path:
+def resolve(env_var: str) -> Path:
     """
     Resolve a file path from an environment variable.
 
@@ -67,7 +67,7 @@ def load_observations() -> pd.DataFrame:
     Expected columns (non-exhaustive):
         student_id, assignment_id, primary_kc_id, correct, order_id
     """
-    path = _resolve("STUDENT_OBS_FILE")
+    path = resolve("STUDENT_OBS_FILE")
     df = pd.read_excel(path, sheet_name="Student_Observations")
     return df
 
@@ -82,7 +82,7 @@ def load_class_plan() -> pd.DataFrame:
     Expected columns:
         class_date, homework_id
     """
-    path = _resolve("STUDENT_OBS_FILE")
+    path = resolve("STUDENT_OBS_FILE")
     df = pd.read_excel(path, sheet_name="Class_Plan")
     return df
 
@@ -98,7 +98,7 @@ def load_kc_map() -> pd.DataFrame:
         fine_kc_id, fine_kc_label, modeling_kc_id, modeling_kc_label,
         modeling_unit, fine_reporting_group
     """
-    path = _resolve("KC_MAP_FILE")
+    path = resolve("KC_MAP_FILE")
     df = pd.read_excel(path, sheet_name="FineKC_to_ModelingKC_Map")
     return df
 
@@ -113,6 +113,6 @@ def load_weights() -> pd.DataFrame:
     Expected columns (non-exhaustive):
         modeling_kc_id, modeling_kc_label, weight
     """
-    path = _resolve("WEIGHTS_FILE")
+    path = resolve("WEIGHTS_FILE")
     df = pd.read_excel(path, sheet_name="MKC_Weights")
     return df
