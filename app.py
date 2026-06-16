@@ -13,6 +13,52 @@ from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 from src.student_card import student_kc_card
 
+STU_OBS_COLS = [
+    "student_id",
+    "assignment_id",
+    "class_num",
+    "observation_id",
+    "source_question",
+    "primary_kc_id",
+    "score",
+    "max_score"
+    ]
+
+CLASS_PLAN_COLS = [
+    "class_date",
+    "homework_id"
+    ]
+
+KC_MAP_COLS = [
+    "fine_kc_id",
+    "fine_kc_label",
+    "modeling_kc_id",
+    "modeling_kc_label",
+    "modeling_unit",
+    ]
+
+WEIGHTS_COLS = [
+    'rank',
+    'modeling_kc_id',
+    'modeling_kc_label',
+    'unit',
+    'topic_group',
+    'weight',
+    'tier',
+    'estimated_exam_share_pct'
+    ]
+
+required = list(set(STU_OBS_COLS + CLASS_PLAN_COLS + KC_MAP_COLS + WEIGHTS_COLS))
+
+def check_required_columns(df: pd.DataFrame, required: list[str]):
+    missing = []
+    found = []
+    for c in required :
+        if c not in df.columns :
+            missing.append(c)
+        else :
+            found.append(c)
+    return found, missing
 
 # Thresholds for student mastery status
 STUDENT_MASTERY_THRESHOLD = 0.65
@@ -334,6 +380,30 @@ app_ui = ui.page_navbar(
             ),
             style="padding: 1rem;",
         ),
+    ),
+    ui.nav_panel(
+        "Data Input",
+        ui.input_file("file", "Upload CSV", accept=[".csv"], multiple=True, width='100%'),
+        ui.layout_columns(
+            ui.card(
+                "Student Observations",
+                ui.output_ui("stu")
+            ),
+            ui.card(
+                "Class Plan",
+                ui.output_ui("class")
+
+            ),
+            ui.card(
+                "KC map",
+                ui.output_ui("map")
+            ),
+            ui.card(
+                "Weights",
+                ui.output_ui("weights")
+            ),
+            col_widths=(3, 3, 3, 3),
+        )
     ),
 
     title=ui.tags.span("Stellar Education", style="color: white;"),
@@ -791,5 +861,36 @@ def server(input, output, session):
             status_filter=input.so_status(),
             cuts=QUANTILE_CUTS,
         )
+    
+    # ── Import Data ─────────────────────────────────────────────────
+    @reactive.calc
+    def parsed_data():
+        file = input.file()
+        if not file: 
+            return None
+        return file
+
+    @reactive.calc
+    def cols():
+        if parsed_data() :
+            for file in parsed_data():
+                df = pd.read_csv(file['datapath'])
+                found_cols, missing_cols = check_required_columns(df, required)
+                return found_cols, missing_cols
+        
+    
+    list_dic = {'stu' : STU_OBS_COLS, 'class':CLASS_PLAN_COLS, 'map' : KC_MAP_COLS, 'weights' : WEIGHTS_COLS}
+    for output_id, columns in list_dic.items():
+        @output(id=output_id)
+        @render.ui
+        def bullet_list_ui(columns=columns):
+            if not cols():
+                list_items = "".join([f"<li>{item}</li>" for item in columns])
+                return ui.HTML(f"<ul>{list_items}</ul>")
+            
+            found_cols, missing_cols = cols()
+            req = [c for c in missing_cols if c in columns]
+            list_items = "".join([f"<li>{item}</li>" for item in req])
+            return ui.HTML(f"<ul>{list_items}</ul>")
 
 app = App(app_ui, server)
