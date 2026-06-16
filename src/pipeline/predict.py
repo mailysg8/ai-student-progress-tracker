@@ -6,7 +6,7 @@ BKT (Bayesian Knowledge Tracing) prediction step for the student KC pipeline.
 Uses the pyBKT library to fit a BKT model per knowledge component and generate
 per-observation mastery probability predictions.
 
-Typical usage (orchestrated by main.py):
+Typical usage (orchestrated by data_pipeline.py):
     from pipeline.predict import run_bkt_predictions
 
     bkt_preds = run_bkt_predictions(df, kc_col="modeling_kc_id")
@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from pyBKT.models import Model
 
-from src.pipeline.preprocess import preprocess
+from pipeline.preprocess import preprocess
 
 
 # ---------------------------------------------------------------------------
