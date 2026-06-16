@@ -36,6 +36,7 @@ FINAL_OUTPUT_COLS = [
     "student_id",
     "assignment_id",
     "observation_id",
+    "source_question",
     "primary_kc_id",
     "score",
     "correct",
