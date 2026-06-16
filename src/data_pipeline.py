@@ -29,5 +29,5 @@ print(f'Getting bkt predictions...')
 bkt_preds = run_bkt_predictions(df, kc_col="modeling_kc_id")
 
 df_final = merge_bkt_predictions(df, bkt_preds)
-save_final_output(df_final, filename="test_output.csv")
+save_final_output(df_final)
 print(f'All ready! ...')
