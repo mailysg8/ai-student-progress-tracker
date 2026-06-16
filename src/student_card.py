@@ -7,7 +7,7 @@ PROGRESS_FILL = "#FFD97D"
 BAR_FILL      = "#60D394"
 BAR_TRACK     = "#DAE3DE"
 TEXT_COLOR    = "#263744"
-LABEL_COLOR   = "#888780"
+LABEL_COLOR   = "#263744"
 
 
 def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
@@ -20,7 +20,7 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
         .reset_index(drop=True)
     )
 
-    # ── 6. empty state ────────────────────────────────────────────────────
+    # ── empty state ────────────────────────────────────────────────────
     if df.empty:
         # Find any assignments/questions linked to this KC across all students
         kc_rows = data[data["modeling_kc_label"] == kc_label]
@@ -46,7 +46,7 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
             .mark_text(
                 align="left",
                 baseline="middle",
-                fontSize=13,
+                fontSize=20,
                 color=LABEL_COLOR,
             )
             .encode(
@@ -60,12 +60,12 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
         )
 
     df["state_predictions"] = pd.to_numeric(df["state_predictions"], errors="coerce")
-    df["correct"]           = pd.to_numeric(df["correct"], errors="coerce").fillna(-1)
+    df["correct"]           = pd.to_numeric(df["correct"], errors="coerce")
     df = df.dropna(subset=["state_predictions"])
 
     df["color_status"] = df["correct"].map(
-        {1.0: "Correct", 0.0: "Incorrect", -1.0: "No answer"}
-    ).fillna("No answer")
+        {1.0: "Correct", 0.0: "Incorrect"}
+    )
 
     for col in ["class_date", "source_question", "assignment_id"]:
         if col in df.columns:
@@ -106,20 +106,19 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
         )
     )
 
-    # 1. Label sits inside the bar at the fill's right edge
     label_x = max(mastery_pct-0.5, 2)
     bar_label = (
         alt.Chart(pd.DataFrame([{"x": label_x, "text": f"{mastery_pct}%"}]))
         .mark_text(
             align="right",
-            baseline="middle",   # vertically centred inside the bar
+            baseline="middle",   
             fontWeight="bold",
             fontSize=13,
             color=TEXT_COLOR,
         )
         .encode(
             x=alt.X("x:Q", scale=alt.Scale(domain=[0, 100]), axis=None),
-            y=alt.value(20),     # half of bar height (22px) → centred
+            y=alt.value(20),     
             text="text:N",
         )
     )
@@ -143,8 +142,8 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
 
     # ── line chart ────────────────────────────────────────────────────────
     color_scale = alt.Scale(
-        domain=["Correct", "Incorrect", "No answer"],
-        range=[MASTERED_FILL, PRACTICE_FILL, PROGRESS_FILL],
+        domain=["Correct", "Incorrect"],
+        range=[MASTERED_FILL, PRACTICE_FILL],
     )
 
     line = (
@@ -159,7 +158,7 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
         )
     )
 
-    # 5. Larger dots (size 200 → ~16px diameter)
+   
     points = (
         alt.Chart(df)
         .mark_circle(size=200, strokeWidth=2)
@@ -171,7 +170,7 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
             stroke=alt.Color("color_status:N", scale=color_scale, legend=None),
             tooltip=[
                 alt.Tooltip("kc_attempt:Q",        title="Attempt #"),
-                alt.Tooltip("state_predictions:Q", title="P(Mastery)", format=".3f"),
+                alt.Tooltip("state_predictions:Q", title="Mastery Probability", format=".3f"),
                 alt.Tooltip("correct:Q",           title="Correct"),
                 alt.Tooltip("class_date:N",        title="Date"),
                 alt.Tooltip("source_question:N",   title="Question"),
@@ -188,14 +187,14 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
         .encode(y="y:Q")
     )
 
-    # 4. Label shifted above the line with dy=-8
+
     threshold_label = (
         alt.Chart(threshold_df)
         .mark_text(
             align="left",
-            baseline="bottom",   # sits above the rule
-            dy=-4,               # small gap above the dashed line
-            fontSize=11,
+            baseline="bottom",   
+            dy=-4,               
+            fontSize=13,
             color=LABEL_COLOR,
         )
         .encode(
@@ -205,21 +204,19 @@ def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
         )
     )
 
-    # 3. Height set to 220 so bar + chart fit without scrolling in a modal
     line_chart = (
         (line + threshold + threshold_label + points)
         .properties(
             width="container",
             height=220,
-            # 2. No title on the plot itself — unit goes in the card header
+
         )
     )
 
     return (
         alt.vconcat(bar_chart, line_chart, spacing=16)
-        # 2. No top-level title — caller puts student/KC/unit in the card header
         .configure_view(strokeWidth=0)
-        .configure(background="transparent")
+        .configure(background="transparent", autosize="fit-x")
         .configure_axis(
             labelColor=LABEL_COLOR,
             titleColor=LABEL_COLOR,

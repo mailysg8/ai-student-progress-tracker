@@ -278,6 +278,14 @@ app_ui = ui.page_navbar(
             ui.nav_panel(
                 "Opportunity Heatmap",
                 ui.div(
+                # -- Student info card
+                    ui.card(
+                        ui.card_header(
+                            ui.output_text("student_kc_card_title")
+                        ),
+                        output_widget("student_kc_detail"),
+                        ui.output_ui("student_kc_card_placeholder"),  # shown when nothing is selected
+                    ),
                     ui.card(
                         ui.card_header(
                             ui.div(
@@ -293,17 +301,9 @@ app_ui = ui.page_navbar(
                         ),
                         output_widget("opp_heatmap_plot"),
                         full_screen=True,
-                        style="height: 77%;",
+                        style="height: 90%;",
                     ),
-                    # -- Student info card
-                    ui.card(
-                        ui.card_header(
-                            ui.output_text("student_kc_card_title")
-                        ),
-                        output_widget("student_kc_detail"),
-                        ui.output_ui("student_kc_card_placeholder"),  # shown when nothing is selected
-                    ),
-                    style="height: calc(100vh - 120px); padding: 1rem;"
+                    style="height: calc(100vh - 120px); padding: 1rem;",
                 )
             )
         )
@@ -572,8 +572,8 @@ def server(input, output, session):
         if selected_tile.get() is not None:
             return ui.tags.div()   # empty — card is showing
         return ui.p(
-            "Click any tile on the heatmap to see the student's attempt history.",
-            style="color:#888780; font-style:italic; padding: 1rem;"
+            "Click any tile on the heatmap to see how a student is progressing.",
+            style="color:#8B9DBB; font-style:italic;"
         )
 
     # ── the card itself ──────────────────────────────────────────────────
