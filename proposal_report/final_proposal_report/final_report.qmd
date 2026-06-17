@@ -57,49 +57,28 @@ Working at the level of the KC, rather than the level of the whole assignment, i
 
 # Data
 
-The project draws on assessment data from a single AP Statistics cohort at
-Stellar Education. Each row in the raw dataset represents one student's attempt
-at one assessment item — so the unit of observation is a student-by-item event.
-A single item is mapped to the knowledge component (KC) it exercises, which lets
-the same records be aggregated up to the skill level or the student level as
-needed.
+The project draws on assessment data from a single AP Statistics cohort at Stellar Education. Each row in the raw dataset represents one student's attempt at one assessment item — so the unit of observation is a student-by-item event. A single item is mapped to the knowledge component (KC) it exercises, which lets the same records be aggregated up to the skill level or the student level as needed.
 
-Because several items can target the same skill, the item-level rows are rolled
-up to a student-by-KC view for modeling: for each student and each KC, the
-sequence of attempts (ordered by `order_id`) becomes the input to the mastery
-model, and the model outputs a single mastery probability per student-KC.
+Because several items can target the same skill, the item-level rows are rolled up to a student-by-KC view for modeling: for each student and each KC, the sequence of attempts (ordered by `order_id`) becomes the input to the mastery model, and the model outputs a single mastery probability per student-KC.
 
 ## Fields used by the model and dashboard
 
-The analysis-ready file `final_student_kc_data.csv` is wide, but only a small
-set of columns drives the mastery estimate and the dashboard views:
+The analysis-ready file `final_student_kc_data.csv` is wide, but only a small set of columns drives the mastery estimate and the dashboard views:
 
 - `student_id` — anonymized student identifier (S001–S025).
-- `modeling_kc_id` / `modeling_kc_label` — the KC each attempt is modeled
-  against, plus its human-readable name.
-- `order_id` / `kc_attempt` — attempt order, which preserves the per-KC
-  sequence the model learns from.
-- `correct` — whether the attempt was correct, the observed signal the model
-  fits to.
-- `state_predictions` — the modeled probability of mastery for that student and
-  KC (the number behind every status badge and progress bar).
+- `modeling_kc_id` / `modeling_kc_label` — the KC each attempt is modeled against, plus its human-readable name.
+- `order_id` / `kc_attempt` — attempt order, which preserves the per-KC sequence the model learns from.
+- `correct` — whether the attempt was correct, the observed signal the model fits to.
+- `state_predictions` — the modeled probability of mastery for that student and KC (the number behind every status badge and progress bar).
 - `unit` — groups KCs into the ten course units for the Unit Mastery view.
 
 ## Two levels of knowledge component
 
-The data distinguishes a fine-grained skill from a coarser modeling skill.
-`fine_kc_id` / `fine_kc_label` describe the specific concept an item tests (for
-example, "Observational unit and variable"), while `modeling_kc_id` /
-`modeling_kc_label` describe the broader skill the model is fit on (for example,
-"Data context and variable classification"). Modeling at the coarser level
-deliberately pools related items together, which gives each modeled KC more
-attempts to learn from — a direct response to the sparsity problem discussed
-below.
+The data distinguishes a fine-grained skill from a coarser modeling skill. `fine_kc_id`  `fine_kc_label` describe the specific concept an item tests (for example, "Observational unit and variable"), while `modeling_kc_id` / `modeling_kc_label` describe the broader skill the model is fit on (for example, "Data context and variable classification"). Modeling at the coarser level deliberately pools related items together, which gives each modeled KC more attempts to learn from — a direct response to the sparsity problem discussed below.
 
 ## Curriculum and importance metadata
 
-Beyond the attempt records, each KC carries metadata that the dashboard uses to
-rank and prioritize skills rather than treating them all equally:
+Beyond the attempt records, each KC carries metadata that the dashboard uses to rank and prioritize skills rather than treating them all equally:
 
 - `rank` / `tier` — an importance ordering (e.g. "Tier 1: critical") that drives the "Most Important KCs" views.
 - `direct_dependents` / `downstream_dependents` — the prerequisite structure between KCs; a single foundational KC can have dozens of downstream skills depending on it (one Unit 1 KC, for instance, is a foundation for 41 downstream KCs).
@@ -114,13 +93,7 @@ The cohort is small by machine-learning standards: 25 students across roughly 47
 
 ## The central limitation
 
-The defining characteristic of this dataset is not its size but its sparsity per
-skill. Most knowledge components were attempted only one to three times per
-student. This matters because the mastery model learns from the sequence of
-attempts on each skill, and a sequence of length one or two carries very little
-information. Pooling items up to the coarser modeling-KC level (above) helps, but
-does not fully solve it. This single property shapes every modeling decision
-that follows, and it is revisited in the Methods section.
+The defining characteristic of this dataset is not its size but its sparsity per skill. Most knowledge components were attempted only one to three times per student. This matters because the mastery model learns from the sequence of attempts on each skill, and a sequence of length one or two carries very little information. Pooling items up to the coarser modeling-KC level (above) helps, but does not fully solve it. This single property shapes every modeling decision that follows, and it is revisited in the Methods section.
 
 ## Data quality and ethics
 
