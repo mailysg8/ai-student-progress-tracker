@@ -27,4 +27,5 @@ dependencies:
       # conda already provides pyBKT's runtime deps (numpy/pandas/scikit-learn/
       # requests) at the pinned versions above, so pip installs ONLY this wheel
       # and leaves the conda-managed numpy ABI untouched.
-      - "./wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl"
+      - pyBKT
+      - plotly
