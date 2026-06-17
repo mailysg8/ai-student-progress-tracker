@@ -12,43 +12,28 @@ from src.modal_builds import build_kc_modal, build_total_kc_modal
 from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 from src.student_card import student_kc_card
+from src.data_import import build_card
 
 STU_OBS_COLS = [
-    "student_id",
-    "assignment_id",
-    "class_num",
-    "observation_id",
-    "source_question",
-    "primary_kc_id",
-    "score",
-    "max_score"
-    ]
-
-CLASS_PLAN_COLS = [
-    "class_date",
-    "homework_id"
-    ]
-
+    "student_id", "assignment_id", "class_num", "observation_id",
+    "source_question", "primary_kc_id", "score", "max_score"
+]
+CLASS_PLAN_COLS = ["class_date", "homework_id"]
 KC_MAP_COLS = [
-    "fine_kc_id",
-    "fine_kc_label",
-    "modeling_kc_id",
-    "modeling_kc_label",
-    "modeling_unit",
-    ]
-
+    "fine_kc_id", "fine_kc_label", "modeling_kc_id",
+    "modeling_kc_label", "modeling_unit"
+]
 WEIGHTS_COLS = [
-    'rank',
-    'modeling_kc_id',
-    'modeling_kc_label',
-    'unit',
-    'topic_group',
-    'weight',
-    'tier',
-    'estimated_exam_share_pct'
-    ]
+    "rank", "modeling_kc_id", "modeling_kc_label",
+    "unit", "topic_group", "weight", "tier", "estimated_exam_share_pct"
+]
 
-required = list(set(STU_OBS_COLS + CLASS_PLAN_COLS + KC_MAP_COLS + WEIGHTS_COLS))
+DATASETS = {
+    "stu":     ("Student Observations", STU_OBS_COLS),
+    "class":   ("Class Plan",           CLASS_PLAN_COLS),
+    "map":     ("KC Map",               KC_MAP_COLS),
+    "weights": ("Weights",              WEIGHTS_COLS),
+}
 
 def check_required_columns(df: pd.DataFrame, required: list[str]):
     missing = []
@@ -383,27 +368,26 @@ app_ui = ui.page_navbar(
     ),
     ui.nav_panel(
         "Data Input",
-        ui.input_file("file", "Upload CSV", accept=[".csv"], multiple=True, width='100%'),
+        ui.tags.link(
+            rel="stylesheet",
+            href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
+        ),
+        ui.div(
+            ui.input_file(
+                "files", "Upload CSV files",
+                accept=[".csv"], multiple=True, width="100%"
+            ),
+            ui.output_ui("master_status"),
+            style="margin-bottom:1.5rem;"
+        ),
         ui.layout_columns(
-            ui.card(
-                "Student Observations",
-                ui.output_ui("stu")
-            ),
-            ui.card(
-                "Class Plan",
-                ui.output_ui("class")
-
-            ),
-            ui.card(
-                "KC map",
-                ui.output_ui("map")
-            ),
-            ui.card(
-                "Weights",
-                ui.output_ui("weights")
-            ),
+            ui.output_ui("card_stu"),
+            ui.output_ui("card_class"),
+            ui.output_ui("card_map"),
+            ui.output_ui("card_weights"),
             col_widths=(3, 3, 3, 3),
-        )
+        ),
+        ui.output_ui("dataframes_ready"),
     ),
 
     title=ui.tags.span("Stellar Education", style="color: white;"),
@@ -862,35 +846,135 @@ def server(input, output, session):
             cuts=QUANTILE_CUTS,
         )
     
-    # ── Import Data ─────────────────────────────────────────────────
+    # ── accumulated column → filename map ────────────────────────────────────
     @reactive.calc
-    def parsed_data():
-        file = input.file()
-        if not file: 
-            return None
-        return file
+    def col_to_file() -> dict[str, str]:
+        files = input.files()
+        if not files:
+            return {}
+        mapping: dict[str, str] = {}
+        seen_names: set[str] = set()
+        for f in files:
+            name = f["name"]
+            if name in seen_names:
+                continue
+            seen_names.add(name)
+            try:
+                df = pd.read_csv(f["datapath"], nrows=0)  # header only, fast
+                for col in df.columns:
+                    if col not in mapping:          # first-file-wins
+                        mapping[col] = name
+            except Exception:
+                pass
+        return mapping
 
+    # ── per-dataset dataframes (built only when all columns are present) ──────
     @reactive.calc
-    def cols():
-        if parsed_data() :
-            for file in parsed_data():
-                df = pd.read_csv(file['datapath'])
-                found_cols, missing_cols = check_required_columns(df, required)
-                return found_cols, missing_cols
-        
-    
-    list_dic = {'stu' : STU_OBS_COLS, 'class':CLASS_PLAN_COLS, 'map' : KC_MAP_COLS, 'weights' : WEIGHTS_COLS}
-    for output_id, columns in list_dic.items():
-        @output(id=output_id)
-        @render.ui
-        def bullet_list_ui(columns=columns):
-            if not cols():
-                list_items = "".join([f"<li>{item}</li>" for item in columns])
-                return ui.HTML(f"<ul>{list_items}</ul>")
-            
-            found_cols, missing_cols = cols()
-            req = [c for c in missing_cols if c in columns]
-            list_items = "".join([f"<li>{item}</li>" for item in req])
-            return ui.HTML(f"<ul>{list_items}</ul>")
+    def built_dataframes() -> dict[str, pd.DataFrame] | None:
+        mapping = col_to_file()
+        all_required = {c for _, cols in DATASETS.values() for c in cols}
+        if not all_required.issubset(mapping.keys()):
+            return None
+
+        # load each file once, keep only columns we need from it
+        file_dfs: dict[str, pd.DataFrame] = {}
+        for f in input.files():
+            name = f["name"]
+            if name not in file_dfs:
+                try:
+                    file_dfs[name] = pd.read_csv(f["datapath"])
+                except Exception:
+                    pass
+
+        result: dict[str, pd.DataFrame] = {}
+        for ds_id, (_, dataset_cols) in DATASETS.items():
+            # group columns by which file they came from
+            file_to_cols: dict[str, list[str]] = {}
+            for col in dataset_cols:
+                src = mapping[col]
+                file_to_cols.setdefault(src, []).append(col)
+
+            parts = []
+            for fname, cols in file_to_cols.items():
+                if fname in file_dfs:
+                    parts.append(file_dfs[fname][cols])
+
+            if parts:
+                result[ds_id] = pd.concat(parts, axis=1) if len(parts) > 1 else parts[0]
+
+        return result
+
+    # ── master status banner ─────────────────────────────────────────────────
+    @output
+    @render.ui
+    def master_status():
+        mapping = col_to_file()
+        complete = sum(
+            1 for _, cols in DATASETS.values()
+            if all(c in mapping for c in cols)
+        )
+        total = len(DATASETS)
+
+        if not input.files():
+            return ui.HTML(
+                f'<p style="color:#263744;font-size:13px;margin:0;">'
+                f'Upload one or more CSV files. Columns are matched automatically across files.</p>'
+            )
+        if complete == total:
+            return ui.HTML(
+                f'<div style="background:#60D394;color:#263744;'
+                f'border-radius:var(--border-radius-md);'
+                f'padding:8px 14px;font-size:13px;font-weight:500;">'
+                f'<i class="ti ti-circle-check" aria-hidden="true"></i>'
+                f' All datasets complete — dataframes are ready.</div>'
+            )
+        return ui.HTML(
+            f'<div style="background:#FF9B85;color:#263744;'
+            f'border-radius:var(--border-radius-md);padding:8px 14px;'
+            f'font-size:13px;font-weight:500;">'
+            f'<i class="ti ti-upload" aria-hidden="true"></i>'
+            f' {complete} of {total} datasets complete. '
+            f'Upload more files to fill in missing columns.</div>'
+        )
+
+    # ── individual dataset cards ──────────────────────────────────────────────
+    for ds_id, (title, dataset_cols) in DATASETS.items():
+
+        def make_card_renderer(ds_id=ds_id, title=title, dataset_cols=dataset_cols):
+            @output(id=f"card_{ds_id}")
+            @render.ui
+            def _card():
+                return ui.HTML(build_card(ds_id, title, dataset_cols, col_to_file()))
+
+        make_card_renderer()
+
+    # ── dataframe preview once everything is ready ────────────────────────────
+    @output
+    @render.ui
+    def dataframes_ready():
+        dfs = built_dataframes()
+        if dfs is None:
+            return ui.HTML("")
+        previews = []
+        for ds_id, (title, _) in DATASETS.items():
+            df = dfs.get(ds_id)
+            if df is not None:
+                shape = f"{df.shape[0]:,} rows × {df.shape[1]} columns"
+                previews.append(
+                    f'<div style="margin-bottom:8px;padding:10px 14px;'
+                    f'background:#60D394;'
+                    f'border-radius:var(--border-radius-md);font-size:13px;">'
+                    f'<span style="font-weight:500;color:#263744;">{title}</span>'
+                    f'<span style="color:#263744;opacity:0.6;margin-left:8px;">{shape}</span>'
+                    f'</div>'
+                )
+        return ui.HTML(
+            f'<div style="margin-top:1.5rem;">'
+            f'<p style="font-size:20px;font-weight:500;color:#263744;'
+            f'margin-bottom:8px;">Built dataframes</p>'
+            + "".join(previews)
+            + "</div>"
+        )
+
 
 app = App(app_ui, server)
