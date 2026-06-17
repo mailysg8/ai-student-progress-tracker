@@ -20,8 +20,8 @@ import plotly.graph_objects as go
 from shiny import App, ui, render, reactive
 from shinywidgets import output_widget, render_widget
 
-from training_agenda_utils import *
-from build_student_summary import build_html, scores
+from src.training_agenda_utils import *
+from src.build_student_summary import build_html, scores
 
 
 VALID_IDS = sorted(scores["student_id"].unique())
