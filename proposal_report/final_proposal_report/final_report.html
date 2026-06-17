@@ -192,7 +192,7 @@ Figure&nbsp;1: Measures of central tendency decomposed into its underlying knowl
 </section>
 <section id="two-levels-of-knowledge-component" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="two-levels-of-knowledge-component"><span class="header-section-number">3.2</span> Two levels of knowledge component</h2>
-<p>The data distinguishes a fine-grained skill from a coarser modeling skill. <code>fine_kc_id</code> / <code>fine_kc_label</code> describe the specific concept an item tests (for example, “Observational unit and variable”), while <code>modeling_kc_id</code> / <code>modeling_kc_label</code> describe the broader skill the model is fit on (for example, “Data context and variable classification”). Modeling at the coarser level deliberately pools related items together, which gives each modeled KC more attempts to learn from — a direct response to the sparsity problem discussed below.</p>
+<p>The data distinguishes a fine-grained skill from a coarser modeling skill. <code>fine_kc_id</code> <code>fine_kc_label</code> describe the specific concept an item tests (for example, “Observational unit and variable”), while <code>modeling_kc_id</code> / <code>modeling_kc_label</code> describe the broader skill the model is fit on (for example, “Data context and variable classification”). Modeling at the coarser level deliberately pools related items together, which gives each modeled KC more attempts to learn from — a direct response to the sparsity problem discussed below.</p>
 </section>
 <section id="curriculum-and-importance-metadata" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="curriculum-and-importance-metadata"><span class="header-section-number">3.3</span> Curriculum and importance metadata</h2>
@@ -264,7 +264,6 @@ Figure&nbsp;3: For a student Sam, learning the Measures of Central Tendency, BKT
 </section>
 <section id="feature-engineering-and-preprocessing" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="feature-engineering-and-preprocessing"><span class="header-section-number">4.2</span> Feature engineering and preprocessing</h2>
-<p>Four preprocessing decisions were central, each made to satisfy a requirement of the model rather than for convenience.</p>
 <p>Four preprocessing decisions were made, each driven by a requirement of the model rather than convenience.</p>
 <ol type="1">
 <li><strong>Binary outcomes.</strong> BKT learns from binary attempts (correct = 1, incorrect = 0) and outputs a continuous mastery probability. Partial-credit scores (0.5) were converted to 0 so every attempt remained a valid observation.</li>

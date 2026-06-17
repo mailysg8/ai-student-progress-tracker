@@ -131,9 +131,6 @@ Model estimation was carried out using the open-source **pyBKT** library, which 
 
 ## Feature engineering and preprocessing
 
-Four preprocessing decisions were central, each made to satisfy a requirement of
-the model rather than for convenience.
-
 Four preprocessing decisions were made, each driven by a requirement of the model rather than convenience.
 
 1. **Binary outcomes.** BKT learns from binary attempts (correct = 1, incorrect = 0) and outputs a continuous mastery probability. Partial-credit scores (0.5) were converted to 0 so every attempt remained a valid observation. 
@@ -157,18 +154,11 @@ little data, whose estimates are the least certain.
 
 # Data product and results
 
-The deliverable is an interactive dashboard, built with Shiny for Python and
-Altair, that turns the per-student, per-KC mastery probabilities into a view a
-teacher can act on. It is organized into two pages that answer two different
-questions: Class Overview ("How is the whole class doing?") and Student Overview
-("How is one student doing?").
+The deliverable is an interactive dashboard, built with Shiny for Python and Altair, that turns the per-student, per-KC mastery probabilities into a view a teacher can act on. It is organized into two pages that answer two different questions: Class Overview ("How is the whole class doing?") and Student Overview ("How is one student doing?").
 
 ## Class Overview
 
-The Class Overview opens with four summary boxes: the total number of KCs and
-how many are currently Mastered, Progressing, or Needing Practice, each compared
-against the cohort's first attempt to show movement over time. Below them, three
-panels give complementary views of the same cohort.
+The Class Overview opens with four summary boxes: the total number of KCs and how many are currently Mastered, Progressing, or Needing Practice, each compared against the cohort's first attempt to show movement over time. Below them, three panels give complementary views of the same cohort.
 
 - **Unit Mastery Overview.** A grid where every KC is a coloured tile, grouped
   by unit — green for mastered, yellow for progressing, red for needs practice.
