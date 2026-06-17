@@ -3,11 +3,11 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - ipykernel
+  - ipykernel=7.2.0
   - pandas=2.2.2
   - numpy=2.0.2
   - scikit-learn=1.6.1
-  - matplotlib
+  - matplotlib=3.10.9
   - seaborn
   - scipy=1.16.3
   - openpyxl=3.1.5
@@ -16,6 +16,12 @@ dependencies:
   - shinywidgets=0.7.2
   - anywidget=0.11.0
   - requests
+  - click=8.3.3
+  - vl-convert-python=2.0.0rc1
+  - quarto=1.9.37
+  - jupyterlab=4.5.7
+  - tabulate=0.10.0
+  - make=4.4.1
   - pip
   - pip:
       # conda already provides pyBKT's runtime deps (numpy/pandas/scikit-learn/
