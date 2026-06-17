@@ -846,87 +846,79 @@ def server(input, output, session):
             cuts=QUANTILE_CUTS,
         )
     
-    # ── accumulated column → filename map ────────────────────────────────────
+    # ── load every uploaded file once ───────────────────────────────────────
     @reactive.calc
-    def col_to_file() -> dict[str, str]:
+    def file_dfs() -> dict[str, pd.DataFrame]:
         files = input.files()
         if not files:
             return {}
-        mapping: dict[str, str] = {}
-        seen_names: set[str] = set()
+        dfs: dict[str, pd.DataFrame] = {}
         for f in files:
             name = f["name"]
-            if name in seen_names:
-                continue
-            seen_names.add(name)
-            try:
-                df = pd.read_csv(f["datapath"], nrows=0)  # header only, fast
-                for col in df.columns:
-                    if col not in mapping:          # first-file-wins
-                        mapping[col] = name
-            except Exception:
-                pass
-        return mapping
-
-    # ── per-dataset dataframes (built only when all columns are present) ──────
-    @reactive.calc
-    def built_dataframes() -> dict[str, pd.DataFrame] | None:
-        mapping = col_to_file()
-        all_required = {c for _, cols in DATASETS.values() for c in cols}
-        if not all_required.issubset(mapping.keys()):
-            return None
-
-        # load each file once, keep only columns we need from it
-        file_dfs: dict[str, pd.DataFrame] = {}
-        for f in input.files():
-            name = f["name"]
-            if name not in file_dfs:
+            if name not in dfs:
                 try:
-                    file_dfs[name] = pd.read_csv(f["datapath"])
+                    dfs[name] = pd.read_csv(f["datapath"])
                 except Exception:
                     pass
+        return dfs
 
-        result: dict[str, pd.DataFrame] = {}
+    # ── for each dataset, find the single file (if any) with all its columns ─
+    @reactive.calc
+    def dataset_sources() -> dict[str, str]:
+        dfs = file_dfs()
+        sources: dict[str, str] = {}
         for ds_id, (_, dataset_cols) in DATASETS.items():
-            # group columns by which file they came from
-            file_to_cols: dict[str, list[str]] = {}
-            for col in dataset_cols:
-                src = mapping[col]
-                file_to_cols.setdefault(src, []).append(col)
+            for fname, df in dfs.items():
+                if all(col in df.columns for col in dataset_cols):
+                    sources[ds_id] = fname
+                    break
+        return sources
 
-            parts = []
-            for fname, cols in file_to_cols.items():
-                if fname in file_dfs:
-                    parts.append(file_dfs[fname][cols])
+    # ── used by the cards: which columns are satisfied right now ─────────────
+    @reactive.calc
+    def col_to_file() -> dict[str, str]:
+        sources = dataset_sources()
+        mapping: dict[str, str] = {}
+        for ds_id, (_, dataset_cols) in DATASETS.items():
+            if ds_id in sources:
+                fname = sources[ds_id]
+                for col in dataset_cols:
+                    mapping[col] = fname
+        return mapping
 
-            if parts:
-                result[ds_id] = pd.concat(parts, axis=1) if len(parts) > 1 else parts[0]
+    # ── only build dataframes once every dataset has a single valid source ──
+    @reactive.calc
+    def built_dataframes() -> dict[str, pd.DataFrame] | None:
+        sources = dataset_sources()
+        if len(sources) < len(DATASETS):
+            return None
+        dfs = file_dfs()
+        return {
+            ds_id: dfs[sources[ds_id]][dataset_cols]
+            for ds_id, (_, dataset_cols) in DATASETS.items()
+        }
 
-        return result
 
-    # ── master status banner ─────────────────────────────────────────────────
     @output
     @render.ui
     def master_status():
-        mapping = col_to_file()
-        complete = sum(
-            1 for _, cols in DATASETS.values()
-            if all(c in mapping for c in cols)
-        )
+        sources = dataset_sources()
+        complete = len(sources)
         total = len(DATASETS)
 
         if not input.files():
             return ui.HTML(
-                f'<p style="color:#263744;font-size:13px;margin:0;">'
-                f'Upload one or more CSV files. Columns are matched automatically across files.</p>'
+                '<p style="color:#263744;font-size:13px;margin:0;">'
+                'Upload one or more CSV files. Each dataset needs all its '
+                'columns in a single file.</p>'
             )
         if complete == total:
             return ui.HTML(
-                f'<div style="background:#60D394;color:#263744;'
-                f'border-radius:var(--border-radius-md);'
-                f'padding:8px 14px;font-size:13px;font-weight:500;">'
-                f'<i class="ti ti-circle-check" aria-hidden="true"></i>'
-                f' All datasets complete — dataframes are ready.</div>'
+                '<div style="background:#60D394;color:#263744;'
+                'border-radius:var(--border-radius-md);'
+                'padding:8px 14px;font-size:13px;font-weight:500;">'
+                '<i class="ti ti-circle-check" aria-hidden="true"></i>'
+                ' All datasets complete — dataframes are ready.</div>'
             )
         return ui.HTML(
             f'<div style="background:#FF9B85;color:#263744;'
@@ -937,18 +929,14 @@ def server(input, output, session):
             f'Upload more files to fill in missing columns.</div>'
         )
 
-    # ── individual dataset cards ──────────────────────────────────────────────
     for ds_id, (title, dataset_cols) in DATASETS.items():
-
         def make_card_renderer(ds_id=ds_id, title=title, dataset_cols=dataset_cols):
             @output(id=f"card_{ds_id}")
             @render.ui
             def _card():
                 return ui.HTML(build_card(ds_id, title, dataset_cols, col_to_file()))
-
         make_card_renderer()
 
-    # ── dataframe preview once everything is ready ────────────────────────────
     @output
     @render.ui
     def dataframes_ready():
@@ -969,12 +957,11 @@ def server(input, output, session):
                     f'</div>'
                 )
         return ui.HTML(
-            f'<div style="margin-top:1.5rem;">'
-            f'<p style="font-size:20px;font-weight:500;color:#263744;'
-            f'margin-bottom:8px;">Built dataframes</p>'
+            '<div style="margin-top:1.5rem;">'
+            '<p style="font-size:20px;font-weight:500;color:#263744;'
+            'margin-bottom:8px;">Built dataframes</p>'
             + "".join(previews)
             + "</div>"
         )
-
 
 app = App(app_ui, server)
