@@ -1,7 +1,7 @@
-from pipeline.load import load_observations, load_kc_map, load_weights, load_class_plan
-from pipeline.merge import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions
-from pipeline.predict import run_bkt_predictions
-from pipeline.save import save_final_output
+from load import load_observations, load_kc_map, load_weights, load_class_plan
+from merge import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions
+from predict import run_bkt_predictions
+from save import save_final_output
 
 
 

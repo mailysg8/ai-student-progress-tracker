@@ -2,7 +2,7 @@
 Module that splits data into train and test sets.
 """
 from sklearn.model_selection import train_test_split
-from pipeline.preprocess import preprocess
+from preprocess import preprocess
 
 def split(data, kc_col = 'primary_kc_id'):
   

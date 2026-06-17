@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from pyBKT.models import Model
 
-from pipeline.preprocess import preprocess
+from preprocess import preprocess
 
 
 # ---------------------------------------------------------------------------
