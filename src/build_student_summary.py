@@ -61,8 +61,8 @@ o["correct"] = o["correct"].astype(int)
 o["mkc"]     = o["modeling_kc_id"]
 # `unit` and `class_num` already exist in the CSV — used for weekly trend buckets
 
-T_MASTERED   = 0.70
-T_DEVELOPING = 0.40
+T_MASTERED   = 0.65   # team consensus (Mailys): mastered = ≥ 65%
+T_DEVELOPING = 0.35   # team consensus (Mailys): progressing = 35–64%, needs = < 35%
 N_TREND_BUCKETS = 5   # number of bars per KPI sparkline (snapshots over the term)
 TOTAL_MKCS = sum(len(unit_mkcs[u]) for u in UNITS)
 
@@ -559,9 +559,9 @@ HTML_TEMPLATE = """<!doctype html>
 <div class="wrap">
   <div class="kpi-howto">
     💡 <b>How these cards work:</b> Each skill is sorted by your average correctness this term —
-    <b style="color:#2D8D5B">Mastered</b> (≥ 70%) ·
-    <b style="color:#B8860B">Progressing</b> (40–69%) ·
-    <b style="color:#B53C32">Needs Practice</b> (&lt; 40%) ·
+    <b style="color:#2D8D5B">Mastered</b> (≥ 65%) ·
+    <b style="color:#B8860B">Progressing</b> (35–64%) ·
+    <b style="color:#B53C32">Needs Practice</b> (&lt; 35%) ·
     <b style="color:#5B7271">Unattempted</b> (not tried yet).
     Click any card to see the skills behind the number.
   </div>
@@ -574,7 +574,7 @@ HTML_TEMPLATE = """<!doctype html>
         <span class="bignum" id="kc_mastered_num">—</span>
         <span class="denom"  id="kc_mastered_denom">/ —</span>
       </div>
-      <div class="desc">Skills you've reached 70%+ on this term</div>
+      <div class="desc">Skills you've reached 65%+ on this term</div>
       <div class="bar"><div class="bar-fill" id="kc_mastered_bar" style="background:var(--green);width:0%"></div></div>
       <div class="pct-label" id="kc_mastered_pct" style="color:#2D8D5B">—</div>
       <div class="compare" id="kc_mastered_cmp"></div>
@@ -590,7 +590,7 @@ HTML_TEMPLATE = """<!doctype html>
         <span class="bignum" id="kc_developing_num">—</span>
         <span class="denom"  id="kc_developing_denom">/ —</span>
       </div>
-      <div class="desc">40–69% — your active work zone</div>
+      <div class="desc">35–64% — your active work zone</div>
       <div class="bar"><div class="bar-fill" id="kc_developing_bar" style="background:var(--amber);width:0%"></div></div>
       <div class="pct-label" id="kc_developing_pct" style="color:#B8860B">—</div>
       <div class="compare" id="kc_developing_cmp"></div>
@@ -606,7 +606,7 @@ HTML_TEMPLATE = """<!doctype html>
         <span class="bignum" id="kc_needs_num">—</span>
         <span class="denom"  id="kc_needs_denom">/ —</span>
       </div>
-      <div class="desc">Below 40% — focus area for tonight</div>
+      <div class="desc">Below 35% — focus area for tonight</div>
       <div class="bar"><div class="bar-fill" id="kc_needs_bar" style="background:var(--red);width:0%"></div></div>
       <div class="pct-label" id="kc_needs_pct" style="color:#B53C32">—</div>
       <div class="compare" id="kc_needs_cmp"></div>
@@ -640,9 +640,9 @@ HTML_TEMPLATE = """<!doctype html>
   </h2>
   <div class="grid" id="grid"></div>
   <div class="legend">
-    <span><span class="dot" style="background:var(--green)"></span>Mastered (≥70%)</span>
-    <span><span class="dot" style="background:var(--amber)"></span>Developing (40–69%)</span>
-    <span><span class="dot" style="background:var(--red)"></span>Needs practice (&lt;40%)</span>
+    <span><span class="dot" style="background:var(--green)"></span>Mastered (≥65%)</span>
+    <span><span class="dot" style="background:var(--amber)"></span>Progressing (35–64%)</span>
+    <span><span class="dot" style="background:var(--red)"></span>Needs Practice (&lt;35%)</span>
     <span><span class="dot" style="background:var(--gray)"></span>Unattempted</span>
   </div>
 
@@ -830,9 +830,9 @@ function modalSection(title, items, cls, color, withPct){
 }
 
 const CATEGORY_META = {
-  mastered:    {title:"Mastered",       color: COLORS.green, sub:"≥ 70% correctness",                    listKey:"mastered_list",    withPct:true,  biggerIsBetter:true,  emptyMsg:"No mastered skills yet."},
-  developing:  {title:"Progressing",    color: COLORS.amber, sub:"40–69% correctness — keep practicing", listKey:"developing_list",  withPct:true,  biggerIsBetter:null,  emptyMsg:"No skills in this category."},
-  needs:       {title:"Needs Practice", color: COLORS.red,   sub:"Below 40% — focus here",               listKey:"needs_list",       withPct:true,  biggerIsBetter:false, emptyMsg:"No skills need practice — well done!"},
+  mastered:    {title:"Mastered",       color: COLORS.green, sub:"≥ 65% correctness",                    listKey:"mastered_list",    withPct:true,  biggerIsBetter:true,  emptyMsg:"No mastered skills yet."},
+  developing:  {title:"Progressing",    color: COLORS.amber, sub:"35–64% correctness — keep practicing", listKey:"developing_list",  withPct:true,  biggerIsBetter:null,  emptyMsg:"No skills in this category."},
+  needs:       {title:"Needs Practice", color: COLORS.red,   sub:"Below 35% — focus here",               listKey:"needs_list",       withPct:true,  biggerIsBetter:false, emptyMsg:"No skills need practice — well done!"},
   unattempted: {title:"Unattempted",    color: COLORS.gray,  sub:"No practice yet",                       listKey:"unattempted_list", withPct:false, biggerIsBetter:false, emptyMsg:"You've attempted every skill."},
 };
 
