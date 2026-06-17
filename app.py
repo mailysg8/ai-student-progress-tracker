@@ -12,7 +12,38 @@ from src.modal_builds import build_kc_modal, build_total_kc_modal
 from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 from src.student_card import student_kc_card
+from src.data_import import build_card
 
+STU_OBS_COLS = [
+    "student_id", "assignment_id", "class_num", "observation_id",
+    "source_question", "primary_kc_id", "score", "max_score"
+]
+CLASS_PLAN_COLS = ["class_date", "homework_id"]
+KC_MAP_COLS = [
+    "fine_kc_id", "fine_kc_label", "modeling_kc_id",
+    "modeling_kc_label", "modeling_unit"
+]
+WEIGHTS_COLS = [
+    "rank", "modeling_kc_id", "modeling_kc_label",
+    "unit", "topic_group", "weight", "tier", "estimated_exam_share_pct"
+]
+
+DATASETS = {
+    "stu":     ("Student Observations", STU_OBS_COLS),
+    "class":   ("Class Plan",           CLASS_PLAN_COLS),
+    "map":     ("KC Map",               KC_MAP_COLS),
+    "weights": ("Weights",              WEIGHTS_COLS),
+}
+
+def check_required_columns(df: pd.DataFrame, required: list[str]):
+    missing = []
+    found = []
+    for c in required :
+        if c not in df.columns :
+            missing.append(c)
+        else :
+            found.append(c)
+    return found, missing
 
 # Thresholds for student mastery status
 STUDENT_MASTERY_THRESHOLD = 0.65
@@ -334,6 +365,29 @@ app_ui = ui.page_navbar(
             ),
             style="padding: 1rem;",
         ),
+    ),
+    ui.nav_panel(
+        "Data Input",
+        ui.tags.link(
+            rel="stylesheet",
+            href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
+        ),
+        ui.div(
+            ui.input_file(
+                "files", "Upload CSV files",
+                accept=[".csv"], multiple=True, width="100%"
+            ),
+            ui.output_ui("master_status"),
+            style="margin-bottom:1.5rem;"
+        ),
+        ui.layout_columns(
+            ui.output_ui("card_stu"),
+            ui.output_ui("card_class"),
+            ui.output_ui("card_map"),
+            ui.output_ui("card_weights"),
+            col_widths=(3, 3, 3, 3),
+        ),
+        ui.output_ui("dataframes_ready"),
     ),
 
     title=ui.tags.span("Stellar Education", style="color: white;"),
@@ -790,6 +844,124 @@ def server(input, output, session):
             quantile=input.so_quantile(),
             status_filter=input.so_status(),
             cuts=QUANTILE_CUTS,
+        )
+    
+    # ── load every uploaded file once ───────────────────────────────────────
+    @reactive.calc
+    def file_dfs() -> dict[str, pd.DataFrame]:
+        files = input.files()
+        if not files:
+            return {}
+        dfs: dict[str, pd.DataFrame] = {}
+        for f in files:
+            name = f["name"]
+            if name not in dfs:
+                try:
+                    dfs[name] = pd.read_csv(f["datapath"])
+                except Exception:
+                    pass
+        return dfs
+
+    # ── for each dataset, find the single file (if any) with all its columns ─
+    @reactive.calc
+    def dataset_sources() -> dict[str, str]:
+        dfs = file_dfs()
+        sources: dict[str, str] = {}
+        for ds_id, (_, dataset_cols) in DATASETS.items():
+            for fname, df in dfs.items():
+                if all(col in df.columns for col in dataset_cols):
+                    sources[ds_id] = fname
+                    break
+        return sources
+
+    # ── used by the cards: which columns are satisfied right now ─────────────
+    @reactive.calc
+    def col_to_file() -> dict[str, str]:
+        sources = dataset_sources()
+        mapping: dict[str, str] = {}
+        for ds_id, (_, dataset_cols) in DATASETS.items():
+            if ds_id in sources:
+                fname = sources[ds_id]
+                for col in dataset_cols:
+                    mapping[col] = fname
+        return mapping
+
+    # ── only build dataframes once every dataset has a single valid source ──
+    @reactive.calc
+    def built_dataframes() -> dict[str, pd.DataFrame] | None:
+        sources = dataset_sources()
+        if len(sources) < len(DATASETS):
+            return None
+        dfs = file_dfs()
+        return {
+            ds_id: dfs[sources[ds_id]][dataset_cols]
+            for ds_id, (_, dataset_cols) in DATASETS.items()
+        }
+
+
+    @output
+    @render.ui
+    def master_status():
+        sources = dataset_sources()
+        complete = len(sources)
+        total = len(DATASETS)
+
+        if not input.files():
+            return ui.HTML(
+                '<p style="color:#263744;font-size:13px;margin:0;">'
+                'Upload one or more CSV files. Each dataset needs all its '
+                'columns in a single file.</p>'
+            )
+        if complete == total:
+            return ui.HTML(
+                '<div style="background:#60D394;color:#263744;'
+                'border-radius:var(--border-radius-md);'
+                'padding:8px 14px;font-size:13px;font-weight:500;">'
+                '<i class="ti ti-circle-check" aria-hidden="true"></i>'
+                ' All datasets complete — dataframes are ready.</div>'
+            )
+        return ui.HTML(
+            f'<div style="background:#FF9B85;color:#263744;'
+            f'border-radius:var(--border-radius-md);padding:8px 14px;'
+            f'font-size:13px;font-weight:500;">'
+            f'<i class="ti ti-upload" aria-hidden="true"></i>'
+            f' {complete} of {total} datasets complete. '
+            f'Upload more files to fill in missing columns.</div>'
+        )
+
+    for ds_id, (title, dataset_cols) in DATASETS.items():
+        def make_card_renderer(ds_id=ds_id, title=title, dataset_cols=dataset_cols):
+            @output(id=f"card_{ds_id}")
+            @render.ui
+            def _card():
+                return ui.HTML(build_card(ds_id, title, dataset_cols, col_to_file()))
+        make_card_renderer()
+
+    @output
+    @render.ui
+    def dataframes_ready():
+        dfs = built_dataframes()
+        if dfs is None:
+            return ui.HTML("")
+        previews = []
+        for ds_id, (title, _) in DATASETS.items():
+            df = dfs.get(ds_id)
+            if df is not None:
+                shape = f"{df.shape[0]:,} rows × {df.shape[1]} columns"
+                previews.append(
+                    f'<div style="margin-bottom:8px;padding:10px 14px;'
+                    f'background:#60D394;'
+                    f'border-radius:var(--border-radius-md);font-size:13px;">'
+                    f'<span style="font-weight:500;color:#263744;">{title}</span>'
+                    f'<span style="color:#263744;opacity:0.6;margin-left:8px;">{shape}</span>'
+                    f'</div>'
+                )
+        return ui.HTML(
+            '<div style="margin-top:1.5rem;">'
+            '<p style="font-size:20px;font-weight:500;color:#263744;'
+            'margin-bottom:8px;">Built dataframes</p>'
+            + "".join(previews)
+            + "</div>"
         )
 
 app = App(app_ui, server)
