@@ -219,3 +219,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+rsconnect-python/
+
+# Data files - kept locally, shared via Slack/Drive
+data/raw/*.xlsx
+data/raw/*.csv
+data/processed/*.xlsx
+data/processed/*.csv
+data/output/*
