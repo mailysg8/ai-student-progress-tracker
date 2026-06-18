@@ -3,7 +3,7 @@ shinywidgets>=0.7.2
 anywidget>=0.11.0
 pandas>=2.2.2
 numpy>=2.0.2
-scikit-learn>=1.6.1
+scikit-learn>=1.6.1,<1.7
 matplotlib>=3.10.9
 seaborn
 scipy>=1.16.3
@@ -16,3 +16,4 @@ click>=8.3.3
 vl-convert-python>=2.0.0rc1
 tabulate>=0.10.0
 pyBKT==1.4.1
+python-dotenv
