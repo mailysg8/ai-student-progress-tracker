@@ -29,4 +29,5 @@ dependencies:
       # and leaves the conda-managed numpy ABI untouched.
       - shiny>=1.6
       - pyBKT==1.4.1
+      - python-dotenv
       - plotly
