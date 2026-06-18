@@ -24,9 +24,6 @@ dependencies:
   - make=4.4.1
   - pip
   - pip:
-      # conda already provides pyBKT's runtime deps (numpy/pandas/scikit-learn/
-      # requests) at the pinned versions above, so pip installs ONLY this wheel
-      # and leaves the conda-managed numpy ABI untouched.
       - shiny>=1.6
       - pyBKT==1.4.1
       - python-dotenv
