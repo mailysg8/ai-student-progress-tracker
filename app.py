@@ -13,6 +13,7 @@ from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 from src.student_card import student_kc_card
 from src.data_import import build_card
+from src.data_processing import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions, run_bkt_predictions, save_final_output
 
 STU_OBS_COLS = [
     "student_id", "assignment_id", "class_num", "observation_id",
@@ -55,9 +56,6 @@ KC_PERC_PRACTICE_THRESHOLD = 0.25
 
 N_RANK = 4
 
-mkc_data = pd.read_csv('data/processed/final_student_kc_data.csv')
-kc_list_rank = list(mkc_data.groupby(['modeling_kc_label','rank']).count().sort_values('rank').reset_index().loc[0:N_RANK,'modeling_kc_label'])
-
 
 ## Colour palette
 PALETTE = [
@@ -77,12 +75,6 @@ def bs_info_icon(title: str):
     return ui.HTML(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="bi bi-info-circle " style="height:1em;width:1em;fill:currentColor;" aria-hidden="true" role="img" ><title>{title}</title><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"></path></svg>')
 
 
-
-# Student dropdown choices (data is already loaded here)
-STUDENT_IDS = sorted(mkc_data["student_id"].unique().tolist())
-
-# Class-wide quantile cut points for relative status (computed once).
-QUANTILE_CUTS = compute_quantile_cuts(mkc_data)
 
 
 app_ui = ui.page_navbar(
@@ -343,7 +335,7 @@ app_ui = ui.page_navbar(
         "Student Overview",
         ui.div(
             ui.layout_columns(
-                ui.input_select("so_student", "Student", choices=STUDENT_IDS, width="100%"),
+                ui.input_select("so_student", "Student", choices=[], width="100%"),
                 ui.input_switch("so_quantile", "Relative (quantile) status", value=False),
                 ui.input_select(
                     "so_status", "Status",
@@ -388,6 +380,12 @@ app_ui = ui.page_navbar(
             col_widths=(3, 3, 3, 3),
         ),
         ui.output_ui("dataframes_ready"),
+        ui.div(
+            ui.input_action_button("process_btn", "Preprocess data"),
+            ui.input_action_button("save_btn", "Save and update dashboard"),
+            ui.output_ui("processing_status"),
+            style="display:flex;align-items:center;gap:12px;margin-top:1rem;"
+        ),
     ),
 
     title=ui.tags.span("Stellar Education", style="color: white;"),
@@ -397,27 +395,53 @@ app_ui = ui.page_navbar(
 
 
 def server(input, output, session):
+    # ── the live, in-memory dataset the whole dashboard reads from ──────────
+    mkc_data_rv = reactive.value(pd.read_csv('data/processed/final_student_kc_data.csv'))
 
+    def mkc_data():
+        return mkc_data_rv()
+    
+    @reactive.calc
+    def kc_list_rank():
+        return list(
+            mkc_data()
+            .groupby(['modeling_kc_label', 'rank'])
+            .count()
+            .sort_values('rank')
+            .reset_index()
+            .loc[0:N_RANK, 'modeling_kc_label']
+        )
+
+    @reactive.calc
+    def student_ids():
+        return sorted(mkc_data()["student_id"].unique().tolist())
+
+    @reactive.calc
+    def quantile_cuts():
+        return compute_quantile_cuts(mkc_data())
+    
     # ── shared pre-computed data ─────────────────────────────────────────
     @reactive.calc
     def last_attempt():
-        last_attempt = (
-            mkc_data
+        return (
+            mkc_data()
             .groupby(['student_id', 'modeling_kc_id'])
             .last()
             .reset_index()
         )
-        return last_attempt
-    
+
     @reactive.calc
     def first_attempt():
-        first_attempt = (
-            mkc_data
+        return (
+            mkc_data()
             .groupby(['student_id', 'modeling_kc_id'])
             .first()
             .reset_index()
         )
-        return first_attempt
+
+    @reactive.calc
+    def opp_counts():
+        return compute_opportunity_counts(mkc_data())
 
     @reactive.calc
     def last_kc_summary():
@@ -463,9 +487,6 @@ def server(input, output, session):
             .tolist()
         )
     
-    @reactive.calc
-    def opp_counts():
-        return compute_opportunity_counts(mkc_data)
 
     # ── value boxes ──────────────────────────────────────────────────────
     ## Values
@@ -584,7 +605,7 @@ def server(input, output, session):
     @output
     @render_altair
     def opp_heatmap_plot():
-        return opp_heatmap(mkc_data)
+        return opp_heatmap(mkc_data())
     
         # ── stores the last clicked student + KC ────────────────────────────
     selected_tile = reactive.Value(None)
@@ -611,10 +632,12 @@ def server(input, output, session):
         
         if sel is None:
             return ""
+        
+        df = mkc_data()
         # Look up the unit for this student/KC
-        row = mkc_data[
-            (mkc_data["student_id"] == sel['student']) &
-            (mkc_data["modeling_kc_label"] == sel['kc'])
+        row = df[
+            (df["student_id"] == sel['student']) &
+            (df["modeling_kc_label"] == sel['kc'])
         ]
         unit = row["unit"].iloc[0] if not row.empty else ""
         return f"{sel['student']}  ·  {sel['kc']} · {unit}"
@@ -636,7 +659,7 @@ def server(input, output, session):
         sel = selected_tile.get()
         if sel is None:
             return alt.Chart(pd.DataFrame()).mark_point()
-        return student_kc_card(mkc_data, sel["student"], sel["kc"])
+        return student_kc_card(mkc_data(), sel["student"], sel["kc"])
     
     
     
@@ -657,12 +680,12 @@ def server(input, output, session):
     @output
     @render_altair
     def rank_opp_table():
-        return opportunity_table(kc_opp_rank(kc_list_rank, opp_counts()))
+        return opportunity_table(kc_opp_rank(kc_list_rank(), opp_counts()))
     
     # ── Search tab ─────────────────────
     @reactive.effect
     def opp_search_choices():
-        choices = sorted(mkc_data["modeling_kc_label"].unique().tolist())
+        choices = sorted(mkc_data()["modeling_kc_label"].unique().tolist())
         ui.update_selectize(
             "opp_search",
             choices=choices,
@@ -688,17 +711,23 @@ def server(input, output, session):
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
 
-    for i, kc_name in enumerate(kc_list_rank):
-        make_render_rank(kc_name, f"kc_rank_{i}")
+    for i in range(4):
+        @output(id=f"kc_rank_{i}")
+        @render_altair
+        def _render(i=i):
+            names = kc_list_rank()
+            if i >= len(names):
+                return None
+            kc_name = names[i]
+            filtered = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
+            return kc_mastery_box(filtered, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
 
-        # ── titles for rank tab ──────────────────────────────────────────────
-    for i, kc_name in enumerate(kc_list_rank):
-        def make_title_rank(name):
-            @output(id=f"kc_rank_title_{i}")
-            @render.text
-            def _title():
-                return name
-        make_title_rank(kc_name)
+    for i in range(4):
+        @output(id=f"kc_rank_title_{i}")
+        @render.text
+        def _title(i=i):
+            names = kc_list_rank()
+            return names[i] if i < len(names) else ""
 
     # ── Low tab ─────────────────────
     def make_render_low(kc_name, output_id):
@@ -757,7 +786,7 @@ def server(input, output, session):
     # ── Search tab ─────────────────────
     @reactive.effect
     def populate_search_choices():
-        choices = sorted(mkc_data["modeling_kc_label"].unique().tolist())
+        choices = sorted(mkc_data()["modeling_kc_label"].unique().tolist())
         ui.update_selectize(
             "kc_search",
             choices=choices,
@@ -825,14 +854,18 @@ def server(input, output, session):
             make_chart(kc_name, safe_id)
 
     # ── Student Overview ─────────────────────────────────────────────────
+    @reactive.effect
+    def _update_student_choices():
+        ui.update_select("so_student", choices=student_ids())
+
     @output
     @render_altair
     def so_status_boxes():
         return student_status_boxes(
             student_id=input.so_student(),
-            data=mkc_data,
+            data=mkc_data(),
             quantile=input.so_quantile(),
-            cuts=QUANTILE_CUTS,
+            cuts=quantile_cuts(),
         )
 
     @output
@@ -840,12 +873,16 @@ def server(input, output, session):
     def so_mastery_table():
         return student_mastery_table(
             student_id=input.so_student(),
-            data=mkc_data,
+            data=mkc_data(),
             quantile=input.so_quantile(),
             status_filter=input.so_status(),
-            cuts=QUANTILE_CUTS,
+            cuts=quantile_cuts(),
         )
     
+    # ── Data Input  ─────────────────────────────────────────────────
+        # ── tracks whether preprocessing is currently running ───────────────────
+    is_processing = reactive.value(False)
+
     # ── load every uploaded file once ───────────────────────────────────────
     @reactive.calc
     def file_dfs() -> dict[str, pd.DataFrame]:
@@ -897,7 +934,52 @@ def server(input, output, session):
             ds_id: dfs[sources[ds_id]][dataset_cols]
             for ds_id, (_, dataset_cols) in DATASETS.items()
         }
+    
+    # ── holds the result of the last completed preprocessing run ────────────
+    processed_result = reactive.value(None)
 
+    @reactive.effect
+    @reactive.event(input.process_btn)
+    def _run_processing():
+        raw = built_dataframes()
+        if raw is None:
+            ui.notification_show("Cannot preprocess — make sure all columns have been added", type="error")
+            return
+
+        is_processing.set(True)
+        try:
+            obs        = raw["stu"]
+            class_plan = raw["class"]
+            kc_map     = raw["map"]
+            weights    = raw["weights"]
+
+            df = merge_kc_mapping(obs, kc_map)
+            df = merge_weights(df, weights)
+            df = merge_class_plan(df, class_plan)
+
+            bkt_preds = run_bkt_predictions(df, kc_col="modeling_kc_id")
+            df_final = merge_bkt_predictions(df, bkt_preds)
+
+            processed_result.set(df_final)
+            ui.notification_show("Preprocessing complete", type="success")
+        finally:
+            is_processing.set(False)
+
+    @output
+    @render.ui
+    def processing_status():
+        if is_processing():
+            return ui.HTML(
+                '<div style="display:flex;align-items:center;gap:6px;'
+                'color:#263744;font-size:13px;">'
+                '<i class="ti ti-loader-2" style="font-size:16px;'
+                'animation:spin 1s linear infinite;" aria-hidden="true"></i>'
+                ' Preprocessing data…</div>'
+                '<style>@keyframes spin{from{transform:rotate(0deg);}'
+                'to{transform:rotate(360deg);}}</style>'
+            )
+        return ui.HTML("")
+    
 
     @output
     @render.ui
@@ -963,5 +1045,18 @@ def server(input, output, session):
             + "".join(previews)
             + "</div>"
         )
+    
+    @reactive.effect
+    @reactive.event(input.save_btn)
+    def _save_to_disk():
+        df = processed_result()
+        if df is not None:
+            save_final_output(df, "final_student_kc_data.csv")
+            mkc_data_rv.set(df)
+            ui.notification_show("Saved successfully", type="success")
+        else:
+            ui.notification_show("Cannot save — make sure all columns have been added", type="error")
+
+
 
 app = App(app_ui, server)
