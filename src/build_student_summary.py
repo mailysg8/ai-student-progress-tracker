@@ -66,6 +66,27 @@ T_DEVELOPING = 0.35   # team consensus (Mailys): progressing = 35–64%, needs =
 N_TREND_BUCKETS = 5   # number of bars per KPI sparkline (snapshots over the term)
 TOTAL_MKCS = sum(len(unit_mkcs[u]) for u in UNITS)
 
+# ─── BKT mastery layer (advisor's spec: unit cards use BKT, not raw correctness) ──
+# For each (student, modeling_kc_id), take the LATEST state_predictions across
+# all their attempts. This is the BKT model's current estimate of how well the
+# student has mastered that KC right now.
+_bkt_src = o.sort_values(["student_id", "mkc", "kc_attempt"])
+_bkt_latest = _bkt_src.groupby(["student_id", "mkc"])["state_predictions"].last()
+# Dict for fast O(1) lookup in build_html
+bkt_mastery_map = {(sid, m): float(v) for (sid, m), v in _bkt_latest.items()}
+
+# Per-unit class average of BKT mastery — for unit-tile "vs class" comparison.
+# Skip unattempted MKCs (no entry in map for that student × mkc).
+bkt_class_per_unit = {}
+for _u in UNITS:
+    _vals = []
+    for _sid in scores["student_id"].unique():
+        for _m in unit_mkcs[_u]:
+            _v = bkt_mastery_map.get((_sid, _m))
+            if _v is not None:
+                _vals.append(_v)
+    bkt_class_per_unit[_u] = (sum(_vals)/len(_vals)) if _vals else None
+
 def tier_overall(overall):
     # badge background colors — match the dashboard palette
     if overall >= 0.60: return ("on_track",  "On track",        "#60D394")  # Emerald
@@ -73,14 +94,23 @@ def tier_overall(overall):
     return                    ("at_risk",   "At risk",          "#EE6055")  # Vibrant Coral
 
 def tier_for_tile(t):
-    """Advisor's spec: tile color directly tells the student what to do.
-       red    = has any 'needs practice' KC → action needed
-       yellow = no needs but has developing → still working on it
-       green  = mostly or all mastered
-       gray   = nothing attempted yet"""
+    """Tile color reflects the unit's OVERALL state via the BKT mastery
+    distribution's central tendency (median):
+       gray   = nothing attempted yet
+       red    = median < 35%  → most of the unit is weak
+       yellow = median 35–64% → still developing overall
+       green  = median ≥ 65%  → mostly or all mastered
+
+    Previously: any single 'needs practice' KC made the whole tile red, which
+    was overly punitive — a student with 5/6 mastered and 1 weak KC still got
+    a red card. Now the median drives the color, and the strip plot + count
+    rows still surface individual weak skills.
+    """
     if t["total"] == t["n_unattempted"]: return "gray"
-    if t["n_needs"] > 0:                 return "red"
-    if t["n_developing"] > t["n_mastered"]: return "yellow"
+    med = t.get("median_mastery")
+    if med is None: return "gray"
+    if med < T_DEVELOPING * 100: return "red"
+    if med < T_MASTERED   * 100: return "yellow"
     return "green"
 
 per_stu_per_unit = (o.groupby(["student_id","unit"])["correct"].mean().unstack("unit"))
@@ -89,10 +119,10 @@ class_avg = {u: float(per_stu_per_unit[u].mean()) for u in UNITS if u in per_stu
 
 def _get_class_avg_totals():
     """Compute average (mastered, developing, needs, unattempted) counts across all
-    students. Used to give per-student KPI cards a class-relative context — so the
-    student sees not just "12 skills mastered" but "12 vs class avg of 14".
+    students — bucketed by BKT mastery (matches the top-card categorization).
+    Used to give per-student KPI cards a class-relative context.
 
-    Cached after first call (sub-second to compute, but called on every render).
+    Cached after first call.
     """
     if hasattr(_get_class_avg_totals, "_cache"):
         return _get_class_avg_totals._cache
@@ -102,23 +132,19 @@ def _get_class_avg_totals():
     n_students = 0
 
     for sid in sids:
-        sob_s = o[o["student_id"] == sid]
-        if sob_s.empty:
-            continue
-        mkc_mast_s = sob_s.groupby("mkc")["correct"].mean().to_dict()
-
         s_mast = s_dev = s_need = s_unatt = s_total = 0
         for u in UNITS:
             for m in unit_mkcs[u]:
                 s_total += 1
-                if m not in mkc_mast_s:
+                v = bkt_mastery_map.get((sid, m))
+                if v is None:
                     s_unatt += 1
                 else:
-                    v = mkc_mast_s[m]
                     if   v >= T_MASTERED:   s_mast += 1
                     elif v >= T_DEVELOPING: s_dev  += 1
                     else:                   s_need += 1
-
+        if s_total == 0:
+            continue
         sums["mastered"]    += s_mast
         sums["developing"]  += s_dev
         sums["needs"]       += s_need
@@ -138,11 +164,16 @@ def _get_class_avg_totals():
 
 
 def _compute_student_unit_trends(sid):
-    """For each unit, return list of avg correctness snapshots at the same
+    """For each unit, return list of avg BKT mastery snapshots at the same
     class_num cutoffs as _compute_student_weekly_trends.
 
     Used to render a tiny sparkline + 'since first class' delta on each Unit
     tile so students see momentum per unit ('Unit 3 jumped +12pp this term').
+
+    BKT-based: for each cutoff, take the latest state_predictions per MKC up to
+    that point, then average across MKCs in the unit. This shows the BKT model's
+    estimate of mastery EVOLVING over the term — distinct from raw correctness
+    history (which is what the top KPI sparklines use).
     """
     sob = o[o["student_id"] == sid]
     if sob.empty:
@@ -160,24 +191,32 @@ def _compute_student_unit_trends(sid):
 
     unit_trends = {u: [] for u in UNITS}
     for cutoff in cutoffs:
-        history = sob[sob["class_num"] <= cutoff]
-        # per-unit MKC-level avg, then mean across MKCs
-        per_unit_mkc = history.groupby(["unit","mkc"])["correct"].mean()
-        unit_avg = per_unit_mkc.groupby("unit").mean().to_dict()
+        history = sob[sob["class_num"] <= cutoff].sort_values(["mkc", "kc_attempt"])
+        # latest state_predictions per MKC, considering only attempts up to cutoff
+        per_mkc_bkt = history.groupby("mkc")["state_predictions"].last()
+        # Join MKC → unit, then average per unit
+        mkc_to_unit = {m: mkc2unit.get(m) for m in per_mkc_bkt.index}
+        by_unit = {}
+        for m, v in per_mkc_bkt.items():
+            u = mkc_to_unit.get(m)
+            if u is None:
+                continue
+            by_unit.setdefault(u, []).append(float(v))
         for u in UNITS:
-            v = unit_avg.get(u)
-            unit_trends[u].append(None if v is None else round(v*100, 1))
+            vals = by_unit.get(u, [])
+            unit_trends[u].append(None if not vals else round(sum(vals)/len(vals)*100, 1))
     return unit_trends
 
 
 def _compute_student_weekly_trends(sid):
     """Return N_TREND_BUCKETS snapshots of (mastered, developing, needs, unattempted)
-    counts for one student, taken at evenly-spaced class_num cutoffs from their
-    first attempted class to the last. Each snapshot is CUMULATIVE — it shows
-    where the student stood at that point in the term.
+    KC counts for one student, bucketed by BKT mastery at each cutoff. Each
+    snapshot is CUMULATIVE — for every MKC, we take the latest state_predictions
+    observed up to that cutoff.
 
-    Used to draw a mini sparkline on each KPI card so students see momentum
-    ("am I getting better?") not just a static snapshot.
+    Used to draw the mini sparkline on each top KPI card so students see how
+    their BKT mastery distribution has shifted across the term — consistent
+    with the rest of the dashboard which is BKT throughout.
     """
     sob = o[o["student_id"] == sid]
     if sob.empty:
@@ -186,7 +225,6 @@ def _compute_student_weekly_trends(sid):
     if len(classes) < 2:
         return []
 
-    # Evenly spaced cutoffs across the class_num range
     if len(classes) <= N_TREND_BUCKETS:
         cutoffs = classes
     else:
@@ -196,12 +234,13 @@ def _compute_student_weekly_trends(sid):
 
     trends = []
     for cutoff in cutoffs:
-        history = sob[sob["class_num"] <= cutoff]
-        mkc_mast = history.groupby("mkc")["correct"].mean()
-        n_mast  = int((mkc_mast >= T_MASTERED).sum())
-        n_dev   = int(((mkc_mast >= T_DEVELOPING) & (mkc_mast < T_MASTERED)).sum())
-        n_need  = int((mkc_mast < T_DEVELOPING).sum())
-        n_attempted = len(mkc_mast)
+        history = sob[sob["class_num"] <= cutoff].sort_values(["mkc", "kc_attempt"])
+        # Latest BKT state_predictions per MKC up to this cutoff
+        mkc_bkt = history.groupby("mkc")["state_predictions"].last()
+        n_mast  = int((mkc_bkt >= T_MASTERED).sum())
+        n_dev   = int(((mkc_bkt >= T_DEVELOPING) & (mkc_bkt < T_MASTERED)).sum())
+        n_need  = int((mkc_bkt < T_DEVELOPING).sum())
+        n_attempted = len(mkc_bkt)
         n_unatt = TOTAL_MKCS - n_attempted
         trends.append({
             "class_num":  int(cutoff),
@@ -228,29 +267,80 @@ def build_html(picks=None):
     for sid, profile in picks:
         rec  = scores[scores["student_id"]==sid].iloc[0]
         sob  = o[o["student_id"]==sid]
-        overall = sob["correct"].mean()
-        mkc_mast = sob.groupby("mkc")["correct"].mean().to_dict()
+        raw_overall = sob["correct"].mean()
+
+        # ── BKT mastery layer (advisor synced view: BKT throughout) ─────────
+        # Per-MKC current BKT mastery — latest state_predictions per MKC.
+        bkt_mkc = sob.sort_values(["mkc", "kc_attempt"]).groupby("mkc")["state_predictions"].last().to_dict()
+        bkt_mkc = {m: float(v) for m, v in bkt_mkc.items()}
+
+        # Per-MKC raw correctness — kept ONLY as a secondary stat shown inside
+        # each unit's drill-down modal (so the student can still see "what they
+        # actually answered correctly" if they want, but it's not the main
+        # categorization signal anywhere).
+        mkc_raw = sob.groupby("mkc")["correct"].mean().to_dict()
+
+        # Overall BKT — mean of latest state_predictions across attempted MKCs.
+        # This is the primary "overall mastery" number shown in the subtitle.
+        bkt_overall = (sum(bkt_mkc.values()) / len(bkt_mkc)) if bkt_mkc else 0.0
+
+        # Flat per-category lists for the top-card drill-down modal — now
+        # bucketed by BKT mastery (not raw correctness) so the categorization
+        # matches what unit tiles use.
+        top_categorized = {"mastered": [], "developing": [], "needs": [], "unattempted": []}
+        for u in UNITS:
+            for m in unit_mkcs[u]:
+                base = {"id": m, "label": mkc2label.get(m, m), "unit": u}
+                if m not in bkt_mkc:
+                    top_categorized["unattempted"].append(base)
+                else:
+                    v = bkt_mkc[m]
+                    base["mastery"] = round(v*100, 1)  # BKT mastery %
+                    if   v >= T_MASTERED:   top_categorized["mastered"].append(base)
+                    elif v >= T_DEVELOPING: top_categorized["developing"].append(base)
+                    else:                   top_categorized["needs"].append(base)
+
         unit_trends_data = _compute_student_unit_trends(sid)
 
         tile_data = []
-        unit_avgs = {}
+        unit_avgs_bkt = {}
         for u in UNITS:
             total_in_unit = unit_mkcs[u]
-            attempted     = [m for m in total_in_unit if m in mkc_mast]
-            unattempted   = [m for m in total_in_unit if m not in mkc_mast]
+            attempted     = [m for m in total_in_unit if m in bkt_mkc]
+            unattempted   = [m for m in total_in_unit if m not in bkt_mkc]
             mastered, developing, needs = [], [], []
             for m in attempted:
-                v = mkc_mast[m]
+                v = bkt_mkc[m]
                 entry = {"id": m, "label": mkc2label.get(m, m), "mastery": round(v*100, 1)}
                 if   v >= T_MASTERED:   mastered.append(entry)
                 elif v >= T_DEVELOPING: developing.append(entry)
                 else:                   needs.append(entry)
-            avg = sum(mkc_mast[m] for m in attempted) / len(attempted) if attempted else None
-            unit_avgs[u] = avg
+            avg = sum(bkt_mkc[m] for m in attempted) / len(attempted) if attempted else None
+            unit_avgs_bkt[u] = avg
+
+            # Mastery distribution (advisor: show distribution, not just average)
+            # Each attempted KC's BKT mastery as %, sorted for stable plot order.
+            mastery_values = sorted(round(bkt_mkc[m]*100, 1) for m in attempted)
+            if mastery_values:
+                _mid = len(mastery_values) // 2
+                if len(mastery_values) % 2 == 1:
+                    _median = mastery_values[_mid]
+                else:
+                    _median = round((mastery_values[_mid-1] + mastery_values[_mid]) / 2, 1)
+            else:
+                _median = None
+
+            # Raw correctness avg for this unit — shown as a secondary stat
+            # inside the unit drill-down modal (not on the tile itself).
+            unit_raw_vals = [mkc_raw[m] for m in attempted if m in mkc_raw]
+            raw_correctness_avg = round(sum(unit_raw_vals)/len(unit_raw_vals)*100, 1) if unit_raw_vals else None
 
             tile = {
                 "unit": u,
                 "avg_mastery": round(avg*100, 1) if avg is not None else None,
+                "median_mastery": _median,
+                "mastery_values": mastery_values,   # for the strip plot
+                "raw_correctness_avg": raw_correctness_avg,  # secondary stat shown in modal only
                 "total": len(total_in_unit),
                 "n_mastered": len(mastered),
                 "n_developing": len(developing),
@@ -261,7 +351,7 @@ def build_html(picks=None):
                 "needs_list":       sorted(needs,      key=lambda x:  x["mastery"]),  # priority first
                 "unattempted_list": [{"id": m, "label": mkc2label.get(m, m)} for m in unattempted],
                 "mastery_trend":    unit_trends_data.get(u, []),
-                "class_avg":        round(class_avg[u]*100, 1) if u in class_avg else None,
+                "class_avg":        round(bkt_class_per_unit[u]*100, 1) if bkt_class_per_unit.get(u) is not None else None,
             }
             tile["tier"] = tier_for_tile(tile)
             # advisor #4: recommended first action when student opens this unit
@@ -270,40 +360,46 @@ def build_html(picks=None):
             else:                         tile["start_with"] = None;                       tile["start_verb"] = None
             tile_data.append(tile)
 
-        attempted_units = {u: v for u, v in unit_avgs.items() if v is not None}
-        strongest_unit = max(attempted_units, key=attempted_units.get)
-        weakest_unit   = min(attempted_units, key=attempted_units.get)
+        attempted_units = {u: v for u, v in unit_avgs_bkt.items() if v is not None}
+        strongest_unit = max(attempted_units, key=attempted_units.get) if attempted_units else "—"
+        weakest_unit   = min(attempted_units, key=attempted_units.get) if attempted_units else "—"
 
-        diffs = [(u, round((unit_avgs[u]-class_avg[u])*100, 1))
-                 for u in UNITS if unit_avgs.get(u) is not None and u in class_avg]
+        # Class comparison: BKT-vs-class diffs per unit
+        diffs = [(u, round((unit_avgs_bkt[u]-bkt_class_per_unit[u])*100, 1))
+                 for u in UNITS if unit_avgs_bkt.get(u) is not None and bkt_class_per_unit.get(u) is not None]
         n_ahead  = sum(1 for _, d in diffs if d > 0)
         n_behind = sum(1 for _, d in diffs if d < 0)
         ahead_sorted  = sorted([(u,d) for u,d in diffs if d > 0], key=lambda x: -x[1])[:2]
         behind_sorted = sorted([(u,d) for u,d in diffs if d < 0], key=lambda x:  x[1])[:2]
 
-        tier_id, tier_label, tier_color = tier_overall(overall)
+        tier_id, tier_label, tier_color = tier_overall(bkt_overall)
 
+        # Top KPI card totals — BKT-based (sums of top_categorized lists)
         totals = {
-            "mastered":     sum(t["n_mastered"]     for t in tile_data),
-            "developing":   sum(t["n_developing"]   for t in tile_data),
-            "needs":        sum(t["n_needs"]        for t in tile_data),
-            "unattempted":  sum(t["n_unattempted"]  for t in tile_data),
-            "all":          sum(t["total"]          for t in tile_data),
+            "mastered":    len(top_categorized["mastered"]),
+            "developing":  len(top_categorized["developing"]),
+            "needs":       len(top_categorized["needs"]),
+            "unattempted": len(top_categorized["unattempted"]),
+            "all":         TOTAL_MKCS,
         }
 
         students.append({
             "id": sid, "name": rec["display_name"], "profile": profile,
             "band": rec["performance_band"],
-            "overall": round(overall*100, 1),
+            "overall": round(bkt_overall*100, 1),                  # BKT-based overall mastery
+            "overall_raw": round(raw_overall*100, 1),              # secondary: raw correctness avg
             "course_final": round(rec["course_final_dataset_percent"], 1),
             "tier_id": tier_id, "tier_label": tier_label, "tier_color": tier_color,
-            "strongest_unit": strongest_unit, "strongest_unit_value": round(attempted_units[strongest_unit]*100, 1),
-            "weakest_unit": weakest_unit,     "weakest_unit_value": round(attempted_units[weakest_unit]*100, 1),
+            "strongest_unit": strongest_unit,
+            "strongest_unit_value": round(attempted_units[strongest_unit]*100, 1) if strongest_unit in attempted_units else None,
+            "weakest_unit": weakest_unit,
+            "weakest_unit_value": round(attempted_units[weakest_unit]*100, 1) if weakest_unit in attempted_units else None,
             "unit_tiles": tile_data,
             "totals": totals,
-            "class_avg_totals": _get_class_avg_totals(),   # for KPI card comparison
-            "at_risk": (tier_id == "at_risk"),             # hide class-comparison for at-risk students (empathetic UX)
-            "weekly_trends": _compute_student_weekly_trends(sid),  # mini sparkline data
+            "top_categorized": top_categorized,             # top-card modal lists (BKT mastery)
+            "class_avg_totals": _get_class_avg_totals(),    # for KPI card comparison
+            "at_risk": (tier_id == "at_risk"),              # hide class-comparison for at-risk students
+            "weekly_trends": _compute_student_weekly_trends(sid),  # mini sparkline data (BKT mastery counts)
             "n_ahead": n_ahead, "n_behind": n_behind, "n_total": len(diffs),
             "ahead_units":  [{"unit": u, "diff": d} for u, d in ahead_sorted],
             "behind_units": [{"unit": u, "diff": d} for u, d in behind_sorted],
@@ -427,6 +523,14 @@ HTML_TEMPLATE = """<!doctype html>
   .tile h4{font-size:13px;font-weight:700;margin:0 0 2px;color:var(--ink)}
   .tile .pct{font-family:Georgia,serif;font-size:20px;font-weight:700;line-height:1;margin:2px 0 7px;color:var(--ink)}
   .tile .pct.na{color:var(--mute);font-size:13px}
+
+  /* Mastery-distribution strip plot — replaces the single big % number.
+     Each KC = a colored dot at its BKT mastery position. */
+  .mastery-dist{margin:4px 0 4px}
+  .mastery-dist svg{display:block;width:100%}
+  .mastery-dist.na{color:var(--mute);font-size:13px;font-family:Georgia,serif;font-weight:700;padding:4px 0}
+  .dist-meta{font-size:10.5px;color:var(--mute);line-height:1.4;margin:0 0 7px}
+  .dist-meta b{color:var(--ink);font-weight:700;font-family:Georgia,serif}
   .stack{display:flex;height:8px;border-radius:3px;overflow:hidden;background:#EEF1F5;margin-bottom:8px}
   .stack > div{height:100%}
   .seg-green{background:var(--green)} .seg-yellow{background:var(--amber)}
@@ -558,7 +662,7 @@ HTML_TEMPLATE = """<!doctype html>
 
 <div class="wrap">
   <div class="kpi-howto">
-    💡 <b>How these cards work:</b> Each skill is sorted by your average correctness this term —
+    💡 <b>How these cards work:</b> Each skill is bucketed by your <b>BKT mastery</b> — the model's current estimate of how well you've learned each skill, updated with every attempt —
     <b style="color:#2D8D5B">Mastered</b> (≥ 65%) ·
     <b style="color:#B8860B">Progressing</b> (35–64%) ·
     <b style="color:#B53C32">Needs Practice</b> (&lt; 35%) ·
@@ -574,7 +678,7 @@ HTML_TEMPLATE = """<!doctype html>
         <span class="bignum" id="kc_mastered_num">—</span>
         <span class="denom"  id="kc_mastered_denom">/ —</span>
       </div>
-      <div class="desc">Skills you've reached 65%+ on this term</div>
+      <div class="desc">Skills with BKT mastery ≥ 65%</div>
       <div class="bar"><div class="bar-fill" id="kc_mastered_bar" style="background:var(--green);width:0%"></div></div>
       <div class="pct-label" id="kc_mastered_pct" style="color:#2D8D5B">—</div>
       <div class="compare" id="kc_mastered_cmp"></div>
@@ -590,7 +694,7 @@ HTML_TEMPLATE = """<!doctype html>
         <span class="bignum" id="kc_developing_num">—</span>
         <span class="denom"  id="kc_developing_denom">/ —</span>
       </div>
-      <div class="desc">35–64% — your active work zone</div>
+      <div class="desc">BKT 35–64% — your active work zone</div>
       <div class="bar"><div class="bar-fill" id="kc_developing_bar" style="background:var(--amber);width:0%"></div></div>
       <div class="pct-label" id="kc_developing_pct" style="color:#B8860B">—</div>
       <div class="compare" id="kc_developing_cmp"></div>
@@ -606,7 +710,7 @@ HTML_TEMPLATE = """<!doctype html>
         <span class="bignum" id="kc_needs_num">—</span>
         <span class="denom"  id="kc_needs_denom">/ —</span>
       </div>
-      <div class="desc">Below 35% — focus area for tonight</div>
+      <div class="desc">BKT &lt; 35% — focus area for tonight</div>
       <div class="bar"><div class="bar-fill" id="kc_needs_bar" style="background:var(--red);width:0%"></div></div>
       <div class="pct-label" id="kc_needs_pct" style="color:#B53C32">—</div>
       <div class="compare" id="kc_needs_cmp"></div>
@@ -666,7 +770,9 @@ HTML_TEMPLATE = """<!doctype html>
   </div>
 
   <div class="note">
-    Mastery = raw average correctness per skill (MKC). Tile color tells you what to do: red = at least one skill needs practice, orange = skills still developing, green = mostly or all mastered. Class average computed from all 25 students.
+    All counts and tile colors use <b>BKT-predicted mastery</b> — the model's current estimate of how well you've learned each skill, updated with every attempt.
+    Raw correctness (your actual answer-by-answer score) is shown as a small secondary stat inside each unit's drill-down.
+    Tile color reflects the unit's <b>median</b> BKT mastery: green ≥ 65%, yellow 35–64%, red &lt; 35%. Class average computed from all 25 students.
   </div>
 </div>
 
@@ -795,21 +901,56 @@ function tileTrendHTML(trend, color){
     </div>`;
 }
 
+// Mastery-distribution strip plot (advisor's spec: show shape, not just mean)
+// Each attempted KC becomes a colored dot at its BKT mastery position.
+function stripPlotSVG(values){
+  if(!values || values.length === 0) return "";
+  const w = 160, h = 36;
+  const padL = 4, padR = 4, padTop = 6, padBot = 10;
+  const plotW = w - padL - padR;
+  const yMid = padTop + (h - padTop - padBot) / 2;
+  // Threshold positions on the 0–100% axis
+  const x35 = padL + plotW * 0.35;
+  const x65 = padL + plotW * 0.65;
+  // Background tinted zones — red < 35%, yellow 35–65%, green ≥ 65%
+  let svg = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`;
+  svg += `<rect x="${padL}" y="${padTop}" width="${(x35-padL).toFixed(1)}" height="${(h-padTop-padBot).toFixed(1)}" fill="${COLORS.red}"   opacity="0.07"/>`;
+  svg += `<rect x="${x35.toFixed(1)}" y="${padTop}" width="${(x65-x35).toFixed(1)}" height="${(h-padTop-padBot).toFixed(1)}" fill="${COLORS.amber}" opacity="0.10"/>`;
+  svg += `<rect x="${x65.toFixed(1)}" y="${padTop}" width="${(padL+plotW-x65).toFixed(1)}" height="${(h-padTop-padBot).toFixed(1)}" fill="${COLORS.green}" opacity="0.10"/>`;
+  // Subtle threshold dividers
+  svg += `<line x1="${x35.toFixed(1)}" y1="${padTop}" x2="${x35.toFixed(1)}" y2="${h-padBot}" stroke="#D0D6DD" stroke-width="0.4"/>`;
+  svg += `<line x1="${x65.toFixed(1)}" y1="${padTop}" x2="${x65.toFixed(1)}" y2="${h-padBot}" stroke="#D0D6DD" stroke-width="0.4"/>`;
+  // Dots — slight vertical jitter so clustered values are visible
+  values.forEach((v, i) => {
+    const x = padL + (v / 100) * plotW;
+    const yOff = ((i % 3) - 1) * 3.2;  // -3.2, 0, +3.2
+    const y = yMid + yOff;
+    const color = v >= 65 ? COLORS.green : (v >= 35 ? COLORS.amber : COLORS.red);
+    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}" stroke="#ffffff" stroke-width="0.9"/>`;
+  });
+  // Axis ticks at 0 / 50 / 100 %
+  svg += `<text x="${padL}"             y="${h-2}" font-size="7" fill="#888">0%</text>`;
+  svg += `<text x="${(padL+plotW/2).toFixed(1)}" y="${h-2}" font-size="7" fill="#888" text-anchor="middle">50%</text>`;
+  svg += `<text x="${(w-padR).toFixed(1)}" y="${h-2}" font-size="7" fill="#888" text-anchor="end">100%</text>`;
+  svg += `</svg>`;
+  return svg;
+}
+
 function tileHTML(t, origIdx){
-  const segs = [
-    {n: t.n_mastered,    cls:"seg-green"},
-    {n: t.n_developing,  cls:"seg-yellow"},
-    {n: t.n_needs,       cls:"seg-red"},
-    {n: t.n_unattempted, cls:"seg-gray"},
-  ].map(x => x.n>0 ? `<div class="${x.cls}" style="flex:${x.n}"></div>` : "").join("");
   // Pick sparkline color by tier
   const trendColor = ({green:COLORS.green, yellow:COLORS.amber, red:COLORS.red, gray:COLORS.gray})[t.tier] || COLORS.gray;
+  // Distribution display: strip plot of attempted KCs' BKT mastery (replaces big avg %)
+  // The stacked progress bar was redundant — strip plot conveys distribution; counts below show exact buckets.
+  const attemptedN = (t.mastery_values || []).length;
+  const distBlock = attemptedN > 0
+    ? `<div class="mastery-dist">${stripPlotSVG(t.mastery_values)}</div>
+       <div class="dist-meta">median <b>${t.median_mastery}%</b> · ${attemptedN} attempted</div>`
+    : `<div class="mastery-dist na">— not attempted yet</div>`;
   return `
     <div class="tile ${t.tier}" onclick="openUnit(${origIdx})">
       <div class="accent"></div>
       <h4>${t.unit}</h4>
-      <div class="pct ${t.avg_mastery==null?'na':''}">${t.avg_mastery==null?'—':t.avg_mastery+'%'}</div>
-      <div class="stack">${segs}</div>
+      ${distBlock}
       <div class="counts">
         <div class="row"><span class="dot" style="background:${COLORS.green}"></span>${t.n_mastered} mastered</div>
         <div class="row"><span class="dot" style="background:${COLORS.amber}"></span>${t.n_developing} developing</div>
@@ -830,23 +971,25 @@ function modalSection(title, items, cls, color, withPct){
 }
 
 const CATEGORY_META = {
-  mastered:    {title:"Mastered",       color: COLORS.green, sub:"≥ 65% correctness",                    listKey:"mastered_list",    withPct:true,  biggerIsBetter:true,  emptyMsg:"No mastered skills yet."},
-  developing:  {title:"Progressing",    color: COLORS.amber, sub:"35–64% correctness — keep practicing", listKey:"developing_list",  withPct:true,  biggerIsBetter:null,  emptyMsg:"No skills in this category."},
-  needs:       {title:"Needs Practice", color: COLORS.red,   sub:"Below 35% — focus here",               listKey:"needs_list",       withPct:true,  biggerIsBetter:false, emptyMsg:"No skills need practice — well done!"},
-  unattempted: {title:"Unattempted",    color: COLORS.gray,  sub:"No practice yet",                       listKey:"unattempted_list", withPct:false, biggerIsBetter:false, emptyMsg:"You've attempted every skill."},
+  mastered:    {title:"Mastered",       color: COLORS.green, sub:"BKT mastery ≥ 65%",                     listKey:"mastered_list",    withPct:true,  biggerIsBetter:true,  emptyMsg:"No mastered skills yet."},
+  developing:  {title:"Progressing",    color: COLORS.amber, sub:"BKT 35–64% — keep practicing",          listKey:"developing_list",  withPct:true,  biggerIsBetter:null,  emptyMsg:"No skills in this band."},
+  needs:       {title:"Needs Practice", color: COLORS.red,   sub:"BKT < 35% — focus here",                listKey:"needs_list",       withPct:true,  biggerIsBetter:false, emptyMsg:"No skills need practice — well done!"},
+  unattempted: {title:"Unattempted",    color: COLORS.gray,  sub:"No attempt yet",                        listKey:"unattempted_list", withPct:false, biggerIsBetter:false, emptyMsg:"You've attempted every skill."},
 };
 
 function openCategory(cat){
   const s = STUDENTS[currentStudent];
   const cfg = CATEGORY_META[cat];
 
-  // Flatten all skills from all units into one list with unit tag
-  const allItems = [];
-  s.unit_tiles.forEach(t => {
-    (t[cfg.listKey] || []).forEach(item => {
-      allItems.push({...item, unit: t.unit});
-    });
-  });
+  // Top KPI cards categorize on BKT mastery (synced with unit tiles).
+  // Use the flat top_categorized lists prepared on the Python side.
+  const listKey = {
+    mastered: "mastered", developing: "developing",
+    needs: "needs", unattempted: "unattempted"
+  }[cat];
+  const allItems = (s.top_categorized && s.top_categorized[listKey])
+    ? s.top_categorized[listKey].map(x => ({...x}))   // shallow copy
+    : [];
   const total = allItems.length;
   const units = new Set(allItems.map(x => x.unit));
 
@@ -890,7 +1033,7 @@ function openCategory(cat){
   if(total > 0){
     const statCards = [];
     if(avgMastery !== null){
-      statCards.push(`<div class="modal-stat"><span class="modal-stat-label">Average mastery</span><span class="modal-stat-value">${avgMastery.toFixed(0)}%</span></div>`);
+      statCards.push(`<div class="modal-stat"><span class="modal-stat-label">Average BKT mastery</span><span class="modal-stat-value">${avgMastery.toFixed(0)}%</span></div>`);
     }
     if(mostUnitN > 0){
       statCards.push(`<div class="modal-stat"><span class="modal-stat-label">Most concentrated in</span><span class="modal-stat-value">${mostUnit} (${mostUnitN})</span></div>`);
@@ -984,7 +1127,7 @@ function openUnit(i){
 
     trendHTML = `
       <div class="unit-modal-trend">
-        <div class="trend-label">📈 Mastery over the term</div>
+        <div class="trend-label">📈 BKT mastery over the term</div>
         <div class="trend-row">
           <svg viewBox="0 0 ${w} ${h}" style="height:90px;width:${w}px;flex-shrink:0">
             <path d="${areaPath}" fill="${tierColor}" opacity="0.18"/>
@@ -1028,17 +1171,18 @@ function openUnit(i){
     <div class="modal-header">
       <div>
         <h2>${u.unit}</h2>
-        <div class="meta">Average mastery: <b>${u.avg_mastery==null?'n/a':u.avg_mastery+'%'}</b> · ${u.total} skills in this unit</div>
+        <div class="meta">Median BKT mastery: <b>${u.median_mastery==null?'n/a':u.median_mastery+'%'}</b> · ${(u.mastery_values||[]).length} attempted of ${u.total} skills</div>
+        <div class="meta" style="font-size:11px;color:#888;margin-top:2px">For reference: raw correctness avg on this unit — <b>${u.raw_correctness_avg==null?'n/a':u.raw_correctness_avg+'%'}</b></div>
       </div>
       <button class="close" onclick="document.getElementById('modal').classList.remove('show')">×</button>
     </div>
-    ${trendHTML}
-    ${glanceHTML}
-    <div class="trend-label" style="margin-top:18px">📚 Skill breakdown</div>
+    <div class="trend-label">📚 Skill breakdown</div>
     ${modalSection("Needs Practice", u.needs_list,      "needs",      COLORS.red,   true)}
     ${modalSection("Progressing",    u.developing_list, "developing", COLORS.amber, true)}
     ${modalSection("Mastered",       u.mastered_list,   "mastered",   COLORS.green, true)}
-    ${modalSection("Unattempted",    u.unattempted_list,"unattempted","#6B7280",    false)}`;
+    ${modalSection("Unattempted",    u.unattempted_list,"unattempted","#6B7280",    false)}
+    ${trendHTML}
+    ${glanceHTML}`;
   document.getElementById("modal").classList.add("show");
 }
 
@@ -1078,7 +1222,7 @@ function render(idx){
   document.getElementById("title").innerHTML = "Welcome back, " + s.name +
     " <span class='badge' style='background:" + s.tier_color + "'>" + s.tier_label + "</span>";
   document.getElementById("subtitle").textContent =
-    "Performance band: " + s.band + " · course-to-date final: " + s.course_final + "% · overall mastery: " + s.overall + "%";
+    "Performance band: " + s.band + " · course-to-date final: " + s.course_final + "% · overall BKT mastery: " + s.overall + "% · raw correctness avg: " + s.overall_raw + "%";
 
   // Enhanced KPI cards: number + denominator + visual progress + class comparison + tagline
   const ca = s.class_avg_totals || {};
