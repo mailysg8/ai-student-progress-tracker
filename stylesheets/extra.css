@@ -1,0 +1,53 @@
+/* Brand palette — matches the Shiny dashboard tokens
+   Jet Black:      #263744  (header / navbar bg)
+   Deep variant:   #1F303D  (page bg / hover)
+   Vibrant Coral:  #EE6055  (primary accent, links, hover) */
+
+:root {
+  --md-primary-fg-color:         #263744;
+  --md-primary-fg-color--light:  #2F4554;
+  --md-primary-fg-color--dark:   #1F303D;
+
+  --md-accent-fg-color:          #EE6055;
+  --md-accent-fg-color--transparent: rgba(238, 96, 85, 0.10);
+
+  --md-typeset-a-color:          #EE6055;
+}
+
+/* Force the navbar + tabs + footer to use the brand navy (overrides Material's
+   default 'black' palette which renders near-#000). */
+.md-header,
+.md-header[data-md-state="shadow"] {
+  background-color: #263744 !important;
+}
+
+.md-tabs {
+  background-color: #263744 !important;
+}
+
+/* Dark-mode (slate) overrides — keep accent the same coral, slightly lighten BG */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:         #1F303D;
+  --md-primary-fg-color--light:  #2F4554;
+  --md-primary-fg-color--dark:   #14222D;
+
+  --md-accent-fg-color:          #EE6055;
+  --md-accent-fg-color--transparent: rgba(238, 96, 85, 0.15);
+
+  --md-typeset-a-color:          #FF9B85;
+}
+
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background-color: #1F303D !important;
+}
+
+/* Top tabs hover/active underline color */
+.md-tabs__link:hover,
+.md-tabs__link--active {
+  color: #FFFFFF;
+}
+
+/* Footer */
+.md-footer { background: #1F303D !important; }
+.md-footer-meta { background: #14222D !important; }
