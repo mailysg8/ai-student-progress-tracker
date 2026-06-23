@@ -1,0 +1,10 @@
+.DS_Store
+.git/
+.gitignore
+*.bak
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+notebooks/
+proposal_report/
+wheels/
