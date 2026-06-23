@@ -32,6 +32,22 @@ To set up the workflow, follow the instructions below :
     conda activate stellar-proj
     ```
 
+> **Note on `pybkt` installation.** Because installing `pybkt` directly from PyPI causes issues on macOS, the repository bundles a custom wheel built for **macOS ARM** at `wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl`. The `environment.yml` installs this local wheel by default.
+>
+> **If you are not on macOS ARM** (e.g. Linux, Windows, or Intel Mac), open `environment.yml`, find the pip section, and replace:
+>
+> ```
+>     - ./wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl
+> ```
+>
+> with:
+>
+> ```
+>     - pyBKT==1.4.1
+> ```
+>
+> Then re-run `conda env create -f environment.yml` to install `pyBKT 1.4.1` directly from PyPI.
+
 ### Initial Data Setup
 
 For the initial data setup, the following data files are required :
