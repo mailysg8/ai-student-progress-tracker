@@ -1,0 +1,1847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Student Summary — mockup</title>
+<style>
+  :root{
+    --bg:#263744;             /* Jet Black — page background */
+    --ink:#1F2933;            /* text on white cards */
+    --mute:#5B7271;
+    --on-dark:#F5F7FA;        /* text on dark bg */
+    --on-dark-mute:#B0BFD0;
+    --primary:#EE6055;        /* Vibrant Coral */
+    --primary-d:#D14C42;
+    --card:#FFFFFF;
+    --line:#E5E9EE;
+    --green:#60D394;          /* Emerald */
+    --green-light:#AAF683;    /* Light Green */
+    --amber:#FFD97D;          /* Jasmine */
+    --red:#EE6055;            /* Vibrant Coral (same hue, used for "needs practice") */
+    --red-light:#FF9B85;      /* Sweet Salmon */
+    --gray:#8B9DBB;           /* Lavender Grey */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Helvetica Neue",Arial,sans-serif;background:#fff;color:var(--ink);line-height:1.45}
+
+  /* Jet Black header band — the only dark area on the page (Quarto's outer
+     navbar is hidden in the dashboard wrapper). */
+  .hdr{background:var(--bg);color:var(--on-dark);padding:22px 0 20px}
+  .hdr-inner{max-width:1080px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 24px 64px}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;color:var(--on-dark-mute)}
+  /* Demo banner — explains the student picker is for demo only */
+  .demo-banner{margin:12px 0 0;padding:7px 11px;font-size:11px;color:var(--on-dark);background:rgba(238,96,85,0.15);border-left:3px solid var(--primary);border-radius:0 4px 4px 0;line-height:1.4}
+  .demo-banner .demo-tag{display:inline-block;background:var(--primary);color:#fff;font-weight:700;font-size:9px;letter-spacing:.5px;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  .picker{display:flex;gap:6px;margin:8px 0 18px}
+  .picker button{border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:var(--on-dark);padding:7px 12px;border-radius:6px;cursor:pointer;font-size:13px}
+  .picker button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  h1{font-family:Georgia,serif;font-size:30px;margin:4px 0 4px;font-weight:700;color:var(--on-dark)}
+  .sub{color:var(--on-dark-mute);font-size:13px;margin-bottom:0}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;color:#1F2933;vertical-align:middle;margin-left:8px}
+  h2{font-size:16px;font-weight:700;color:var(--ink);margin:22px 0 10px;display:flex;align-items:center;justify-content:space-between}
+  h2 .hint{color:var(--mute);font-weight:400;font-size:12px}
+
+  /* KPI strip — clickable cards */
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .kcard{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 14px 14px 18px;position:relative;overflow:hidden;cursor:pointer;transition:transform .1s,box-shadow .1s;color:var(--ink)}
+  .kcard:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.22)}
+  .kcard .accent{position:absolute;left:0;top:0;bottom:0;width:5px}
+  .kcard h3{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mute);font-weight:700}
+  .kcard .big{font-family:Georgia,serif;font-size:26px;font-weight:700;line-height:1.1;color:var(--ink)}
+  .kcard .small{font-size:11px;color:var(--mute);margin-top:2px}
+  .kcard .arrow{position:absolute;right:12px;top:14px;color:var(--mute);font-size:13px;opacity:.6}
+
+  /* Sort toggle */
+  .sort{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-weight:400}
+  .sort button{background:#fff;border:0;font-size:11px;padding:5px 10px;cursor:pointer;color:var(--ink)}
+  .sort button.active{background:var(--primary);color:#fff}
+
+  /* Unit tile grid */
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:8px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 12px 12px 16px;cursor:pointer;position:relative;overflow:hidden;transition:transform .1s,box-shadow .1s;color:var(--ink)}
+  .tile:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.22)}
+  .tile .accent{position:absolute;left:0;top:0;bottom:0;width:5px}
+  .tile.green .accent{background:var(--green)}
+  .tile.yellow .accent{background:var(--amber)}
+  .tile.red .accent{background:var(--red)}
+  .tile.gray .accent{background:var(--gray)}
+  .tile h4{font-size:13px;font-weight:700;margin:0 0 2px;color:var(--ink)}
+  .tile .pct{font-family:Georgia,serif;font-size:20px;font-weight:700;line-height:1;margin:2px 0 7px;color:var(--ink)}
+  .tile .pct.na{color:var(--mute);font-size:13px}
+  .stack{display:flex;height:8px;border-radius:3px;overflow:hidden;background:#EEF1F5;margin-bottom:8px}
+  .stack > div{height:100%}
+  .seg-green{background:var(--green)} .seg-yellow{background:var(--amber)}
+  .seg-red{background:var(--red)} .seg-gray{background:var(--gray)}
+  .counts{font-size:11px;line-height:1.5;color:var(--ink)}
+  .counts .row{display:flex;align-items:center;gap:5px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .legend{font-size:11px;color:var(--mute);margin:8px 0 18px;display:flex;gap:14px;flex-wrap:wrap}
+  .legend .dot{margin-right:5px;vertical-align:middle}
+
+  /* Class comparison panel */
+  .panels{display:grid;grid-template-columns:1fr;gap:14px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;color:var(--ink)}
+  .panel h3{margin:0 0 8px;font-size:13px;color:var(--primary);font-weight:700}
+  .panel ul{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--ink)}
+  .panel li{margin:3px 0}
+  .panel .footnote{color:var(--mute);font-size:11px;margin-top:8px}
+  /* Collapsible class-comparison: gentler intro for at-risk students */
+  details > summary{cursor:pointer;list-style:none;padding:2px 0;display:flex;align-items:center;gap:6px;user-select:none}
+  details > summary::-webkit-details-marker{display:none}
+  details > summary::before{content:"▸";font-size:11px;color:var(--mute);transition:transform .15s}
+  details[open] > summary::before{transform:rotate(90deg)}
+  details > summary h3{color:var(--teal-d,#115E59);font-size:13px;font-weight:700}
+
+  /* CTA + footer */
+  .cta{margin-top:22px;display:flex;justify-content:space-between;align-items:center;background:var(--primary);color:#fff;border-radius:8px;padding:14px 18px;gap:14px}
+  .cta button{background:#fff;color:var(--primary-d);border:0;border-radius:6px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0}
+  .note{margin-top:24px;font-size:11px;color:var(--mute);border-top:1px dashed var(--line);padding-top:12px}
+
+  /* Modal */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(15,27,38,0.65);z-index:100;align-items:center;justify-content:center;padding:24px}
+  .overlay.show{display:flex}
+  .modal{background:#fff;color:var(--ink);border-radius:10px;padding:24px 28px;max-width:640px;width:100%;max-height:84vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.40)}
+  .modal-header{display:flex;justify-content:space-between;align-items:start;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:14px}
+  .modal-header h2{font-family:Georgia,serif;font-size:24px;margin:0;color:var(--ink);display:block}
+  .modal-header .meta{color:var(--mute);font-size:12px;margin-top:4px}
+  .modal-header .close{cursor:pointer;color:var(--mute);font-size:26px;line-height:1;background:none;border:0;padding:0}
+  .msec{margin-top:14px}
+  .msec h3{font-size:12px;font-weight:700;margin:0 0 5px;text-transform:uppercase;letter-spacing:.5px}
+  .msec ul{list-style:none;padding:0;margin:0}
+  .msec li{font-size:13px;padding:7px 10px;border-radius:4px;margin-bottom:3px;display:flex;justify-content:space-between;gap:14px}
+  .msec.mastered  li{background:rgba(96,211,148,0.14)}
+  .msec.developing li{background:rgba(255,217,125,0.20)}
+  .msec.needs     li{background:rgba(238,96,85,0.12)}
+  .msec.unattempted li{background:rgba(139,157,187,0.14);color:var(--mute)}
+  .msec li .pct{font-weight:600;font-variant-numeric:tabular-nums}
+  .empty{padding:24px 0;text-align:center;color:var(--mute);font-size:13px;font-style:italic}
+
+  .action{margin-top:18px;background:rgba(238,96,85,0.10);border-left:4px solid var(--primary);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:14px;border-radius:0 6px 6px 0;font-size:13px}
+  .action .lbl{color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:2px}
+  .action button{background:var(--primary);color:#fff;border:0;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="topbar">
+      <span>AP Statistics · Student Portal</span>
+      <span>Logged in as: <span id="who">—</span></span>
+    </div>
+    <div class="demo-banner">
+      <span class="demo-tag">DEMO</span>
+      Switch between 3 student profiles to see how the page adapts to different performance levels. In production, only the logged-in student's data shows.
+    </div>
+    <div class="picker" id="picker"></div>
+    <h1 id="title">—</h1>
+    <div class="sub" id="subtitle">—</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="kpi">
+    <div class="kcard" onclick="openCategory('mastered')">
+      <div class="accent" style="background:var(--green)"></div><div class="arrow">›</div>
+      <h3>Skills mastered</h3>
+      <div class="big" id="kc_mastered">—</div>
+      <div class="small">≥ 70% correctness</div>
+    </div>
+    <div class="kcard" onclick="openCategory('developing')">
+      <div class="accent" style="background:var(--amber)"></div><div class="arrow">›</div>
+      <h3>Still developing</h3>
+      <div class="big" id="kc_developing">—</div>
+      <div class="small">40–69% — keep practicing</div>
+    </div>
+    <div class="kcard" onclick="openCategory('needs')">
+      <div class="accent" style="background:var(--red)"></div><div class="arrow">›</div>
+      <h3>Need practice</h3>
+      <div class="big" id="kc_needs">—</div>
+      <div class="small">below 40% — focus here</div>
+    </div>
+    <div class="kcard" onclick="openCategory('unattempted')">
+      <div class="accent" style="background:var(--gray)"></div><div class="arrow">›</div>
+      <h3>Unattempted</h3>
+      <div class="big" id="kc_unattempted">—</div>
+      <div class="small">no practice yet</div>
+    </div>
+  </div>
+
+  <h2>
+    <span>Your units <span class="hint">— click a tile to see the skills inside</span></span>
+    <span class="sort">
+      <button data-sort="order" class="active" onclick="setSort('order')">Course order</button>
+      <button data-sort="risk"                onclick="setSort('risk')">Needs attention first</button>
+    </span>
+  </h2>
+  <div class="grid" id="grid"></div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--green)"></span>Mastered (≥70%)</span>
+    <span><span class="dot" style="background:var(--amber)"></span>Developing (40–69%)</span>
+    <span><span class="dot" style="background:var(--red)"></span>Needs practice (&lt;40%)</span>
+    <span><span class="dot" style="background:var(--gray)"></span>Unattempted</span>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <details id="cmp_details">
+        <summary><h3 style="display:inline;margin:0">See how you compare to the class</h3></summary>
+        <div id="cmp_summary" style="font-size:13px;margin:10px 0 8px"></div>
+        <div style="font-size:12px;color:var(--mute);margin-top:6px"><b style="color:var(--green)">Where you're strongest relative to the class</b></div>
+        <ul id="cmp_ahead" style="margin:4px 0 8px;padding-left:18px"></ul>
+        <div style="font-size:12px;color:var(--mute)"><b style="color:var(--red)">Where the class is ahead of you</b></div>
+        <ul id="cmp_behind" style="margin:4px 0 0;padding-left:18px"></ul>
+      </details>
+      <div class="footnote">Class average computed from all 25 students in the cohort.</div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div id="cta_text">—</div>
+    <button onclick="alert('Goes to the training-agenda page (Godsgift\'s view).')">View my practice plan →</button>
+  </div>
+
+  <div class="note">
+    Mastery = raw average correctness per skill (MKC). Tile color tells you what to do: red = at least one skill needs practice, orange = skills still developing, green = mostly or all mastered. Class average computed from all 25 students.
+  </div>
+</div>
+
+<div class="overlay" id="modal" onclick="if(event.target===this) this.classList.remove('show')">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+const STUDENTS = [
+  {
+    "id": "S004",
+    "name": "Student 04",
+    "profile": "High performer",
+    "band": "Advanced",
+    "overall": 78.8,
+    "course_final": 76.9,
+    "tier_id": "on_track",
+    "tier_label": "On track",
+    "tier_color": "#60D394",
+    "strongest_unit": "Unit 9",
+    "strongest_unit_value": 86.7,
+    "weakest_unit": "Unit 10",
+    "weakest_unit_value": 69.3,
+    "unit_tiles": [
+      {
+        "unit": "Unit 1",
+        "avg_mastery": 73.5,
+        "total": 6,
+        "n_mastered": 4,
+        "n_developing": 2,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U1.02.categorical_tables_displays",
+            "label": "Categorical tables, displays, and association",
+            "mastery": 84.2
+          },
+          {
+            "id": "MKC.U1.01.data_context_variables",
+            "label": "Data context and variable classification",
+            "mastery": 81.8
+          },
+          {
+            "id": "MKC.U1.05.standardization_transformations",
+            "label": "Standardization and linear transformations",
+            "mastery": 73.3
+          },
+          {
+            "id": "MKC.U1.04.summary_statistics_outliers",
+            "label": "Summary statistics, percentiles, and outliers",
+            "mastery": 72.7
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U1.03.quantitative_displays_description",
+            "label": "Quantitative displays and distribution description",
+            "mastery": 62.5
+          },
+          {
+            "id": "MKC.U1.06.normal_distribution_calculations",
+            "label": "Normal distribution modeling and calculations",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": {
+          "id": "MKC.U1.03.quantitative_displays_description",
+          "label": "Quantitative displays and distribution description",
+          "mastery": 62.5
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 2",
+        "avg_mastery": 86.0,
+        "total": 5,
+        "n_mastered": 4,
+        "n_developing": 1,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U2.02.scatterplots_and_association",
+            "label": "Scatterplots and association description",
+            "mastery": 100.0
+          },
+          {
+            "id": "MKC.U2.04.regression_prediction_interpretation",
+            "label": "Regression prediction and coefficient interpretation",
+            "mastery": 100.0
+          },
+          {
+            "id": "MKC.U2.03.correlation_form_outliers_transform",
+            "label": "Correlation, form, outliers, and transformations",
+            "mastery": 89.5
+          },
+          {
+            "id": "MKC.U2.01.two_way_categorical_association",
+            "label": "Two-way categorical association",
+            "mastery": 87.5
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U2.05.residuals_r2_model_diagnostics",
+            "label": "Residuals, r-squared, and model diagnostics",
+            "mastery": 52.9
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": {
+          "id": "MKC.U2.05.residuals_r2_model_diagnostics",
+          "label": "Residuals, r-squared, and model diagnostics",
+          "mastery": 52.9
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 3",
+        "avg_mastery": 80.3,
+        "total": 5,
+        "n_mastered": 5,
+        "n_developing": 0,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U3.02.bias_and_generalization",
+            "label": "Bias and scope of generalization",
+            "mastery": 90.0
+          },
+          {
+            "id": "MKC.U3.03.study_type_variables_units",
+            "label": "Study type, variables, treatments, and experimental units",
+            "mastery": 85.7
+          },
+          {
+            "id": "MKC.U3.01.population_sampling_methods",
+            "label": "Populations and sampling methods",
+            "mastery": 80.0
+          },
+          {
+            "id": "MKC.U3.04.random_assignment_causation_design",
+            "label": "Random assignment, replication, and causal conclusions",
+            "mastery": 73.3
+          },
+          {
+            "id": "MKC.U3.05.blocking_matching_blinding_confounding",
+            "label": "Blocking, matched pairs, blinding, and confounding",
+            "mastery": 72.2
+          }
+        ],
+        "developing_list": [],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": null,
+        "start_verb": null
+      },
+      {
+        "unit": "Unit 4",
+        "avg_mastery": 79.8,
+        "total": 5,
+        "n_mastered": 5,
+        "n_developing": 0,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U4.04.binomial_model",
+            "label": "Binomial model",
+            "mastery": 91.7
+          },
+          {
+            "id": "MKC.U4.01.probability_foundations_simulation",
+            "label": "Probability foundations and simulation",
+            "mastery": 81.4
+          },
+          {
+            "id": "MKC.U4.02.conditional_compound_independence",
+            "label": "Conditional, compound, and independent-event probability",
+            "mastery": 75.9
+          },
+          {
+            "id": "MKC.U4.03.random_variables_expected_value",
+            "label": "Random variables, probability distributions, and expected value",
+            "mastery": 75.0
+          },
+          {
+            "id": "MKC.U4.05.geometric_model",
+            "label": "Geometric model and binomial/geometric choice",
+            "mastery": 75.0
+          }
+        ],
+        "developing_list": [],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": null,
+        "start_verb": null
+      },
+      {
+        "unit": "Unit 5",
+        "avg_mastery": 83.2,
+        "total": 5,
+        "n_mastered": 5,
+        "n_developing": 0,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U5.05.diff_means_sampling_distribution",
+            "label": "Sampling distribution of a difference in sample means",
+            "mastery": 100.0
+          },
+          {
+            "id": "MKC.U5.01.normal_simulation_estimators",
+            "label": "Normal models, simulation, and estimators",
+            "mastery": 83.9
+          },
+          {
+            "id": "MKC.U5.03.diff_proportions_sampling_distribution",
+            "label": "Sampling distribution of a difference in sample proportions",
+            "mastery": 81.2
+          },
+          {
+            "id": "MKC.U5.02.sample_proportion_sampling_distribution",
+            "label": "Sampling distribution of a sample proportion",
+            "mastery": 77.8
+          },
+          {
+            "id": "MKC.U5.04.sample_mean_sampling_distribution",
+            "label": "Sampling distribution of a sample mean",
+            "mastery": 73.3
+          }
+        ],
+        "developing_list": [],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": null,
+        "start_verb": null
+      },
+      {
+        "unit": "Unit 6",
+        "avg_mastery": 74.2,
+        "total": 5,
+        "n_mastered": 4,
+        "n_developing": 1,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U6.04.two_prop_confidence_intervals",
+            "label": "Two-proportion confidence intervals",
+            "mastery": 84.6
+          },
+          {
+            "id": "MKC.U6.02.one_prop_hypothesis_tests",
+            "label": "One-proportion hypothesis tests",
+            "mastery": 80.0
+          },
+          {
+            "id": "MKC.U6.01.one_prop_confidence_intervals",
+            "label": "One-proportion confidence intervals",
+            "mastery": 77.8
+          },
+          {
+            "id": "MKC.U6.03.errors_alpha_power",
+            "label": "Type I/II error, alpha, beta, and power",
+            "mastery": 76.2
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U6.05.two_prop_hypothesis_tests",
+            "label": "Two-proportion hypothesis tests",
+            "mastery": 52.6
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": {
+          "id": "MKC.U6.05.two_prop_hypothesis_tests",
+          "label": "Two-proportion hypothesis tests",
+          "mastery": 52.6
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 7",
+        "avg_mastery": 77.1,
+        "total": 6,
+        "n_mastered": 4,
+        "n_developing": 2,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U7.05.two_sample_t_tests",
+            "label": "Two-sample t-tests",
+            "mastery": 92.9
+          },
+          {
+            "id": "MKC.U7.06.multiple_comparisons_family_error",
+            "label": "Multiple comparisons and family error rate",
+            "mastery": 83.3
+          },
+          {
+            "id": "MKC.U7.04.two_sample_t_intervals",
+            "label": "Two-sample t confidence intervals",
+            "mastery": 80.0
+          },
+          {
+            "id": "MKC.U7.03.one_sample_t_tests",
+            "label": "One-sample and matched-pairs t-tests",
+            "mastery": 75.0
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U7.01.t_intervals_mean_foundations",
+            "label": "t-distribution and one-sample mean intervals",
+            "mastery": 64.7
+          },
+          {
+            "id": "MKC.U7.02.matched_pairs_mean_inference",
+            "label": "Matched-pairs inference for means",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": {
+          "id": "MKC.U7.01.t_intervals_mean_foundations",
+          "label": "t-distribution and one-sample mean intervals",
+          "mastery": 64.7
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 8",
+        "avg_mastery": 83.0,
+        "total": 3,
+        "n_mastered": 3,
+        "n_developing": 0,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U8.02.chi_square_two_way_structure",
+            "label": "Two-way chi-square structure, hypotheses, and conditions",
+            "mastery": 87.5
+          },
+          {
+            "id": "MKC.U8.03.chi_square_two_way_calculation_conclusion",
+            "label": "Two-way chi-square statistic, p-value, and conclusion",
+            "mastery": 83.3
+          },
+          {
+            "id": "MKC.U8.01.chi_square_gof",
+            "label": "Chi-square goodness-of-fit tests",
+            "mastery": 78.3
+          }
+        ],
+        "developing_list": [],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": null,
+        "start_verb": null
+      },
+      {
+        "unit": "Unit 9",
+        "avg_mastery": 86.7,
+        "total": 3,
+        "n_mastered": 3,
+        "n_developing": 0,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U9.03.slope_hypothesis_tests",
+            "label": "Regression slope hypothesis tests",
+            "mastery": 92.3
+          },
+          {
+            "id": "MKC.U9.01.slope_inference_foundations_ci",
+            "label": "Regression slope inference foundations and confidence intervals",
+            "mastery": 90.0
+          },
+          {
+            "id": "MKC.U9.02.regression_conditions_diagnostics_scope",
+            "label": "Regression inference conditions, diagnostics, and scope",
+            "mastery": 77.8
+          }
+        ],
+        "developing_list": [],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": null,
+        "start_verb": null
+      },
+      {
+        "unit": "Unit 10",
+        "avg_mastery": 69.3,
+        "total": 4,
+        "n_mastered": 2,
+        "n_developing": 2,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U10.01.bootstrap_process_distribution",
+            "label": "Bootstrap process and bootstrap distributions",
+            "mastery": 91.7
+          },
+          {
+            "id": "MKC.U10.04.power_typeii_tradeoffs",
+            "label": "Power, Type II error, and alpha-beta tradeoffs",
+            "mastery": 78.9
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U10.02.bootstrap_intervals",
+            "label": "Bootstrap percentile intervals",
+            "mastery": 40.0
+          },
+          {
+            "id": "MKC.U10.03.effect_size_practical_importance",
+            "label": "Effect size and practical importance",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": {
+          "id": "MKC.U10.02.bootstrap_intervals",
+          "label": "Bootstrap percentile intervals",
+          "mastery": 40.0
+        },
+        "start_verb": "Keep practicing"
+      }
+    ],
+    "totals": {
+      "mastered": 39,
+      "developing": 8,
+      "needs": 0,
+      "unattempted": 0,
+      "all": 47
+    },
+    "n_ahead": 10,
+    "n_behind": 0,
+    "n_total": 10,
+    "ahead_units": [
+      {
+        "unit": "Unit 8",
+        "diff": 33.6
+      },
+      {
+        "unit": "Unit 7",
+        "diff": 32.8
+      }
+    ],
+    "behind_units": []
+  },
+  {
+    "id": "S019",
+    "name": "Student 19",
+    "profile": "Middle performer",
+    "band": "Proficient",
+    "overall": 57.3,
+    "course_final": 56.8,
+    "tier_id": "attention",
+    "tier_label": "Needs attention",
+    "tier_color": "#FFD97D",
+    "strongest_unit": "Unit 9",
+    "strongest_unit_value": 65.4,
+    "weakest_unit": "Unit 8",
+    "weakest_unit_value": 41.1,
+    "unit_tiles": [
+      {
+        "unit": "Unit 1",
+        "avg_mastery": 59.9,
+        "total": 6,
+        "n_mastered": 2,
+        "n_developing": 4,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U1.02.categorical_tables_displays",
+            "label": "Categorical tables, displays, and association",
+            "mastery": 89.5
+          },
+          {
+            "id": "MKC.U1.04.summary_statistics_outliers",
+            "label": "Summary statistics, percentiles, and outliers",
+            "mastery": 75.0
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U1.03.quantitative_displays_description",
+            "label": "Quantitative displays and distribution description",
+            "mastery": 42.9
+          },
+          {
+            "id": "MKC.U1.06.normal_distribution_calculations",
+            "label": "Normal distribution modeling and calculations",
+            "mastery": 47.6
+          },
+          {
+            "id": "MKC.U1.05.standardization_transformations",
+            "label": "Standardization and linear transformations",
+            "mastery": 50.0
+          },
+          {
+            "id": "MKC.U1.01.data_context_variables",
+            "label": "Data context and variable classification",
+            "mastery": 54.5
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "yellow",
+        "start_with": {
+          "id": "MKC.U1.03.quantitative_displays_description",
+          "label": "Quantitative displays and distribution description",
+          "mastery": 42.9
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 2",
+        "avg_mastery": 63.3,
+        "total": 5,
+        "n_mastered": 1,
+        "n_developing": 4,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U2.02.scatterplots_and_association",
+            "label": "Scatterplots and association description",
+            "mastery": 80.0
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U2.03.correlation_form_outliers_transform",
+            "label": "Correlation, form, outliers, and transformations",
+            "mastery": 47.4
+          },
+          {
+            "id": "MKC.U2.04.regression_prediction_interpretation",
+            "label": "Regression prediction and coefficient interpretation",
+            "mastery": 55.6
+          },
+          {
+            "id": "MKC.U2.01.two_way_categorical_association",
+            "label": "Two-way categorical association",
+            "mastery": 66.7
+          },
+          {
+            "id": "MKC.U2.05.residuals_r2_model_diagnostics",
+            "label": "Residuals, r-squared, and model diagnostics",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "yellow",
+        "start_with": {
+          "id": "MKC.U2.03.correlation_form_outliers_transform",
+          "label": "Correlation, form, outliers, and transformations",
+          "mastery": 47.4
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 3",
+        "avg_mastery": 50.4,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 5,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U3.03.study_type_variables_units",
+            "label": "Study type, variables, treatments, and experimental units",
+            "mastery": 42.9
+          },
+          {
+            "id": "MKC.U3.05.blocking_matching_blinding_confounding",
+            "label": "Blocking, matched pairs, blinding, and confounding",
+            "mastery": 44.4
+          },
+          {
+            "id": "MKC.U3.01.population_sampling_methods",
+            "label": "Populations and sampling methods",
+            "mastery": 48.4
+          },
+          {
+            "id": "MKC.U3.04.random_assignment_causation_design",
+            "label": "Random assignment, replication, and causal conclusions",
+            "mastery": 52.9
+          },
+          {
+            "id": "MKC.U3.02.bias_and_generalization",
+            "label": "Bias and scope of generalization",
+            "mastery": 63.2
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "yellow",
+        "start_with": {
+          "id": "MKC.U3.03.study_type_variables_units",
+          "label": "Study type, variables, treatments, and experimental units",
+          "mastery": 42.9
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 4",
+        "avg_mastery": 63.8,
+        "total": 5,
+        "n_mastered": 2,
+        "n_developing": 3,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U4.05.geometric_model",
+            "label": "Geometric model and binomial/geometric choice",
+            "mastery": 77.8
+          },
+          {
+            "id": "MKC.U4.01.probability_foundations_simulation",
+            "label": "Probability foundations and simulation",
+            "mastery": 74.4
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U4.02.conditional_compound_independence",
+            "label": "Conditional, compound, and independent-event probability",
+            "mastery": 48.3
+          },
+          {
+            "id": "MKC.U4.04.binomial_model",
+            "label": "Binomial model",
+            "mastery": 54.2
+          },
+          {
+            "id": "MKC.U4.03.random_variables_expected_value",
+            "label": "Random variables, probability distributions, and expected value",
+            "mastery": 64.3
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "yellow",
+        "start_with": {
+          "id": "MKC.U4.02.conditional_compound_independence",
+          "label": "Conditional, compound, and independent-event probability",
+          "mastery": 48.3
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 5",
+        "avg_mastery": 54.8,
+        "total": 5,
+        "n_mastered": 1,
+        "n_developing": 4,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U5.05.diff_means_sampling_distribution",
+            "label": "Sampling distribution of a difference in sample means",
+            "mastery": 71.4
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U5.03.diff_proportions_sampling_distribution",
+            "label": "Sampling distribution of a difference in sample proportions",
+            "mastery": 40.0
+          },
+          {
+            "id": "MKC.U5.01.normal_simulation_estimators",
+            "label": "Normal models, simulation, and estimators",
+            "mastery": 50.0
+          },
+          {
+            "id": "MKC.U5.02.sample_proportion_sampling_distribution",
+            "label": "Sampling distribution of a sample proportion",
+            "mastery": 55.6
+          },
+          {
+            "id": "MKC.U5.04.sample_mean_sampling_distribution",
+            "label": "Sampling distribution of a sample mean",
+            "mastery": 57.1
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "yellow",
+        "start_with": {
+          "id": "MKC.U5.03.diff_proportions_sampling_distribution",
+          "label": "Sampling distribution of a difference in sample proportions",
+          "mastery": 40.0
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 6",
+        "avg_mastery": 56.2,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 5,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U6.03.errors_alpha_power",
+            "label": "Type I/II error, alpha, beta, and power",
+            "mastery": 42.9
+          },
+          {
+            "id": "MKC.U6.02.one_prop_hypothesis_tests",
+            "label": "One-proportion hypothesis tests",
+            "mastery": 47.2
+          },
+          {
+            "id": "MKC.U6.05.two_prop_hypothesis_tests",
+            "label": "Two-proportion hypothesis tests",
+            "mastery": 55.0
+          },
+          {
+            "id": "MKC.U6.01.one_prop_confidence_intervals",
+            "label": "One-proportion confidence intervals",
+            "mastery": 66.7
+          },
+          {
+            "id": "MKC.U6.04.two_prop_confidence_intervals",
+            "label": "Two-proportion confidence intervals",
+            "mastery": 69.2
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "yellow",
+        "start_with": {
+          "id": "MKC.U6.03.errors_alpha_power",
+          "label": "Type I/II error, alpha, beta, and power",
+          "mastery": 42.9
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 7",
+        "avg_mastery": 52.2,
+        "total": 6,
+        "n_mastered": 1,
+        "n_developing": 3,
+        "n_needs": 2,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U7.05.two_sample_t_tests",
+            "label": "Two-sample t-tests",
+            "mastery": 73.3
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U7.02.matched_pairs_mean_inference",
+            "label": "Matched-pairs inference for means",
+            "mastery": 50.0
+          },
+          {
+            "id": "MKC.U7.04.two_sample_t_intervals",
+            "label": "Two-sample t confidence intervals",
+            "mastery": 55.6
+          },
+          {
+            "id": "MKC.U7.01.t_intervals_mean_foundations",
+            "label": "t-distribution and one-sample mean intervals",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U7.06.multiple_comparisons_family_error",
+            "label": "Multiple comparisons and family error rate",
+            "mastery": 28.6
+          },
+          {
+            "id": "MKC.U7.03.one_sample_t_tests",
+            "label": "One-sample and matched-pairs t-tests",
+            "mastery": 39.3
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U7.06.multiple_comparisons_family_error",
+          "label": "Multiple comparisons and family error rate",
+          "mastery": 28.6
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 8",
+        "avg_mastery": 41.1,
+        "total": 3,
+        "n_mastered": 1,
+        "n_developing": 0,
+        "n_needs": 2,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U8.01.chi_square_gof",
+            "label": "Chi-square goodness-of-fit tests",
+            "mastery": 78.3
+          }
+        ],
+        "developing_list": [],
+        "needs_list": [
+          {
+            "id": "MKC.U8.02.chi_square_two_way_structure",
+            "label": "Two-way chi-square structure, hypotheses, and conditions",
+            "mastery": 20.0
+          },
+          {
+            "id": "MKC.U8.03.chi_square_two_way_calculation_conclusion",
+            "label": "Two-way chi-square statistic, p-value, and conclusion",
+            "mastery": 25.0
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U8.02.chi_square_two_way_structure",
+          "label": "Two-way chi-square structure, hypotheses, and conditions",
+          "mastery": 20.0
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 9",
+        "avg_mastery": 65.4,
+        "total": 3,
+        "n_mastered": 2,
+        "n_developing": 1,
+        "n_needs": 0,
+        "n_unattempted": 0,
+        "mastered_list": [
+          {
+            "id": "MKC.U9.03.slope_hypothesis_tests",
+            "label": "Regression slope hypothesis tests",
+            "mastery": 76.9
+          },
+          {
+            "id": "MKC.U9.01.slope_inference_foundations_ci",
+            "label": "Regression slope inference foundations and confidence intervals",
+            "mastery": 76.5
+          }
+        ],
+        "developing_list": [
+          {
+            "id": "MKC.U9.02.regression_conditions_diagnostics_scope",
+            "label": "Regression inference conditions, diagnostics, and scope",
+            "mastery": 42.9
+          }
+        ],
+        "needs_list": [],
+        "unattempted_list": [],
+        "tier": "green",
+        "start_with": {
+          "id": "MKC.U9.02.regression_conditions_diagnostics_scope",
+          "label": "Regression inference conditions, diagnostics, and scope",
+          "mastery": 42.9
+        },
+        "start_verb": "Keep practicing"
+      },
+      {
+        "unit": "Unit 10",
+        "avg_mastery": 49.6,
+        "total": 4,
+        "n_mastered": 0,
+        "n_developing": 3,
+        "n_needs": 1,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U10.02.bootstrap_intervals",
+            "label": "Bootstrap percentile intervals",
+            "mastery": 40.0
+          },
+          {
+            "id": "MKC.U10.03.effect_size_practical_importance",
+            "label": "Effect size and practical importance",
+            "mastery": 60.0
+          },
+          {
+            "id": "MKC.U10.01.bootstrap_process_distribution",
+            "label": "Bootstrap process and bootstrap distributions",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U10.04.power_typeii_tradeoffs",
+            "label": "Power, Type II error, and alpha-beta tradeoffs",
+            "mastery": 31.6
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U10.04.power_typeii_tradeoffs",
+          "label": "Power, Type II error, and alpha-beta tradeoffs",
+          "mastery": 31.6
+        },
+        "start_verb": "Start with"
+      }
+    ],
+    "totals": {
+      "mastered": 10,
+      "developing": 32,
+      "needs": 5,
+      "unattempted": 0,
+      "all": 47
+    },
+    "n_ahead": 7,
+    "n_behind": 3,
+    "n_total": 10,
+    "ahead_units": [
+      {
+        "unit": "Unit 9",
+        "diff": 10.1
+      },
+      {
+        "unit": "Unit 2",
+        "diff": 9.5
+      }
+    ],
+    "behind_units": [
+      {
+        "unit": "Unit 8",
+        "diff": -8.4
+      },
+      {
+        "unit": "Unit 3",
+        "diff": -1.9
+      }
+    ]
+  },
+  {
+    "id": "S001",
+    "name": "Student 01",
+    "profile": "Low performer",
+    "band": "Developing",
+    "overall": 37.4,
+    "course_final": 38.2,
+    "tier_id": "at_risk",
+    "tier_label": "At risk",
+    "tier_color": "#EE6055",
+    "strongest_unit": "Unit 1",
+    "strongest_unit_value": 50.8,
+    "weakest_unit": "Unit 10",
+    "weakest_unit_value": 28.2,
+    "unit_tiles": [
+      {
+        "unit": "Unit 1",
+        "avg_mastery": 50.8,
+        "total": 6,
+        "n_mastered": 0,
+        "n_developing": 4,
+        "n_needs": 2,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U1.03.quantitative_displays_description",
+            "label": "Quantitative displays and distribution description",
+            "mastery": 50.0
+          },
+          {
+            "id": "MKC.U1.04.summary_statistics_outliers",
+            "label": "Summary statistics, percentiles, and outliers",
+            "mastery": 62.5
+          },
+          {
+            "id": "MKC.U1.05.standardization_transformations",
+            "label": "Standardization and linear transformations",
+            "mastery": 62.5
+          },
+          {
+            "id": "MKC.U1.02.categorical_tables_displays",
+            "label": "Categorical tables, displays, and association",
+            "mastery": 63.2
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U1.06.normal_distribution_calculations",
+            "label": "Normal distribution modeling and calculations",
+            "mastery": 30.0
+          },
+          {
+            "id": "MKC.U1.01.data_context_variables",
+            "label": "Data context and variable classification",
+            "mastery": 36.4
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U1.06.normal_distribution_calculations",
+          "label": "Normal distribution modeling and calculations",
+          "mastery": 30.0
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 2",
+        "avg_mastery": 47.5,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 4,
+        "n_needs": 1,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U2.01.two_way_categorical_association",
+            "label": "Two-way categorical association",
+            "mastery": 47.8
+          },
+          {
+            "id": "MKC.U2.03.correlation_form_outliers_transform",
+            "label": "Correlation, form, outliers, and transformations",
+            "mastery": 52.6
+          },
+          {
+            "id": "MKC.U2.04.regression_prediction_interpretation",
+            "label": "Regression prediction and coefficient interpretation",
+            "mastery": 55.6
+          },
+          {
+            "id": "MKC.U2.02.scatterplots_and_association",
+            "label": "Scatterplots and association description",
+            "mastery": 60.0
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U2.05.residuals_r2_model_diagnostics",
+            "label": "Residuals, r-squared, and model diagnostics",
+            "mastery": 21.4
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U2.05.residuals_r2_model_diagnostics",
+          "label": "Residuals, r-squared, and model diagnostics",
+          "mastery": 21.4
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 3",
+        "avg_mastery": 29.0,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 2,
+        "n_needs": 3,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U3.01.population_sampling_methods",
+            "label": "Populations and sampling methods",
+            "mastery": 45.2
+          },
+          {
+            "id": "MKC.U3.02.bias_and_generalization",
+            "label": "Bias and scope of generalization",
+            "mastery": 47.4
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U3.03.study_type_variables_units",
+            "label": "Study type, variables, treatments, and experimental units",
+            "mastery": 0.0
+          },
+          {
+            "id": "MKC.U3.04.random_assignment_causation_design",
+            "label": "Random assignment, replication, and causal conclusions",
+            "mastery": 13.3
+          },
+          {
+            "id": "MKC.U3.05.blocking_matching_blinding_confounding",
+            "label": "Blocking, matched pairs, blinding, and confounding",
+            "mastery": 38.9
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U3.03.study_type_variables_units",
+          "label": "Study type, variables, treatments, and experimental units",
+          "mastery": 0.0
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 4",
+        "avg_mastery": 36.6,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 2,
+        "n_needs": 3,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U4.02.conditional_compound_independence",
+            "label": "Conditional, compound, and independent-event probability",
+            "mastery": 41.4
+          },
+          {
+            "id": "MKC.U4.01.probability_foundations_simulation",
+            "label": "Probability foundations and simulation",
+            "mastery": 46.5
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U4.04.binomial_model",
+            "label": "Binomial model",
+            "mastery": 25.0
+          },
+          {
+            "id": "MKC.U4.05.geometric_model",
+            "label": "Geometric model and binomial/geometric choice",
+            "mastery": 31.6
+          },
+          {
+            "id": "MKC.U4.03.random_variables_expected_value",
+            "label": "Random variables, probability distributions, and expected value",
+            "mastery": 38.6
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U4.04.binomial_model",
+          "label": "Binomial model",
+          "mastery": 25.0
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 5",
+        "avg_mastery": 35.8,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 2,
+        "n_needs": 3,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U5.01.normal_simulation_estimators",
+            "label": "Normal models, simulation, and estimators",
+            "mastery": 48.3
+          },
+          {
+            "id": "MKC.U5.02.sample_proportion_sampling_distribution",
+            "label": "Sampling distribution of a sample proportion",
+            "mastery": 50.0
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U5.03.diff_proportions_sampling_distribution",
+            "label": "Sampling distribution of a difference in sample proportions",
+            "mastery": 21.4
+          },
+          {
+            "id": "MKC.U5.05.diff_means_sampling_distribution",
+            "label": "Sampling distribution of a difference in sample means",
+            "mastery": 28.6
+          },
+          {
+            "id": "MKC.U5.04.sample_mean_sampling_distribution",
+            "label": "Sampling distribution of a sample mean",
+            "mastery": 30.8
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U5.03.diff_proportions_sampling_distribution",
+          "label": "Sampling distribution of a difference in sample proportions",
+          "mastery": 21.4
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 6",
+        "avg_mastery": 30.5,
+        "total": 5,
+        "n_mastered": 0,
+        "n_developing": 1,
+        "n_needs": 4,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U6.05.two_prop_hypothesis_tests",
+            "label": "Two-proportion hypothesis tests",
+            "mastery": 42.1
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U6.03.errors_alpha_power",
+            "label": "Type I/II error, alpha, beta, and power",
+            "mastery": 23.8
+          },
+          {
+            "id": "MKC.U6.01.one_prop_confidence_intervals",
+            "label": "One-proportion confidence intervals",
+            "mastery": 26.9
+          },
+          {
+            "id": "MKC.U6.02.one_prop_hypothesis_tests",
+            "label": "One-proportion hypothesis tests",
+            "mastery": 28.9
+          },
+          {
+            "id": "MKC.U6.04.two_prop_confidence_intervals",
+            "label": "Two-proportion confidence intervals",
+            "mastery": 30.8
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U6.03.errors_alpha_power",
+          "label": "Type I/II error, alpha, beta, and power",
+          "mastery": 23.8
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 7",
+        "avg_mastery": 34.4,
+        "total": 6,
+        "n_mastered": 0,
+        "n_developing": 2,
+        "n_needs": 4,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U7.02.matched_pairs_mean_inference",
+            "label": "Matched-pairs inference for means",
+            "mastery": 50.0
+          },
+          {
+            "id": "MKC.U7.06.multiple_comparisons_family_error",
+            "label": "Multiple comparisons and family error rate",
+            "mastery": 66.7
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U7.03.one_sample_t_tests",
+            "label": "One-sample and matched-pairs t-tests",
+            "mastery": 20.0
+          },
+          {
+            "id": "MKC.U7.05.two_sample_t_tests",
+            "label": "Two-sample t-tests",
+            "mastery": 20.0
+          },
+          {
+            "id": "MKC.U7.04.two_sample_t_intervals",
+            "label": "Two-sample t confidence intervals",
+            "mastery": 22.2
+          },
+          {
+            "id": "MKC.U7.01.t_intervals_mean_foundations",
+            "label": "t-distribution and one-sample mean intervals",
+            "mastery": 27.8
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U7.03.one_sample_t_tests",
+          "label": "One-sample and matched-pairs t-tests",
+          "mastery": 20.0
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 8",
+        "avg_mastery": 33.1,
+        "total": 3,
+        "n_mastered": 0,
+        "n_developing": 1,
+        "n_needs": 2,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U8.01.chi_square_gof",
+            "label": "Chi-square goodness-of-fit tests",
+            "mastery": 52.2
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U8.03.chi_square_two_way_calculation_conclusion",
+            "label": "Two-way chi-square statistic, p-value, and conclusion",
+            "mastery": 9.1
+          },
+          {
+            "id": "MKC.U8.02.chi_square_two_way_structure",
+            "label": "Two-way chi-square structure, hypotheses, and conditions",
+            "mastery": 38.1
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U8.03.chi_square_two_way_calculation_conclusion",
+          "label": "Two-way chi-square statistic, p-value, and conclusion",
+          "mastery": 9.1
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 9",
+        "avg_mastery": 40.9,
+        "total": 3,
+        "n_mastered": 0,
+        "n_developing": 2,
+        "n_needs": 1,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U9.03.slope_hypothesis_tests",
+            "label": "Regression slope hypothesis tests",
+            "mastery": 46.2
+          },
+          {
+            "id": "MKC.U9.02.regression_conditions_diagnostics_scope",
+            "label": "Regression inference conditions, diagnostics, and scope",
+            "mastery": 50.0
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U9.01.slope_inference_foundations_ci",
+            "label": "Regression slope inference foundations and confidence intervals",
+            "mastery": 26.7
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U9.01.slope_inference_foundations_ci",
+          "label": "Regression slope inference foundations and confidence intervals",
+          "mastery": 26.7
+        },
+        "start_verb": "Start with"
+      },
+      {
+        "unit": "Unit 10",
+        "avg_mastery": 28.2,
+        "total": 4,
+        "n_mastered": 0,
+        "n_developing": 1,
+        "n_needs": 3,
+        "n_unattempted": 0,
+        "mastered_list": [],
+        "developing_list": [
+          {
+            "id": "MKC.U10.03.effect_size_practical_importance",
+            "label": "Effect size and practical importance",
+            "mastery": 40.0
+          }
+        ],
+        "needs_list": [
+          {
+            "id": "MKC.U10.04.power_typeii_tradeoffs",
+            "label": "Power, Type II error, and alpha-beta tradeoffs",
+            "mastery": 21.1
+          },
+          {
+            "id": "MKC.U10.01.bootstrap_process_distribution",
+            "label": "Bootstrap process and bootstrap distributions",
+            "mastery": 23.1
+          },
+          {
+            "id": "MKC.U10.02.bootstrap_intervals",
+            "label": "Bootstrap percentile intervals",
+            "mastery": 28.6
+          }
+        ],
+        "unattempted_list": [],
+        "tier": "red",
+        "start_with": {
+          "id": "MKC.U10.04.power_typeii_tradeoffs",
+          "label": "Power, Type II error, and alpha-beta tradeoffs",
+          "mastery": 21.1
+        },
+        "start_verb": "Start with"
+      }
+    ],
+    "totals": {
+      "mastered": 0,
+      "developing": 21,
+      "needs": 26,
+      "unattempted": 0,
+      "all": 47
+    },
+    "n_ahead": 0,
+    "n_behind": 10,
+    "n_total": 10,
+    "ahead_units": [],
+    "behind_units": [
+      {
+        "unit": "Unit 3",
+        "diff": -23.3
+      },
+      {
+        "unit": "Unit 4",
+        "diff": -19.7
+      }
+    ]
+  }
+];
+const COLORS = {green:"#60D394", amber:"#FFD97D", red:"#EE6055", gray:"#8B9DBB", primary:"#EE6055"};
+const TIER_RANK = {red:0, yellow:1, green:2, gray:3};
+let currentStudent = 0;
+let currentSort = "order";
+
+function tileHTML(t, origIdx){
+  const segs = [
+    {n: t.n_mastered,    cls:"seg-green"},
+    {n: t.n_developing,  cls:"seg-yellow"},
+    {n: t.n_needs,       cls:"seg-red"},
+    {n: t.n_unattempted, cls:"seg-gray"},
+  ].map(x => x.n>0 ? `<div class="${x.cls}" style="flex:${x.n}"></div>` : "").join("");
+  return `
+    <div class="tile ${t.tier}" onclick="openUnit(${origIdx})">
+      <div class="accent"></div>
+      <h4>${t.unit}</h4>
+      <div class="pct ${t.avg_mastery==null?'na':''}">${t.avg_mastery==null?'—':t.avg_mastery+'%'}</div>
+      <div class="stack">${segs}</div>
+      <div class="counts">
+        <div class="row"><span class="dot" style="background:${COLORS.green}"></span>${t.n_mastered} mastered</div>
+        <div class="row"><span class="dot" style="background:${COLORS.amber}"></span>${t.n_developing} developing</div>
+        <div class="row"><span class="dot" style="background:${COLORS.red}"></span>${t.n_needs} needs practice</div>
+        <div class="row"><span class="dot" style="background:${COLORS.gray}"></span>${t.n_unattempted} unattempted</div>
+      </div>
+    </div>`;
+}
+
+function modalSection(title, items, cls, color, withPct){
+  if(!items.length) return "";
+  return `
+    <div class="msec ${cls}">
+      <h3 style="color:${color}">${title} (${items.length})</h3>
+      <ul>${items.map(m => `<li><span>${m.label}</span><span class="pct">${withPct ? (m.mastery+'%') : '—'}</span></li>`).join("")}</ul>
+    </div>`;
+}
+
+const CATEGORY_META = {
+  mastered:    {title:"Skills mastered",   color: COLORS.green, sub:"≥ 70% correctness", listKey:"mastered_list",    withPct:true,  emptyMsg:"No mastered skills yet."},
+  developing:  {title:"Still developing", color: COLORS.amber, sub:"40–69% correctness — keep practicing", listKey:"developing_list", withPct:true, emptyMsg:"No skills in this category."},
+  needs:       {title:"Need practice",  color: COLORS.red,   sub:"Below 40% — focus here", listKey:"needs_list",  withPct:true, emptyMsg:"No skills need practice — well done!"},
+  unattempted: {title:"Unattempted",    color: COLORS.gray,  sub:"No practice yet", listKey:"unattempted_list", withPct:false, emptyMsg:"You've attempted every skill."},
+};
+
+function openCategory(cat){
+  const s = STUDENTS[currentStudent];
+  const cfg = CATEGORY_META[cat];
+  // collect items per unit
+  const sections = s.unit_tiles
+    .map(t => ({unit:t.unit, items:t[cfg.listKey] || []}))
+    .filter(sec => sec.items.length > 0);
+  const total = sections.reduce((a, sec) => a + sec.items.length, 0);
+
+  const body = total === 0
+    ? `<div class="empty">${cfg.emptyMsg}</div>`
+    : sections.map(sec => `
+        <div class="msec ${cat}">
+          <h3 style="color:${cfg.color}">${sec.unit} <span style="color:var(--mute);font-weight:400;text-transform:none;letter-spacing:0">— ${sec.items.length} skill${sec.items.length===1?"":"s"}</span></h3>
+          <ul>${sec.items.map(m => `<li><span>${m.label}</span><span class="pct">${cfg.withPct ? (m.mastery+'%') : '—'}</span></li>`).join("")}</ul>
+        </div>`).join("");
+
+  document.getElementById("modal-content").innerHTML = `
+    <div class="modal-header">
+      <div>
+        <h2><span style="color:${cfg.color}">●</span> ${cfg.title} — ${total} skill${total===1?"":"s"}</h2>
+        <div class="meta">${cfg.sub} · across ${sections.length} unit${sections.length===1?"":"s"}</div>
+      </div>
+      <button class="close" onclick="document.getElementById('modal').classList.remove('show')">×</button>
+    </div>
+    ${body}`;
+  document.getElementById("modal").classList.add("show");
+}
+
+function openUnit(i){
+  const u = STUDENTS[currentStudent].unit_tiles[i];
+  document.getElementById("modal-content").innerHTML = `
+    <div class="modal-header">
+      <div>
+        <h2>${u.unit}</h2>
+        <div class="meta">Average mastery: <b>${u.avg_mastery==null?'n/a':u.avg_mastery+'%'}</b> · ${u.total} skills in this unit</div>
+      </div>
+      <button class="close" onclick="document.getElementById('modal').classList.remove('show')">×</button>
+    </div>
+    ${modalSection("Needs practice",u.needs_list,      "needs",      COLORS.red,   true)}
+    ${modalSection("Developing",    u.developing_list, "developing", COLORS.amber, true)}
+    ${modalSection("Mastered",      u.mastered_list,   "mastered",   COLORS.green, true)}
+    ${modalSection("Unattempted",   u.unattempted_list,"unattempted","#6B7280",    false)}`;
+  document.getElementById("modal").classList.add("show");
+}
+
+function setSort(mode){
+  currentSort = mode;
+  document.querySelectorAll(".sort button").forEach(b => b.classList.toggle("active", b.dataset.sort === mode));
+  renderGrid();
+}
+
+function renderGrid(){
+  const s = STUDENTS[currentStudent];
+  let order = s.unit_tiles.map((t, i) => ({t, origIdx: i}));
+  if(currentSort === "risk"){
+    order.sort((a, b) => {
+      const dr = TIER_RANK[a.t.tier] - TIER_RANK[b.t.tier];
+      if (dr !== 0) return dr;
+      const av = a.t.avg_mastery==null ? 999 : a.t.avg_mastery;
+      const bv = b.t.avg_mastery==null ? 999 : b.t.avg_mastery;
+      return av - bv;
+    });
+  }
+  document.getElementById("grid").innerHTML = order.map(o => tileHTML(o.t, o.origIdx)).join("");
+}
+
+function ctaText(s){
+  const needs = s.totals.needs, dev = s.totals.developing;
+  if(needs > 0 && dev > 0) return `Start with the red skills (${needs} need practice), then review the orange ones (${dev} still developing).`;
+  if(needs > 0)            return `Start with the red skills — ${needs} skill${needs===1?"":"s"} need${needs===1?"s":""} practice.`;
+  if(dev > 0)              return `No critical gaps. Keep practicing the ${dev} skill${dev===1?"":"s"} still developing.`;
+  return "Excellent — you've mastered everything attempted. Keep up the consistent practice.";
+}
+
+function render(idx){
+  currentStudent = idx;
+  const s = STUDENTS[idx];
+  document.getElementById("who").textContent = s.name;
+  document.getElementById("title").innerHTML = "Welcome back, " + s.name +
+    " <span class='badge' style='background:" + s.tier_color + "'>" + s.tier_label + "</span>";
+  document.getElementById("subtitle").textContent =
+    "Performance band: " + s.band + " · course-to-date final: " + s.course_final + "% · overall mastery: " + s.overall + "%";
+
+  document.getElementById("kc_mastered").textContent   = s.totals.mastered    + " / " + s.totals.all;
+  document.getElementById("kc_developing").textContent = s.totals.developing  + " / " + s.totals.all;
+  document.getElementById("kc_needs").textContent      = s.totals.needs       + " / " + s.totals.all;
+  document.getElementById("kc_unattempted").textContent= s.totals.unattempted + " / " + s.totals.all;
+
+  renderGrid();
+
+  // Open the class-comparison panel by default for students who are on track
+  // or only need attention. Keep it collapsed for at-risk so they aren't hit
+  // with "behind on 10 of 10 units" the moment they log in.
+  document.getElementById("cmp_details").open = (s.tier_id !== "at_risk");
+
+  // Softer phrasing: lead with the positive count, frame the negative as a
+  // direction ("the class is ahead") rather than a deficit on the student.
+  const sumColor = s.n_ahead >= s.n_behind ? COLORS.green : COLORS.amber;
+  document.getElementById("cmp_summary").innerHTML =
+    `Across ${s.n_total} units, you're <b style="color:${sumColor}">stronger than the class average on ${s.n_ahead}</b> ` +
+    `and the class is ahead on ${s.n_behind}.`;
+  const fmt = d => `<span style="color:${d>=0?COLORS.green:COLORS.red};font-variant-numeric:tabular-nums">${d>=0?'+':''}${d}pp</span>`;
+  document.getElementById("cmp_ahead").innerHTML =
+    (s.ahead_units.length ? s.ahead_units : [{unit:"—",diff:0}])
+      .map(u => `<li><b>${u.unit}</b> &nbsp;${fmt(u.diff)} vs class avg</li>`).join("");
+  document.getElementById("cmp_behind").innerHTML =
+    (s.behind_units.length ? s.behind_units : [{unit:"—",diff:0}])
+      .map(u => `<li><b>${u.unit}</b> &nbsp;${fmt(u.diff)} vs class avg</li>`).join("");
+
+  document.getElementById("cta_text").textContent = ctaText(s);
+}
+
+const pk = document.getElementById("picker");
+STUDENTS.forEach((s,i)=>{
+  const b = document.createElement("button");
+  b.textContent = s.profile + " · " + s.name;
+  b.onclick = ()=>{ document.querySelectorAll(".picker button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); render(i); };
+  pk.appendChild(b);
+});
+pk.firstChild.classList.add("active");
+render(0);
+</script>
+</body>
+</html>
