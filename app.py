@@ -13,7 +13,9 @@ from src.kc_opp import kc_opp_highest, kc_opp_lowest, kc_opp_rank
 from src.kc_value_box import kpi_value_box
 from src.student_card import student_kc_card
 from src.data_import import build_card
-from src.data_processing import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions, run_bkt_predictions, save_final_output
+from src.pipeline.merge import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions
+from src.pipeline.predict import run_bkt_predictions
+from src.pipeline.save import save_final_output
 
 STU_OBS_COLS = [
     "student_id", "assignment_id", "class_num", "observation_id",
