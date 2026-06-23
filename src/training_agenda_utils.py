@@ -28,7 +28,6 @@ Data sources are resolved from environment variables (loaded from a local
   ``Modeling_KC_Nodes`` and ``Modeling_KC_Edges`` sheets).
 """
 
-
 ####################################################################################
 ### CORE ALGOTHIRMS 
 ####################################################################################
@@ -59,7 +58,22 @@ BANDS = [("Mastered", MASTERY_THRESHOLD), ("Progressing", PROGRESSING_CUTOFF)]
 # Background colours for the KPI cards / bands
 BAND_BG = {"Mastered": "#60D394","Progressing": "#FECD54", "Needs Practice": "#EE6055"} 
 
-def band_color(p):
+def band_color(p: float | None) -> str:
+    """Map a mastery probability to its band colour.
+
+    Parameters
+    ----------
+    p : float or None
+        Mastery probability in ``[0, 1]``. ``None`` or ``NaN`` is treated as
+        "not attempted".
+    
+    Returns
+    -------
+    str
+        A hex colour string: grey for not-attempted, green at or above
+        ``MASTERY_THRESHOLD``, amber at or above ``PROGRESSING_CUTOFF``, and red
+        below that.
+    """
     """Grey = not attempted; green/amber/red by mastery band (for graph nodes)."""
     if p is None or  pd.isna(p) or  (isinstance(p, float) and np.isnan(p)):
         return "#C9CDD2"
@@ -77,20 +91,41 @@ DATA_DIR = Path("data")
 base_path = Path().resolve()
 file_path = base_path / "data" / "processed" 
 raw_path = base_path / "data" / "raw"
+final_file = os.environ["FINAL_FILE"]
+kc_map_file = os.environ["KC_MAP_FILE"]
 
-student_df = pd.read_csv(file_path / os.environ.get("FINAL_FILE"))
-nodes_df = pd.read_excel(raw_path / os.environ.get("KC_MAP_FILE"), sheet_name="Modeling_KC_Nodes")
-edges_df = pd.read_excel(raw_path / os.environ.get("KC_MAP_FILE"), sheet_name="Modeling_KC_Edges")
+# student_df : long table of student observations and BKT predictions, one row per student-attempt.
+# nodes_df   : one row per modeling KC (id, label, unit, ...).
+# edges_df   : one row per MKC -> MKC prerequisite edge.
 
+student_df = pd.read_csv(file_path / final_file)
+nodes_df = pd.read_excel(raw_path / kc_map_file, sheet_name="Modeling_KC_Nodes")
+edges_df = pd.read_excel(raw_path / kc_map_file, sheet_name="Modeling_KC_Edges")
+
+# Coerce the model/dashboard numeric columns; stray strings become NaN.
 for col in ["weight", "estimated_exam_share_pct", "downstream_dependents",
             "direct_dependents", "order_id", "state_predictions",
             "correct_predictions", "correct"]:
     if col in student_df.columns:
         student_df[col] = pd.to_numeric(student_df[col], errors="coerce")
 
-edges_df["fine_edge_count"] = (
-    pd.to_numeric(edges_df.get("fine_edge_count", 1), errors="coerce").fillna(1)
-    if "fine_edge_count" in edges_df.columns else 1)
+"""
+    Make sure every edge has a numeric fine_edge_count; clean up any wrong values, 
+    and default to 1 if the column or a value is missing,
+    so the Sankey always has a valid thickness for every link."
+"""
+if "fine_edge_count" in edges_df.columns:
+    # column exists: coerce to numbers, and treat bad/missing values as 1
+    edges_df["fine_edge_count"] = pd.to_numeric(
+        edges_df["fine_edge_count"], errors="coerce"
+    ).fillna(1)
+else:
+    # column missing: every edge gets a default thickness of 1
+    edges_df["fine_edge_count"] = 1
+    
+# edges_df["fine_edge_count"] = (
+#     pd.to_numeric(edges_df.get("fine_edge_count", 1), errors="coerce").fillna(1)
+#     if "fine_edge_count" in edges_df.columns else 1)
 
 
 ####################################################################################
@@ -103,7 +138,7 @@ MKC_UNIT = dict(zip(nodes_df["modeling_kc_id"], nodes_df.get("unit", pd.Series()
 # Total number of MKCs in the whole curriculum (denominator for "X / N").
 TOTAL_MKCS = nodes_df["modeling_kc_id"].nunique()
 
-# Prerequisite graph: source MKC --> target MKC.
+# Prerequisite graph: directed edge source MKC --> target MKC.
 G = nx.DiGraph()
 G.add_edges_from(zip(edges_df["source_modeling_kc_id"], 
                     edges_df["target_modeling_kc_id"]))
@@ -111,9 +146,19 @@ G.add_edges_from(zip(edges_df["source_modeling_kc_id"],
 # All student ids, for the dropdown.
 STUDENT_IDS = sorted(student_df["student_id"].astype(str).unique().tolist())
 
-def _unit_key(u):
-    """
-    Helper to sort unit labels by their number if possible (e.g. "Unit 2" before "Unit 10"). 
+def _unit_key(u: str) -> tuple[int, str]:
+    """Sort key that orders unit labels by their embedded number.
+
+    Parameters
+    ----------
+    u : str
+        A unit label such as ``"Unit 2"`` or ``"Unit 10"``.
+
+    Returns
+    -------
+    tuple of (int, str)
+        ``(number, label)``, so ``"Unit 2"`` sorts before ``"Unit 10"``.
+        Labels with no number sort last (number ``999``).
     """
     m = re.search(r"(\d+)", str(u))
     return (int(m.group(1)) if m else 999, str(u))
