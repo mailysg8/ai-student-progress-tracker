@@ -49,7 +49,7 @@ def resolve(env_var: str) -> Path:
             f"Required environment variable '{env_var}' is not set. "
             f"Add it to your .env file. See .env.example for reference."
         )
-    path = Path(raw).resolve()
+    path = Path("data/raw/"+ raw).resolve()
     if not path.exists():
         raise FileNotFoundError(
             f"File referenced by '{env_var}' not found: {path}"

@@ -12,6 +12,10 @@ Changes in this revision:
 import json
 from pathlib import Path
 import pandas as pd
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Portable path resolution: works whether the script sits in src/ or repo root
 HERE = Path(__file__).resolve().parent
@@ -30,9 +34,9 @@ def find_file(name):
             return f
     raise FileNotFoundError(f"{name} not found in any of: {[str(s) for s in SEARCH]}")
 
-CSV  = find_file("final_student_kc_data.csv")   # Mailys's unified pipeline output
-DATA = find_file("final_data.xlsx")              # still needed for Overall_Scores sheet
-PACK = find_file("mkc_mapping_pack_v1.0..xlsx")  # canonical KC structure (for unit_mkcs)
+CSV  = find_file(os.environ.get("FINAL_FILE"))   # Mailys's unified pipeline output
+DATA = find_file(os.environ.get("STUDENT_OBS_FILE"))              # still needed for Overall_Scores sheet
+PACK = find_file(os.environ.get("KC_MAP_FILE"))  # canonical KC structure (for unit_mkcs)
 OUT  = REPO_ROOT / "notebooks" / "student_summary.html"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 print(f"  Using CSV: {CSV}")
