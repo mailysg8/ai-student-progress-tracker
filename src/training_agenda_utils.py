@@ -1,3 +1,34 @@
+"""
+Stellar Education - Student "My Practice Plan" view (core logic).
+ 
+This module is the data-and-visualization layer behind the student-facing
+"Next Steps & Training Agenda" page of the Stellar Education Student View dashboard. It loads
+the Bayesian Knowledge Tracing (BKT) mastery predictions together with the
+modeling-KC (MKC) prerequisite graph, then exposes helper functions that the
+Shiny app calls to render the page.
+ 
+The page is built from four pieces:
+ 
+1. KPI value boxes (KCs mastered, exam readiness, level, blocked KCs);
+2. a unit-level prerequisite Sankey overview, with per-unit drill-down;
+3. a weight-ranked, prerequisite-aware training agenda; and
+4. the HTML for the agenda cards.
+ 
+All logic operates at the modeling-KC (MKC) grain. A student's "mastery" of an
+MKC is the BKT ``state_predictions`` value from their most recent attempt on
+that MKC, classified against ``MASTERY_THRESHOLD``.
+ 
+Notes
+-----
+Data sources are resolved from environment variables (loaded from a local
+``.env`` file):
+ 
+- ``FINAL_FILE``  : processed per-student, per-attempt BKT predictions (CSV).
+- ``KC_MAP_FILE`` : modeling-KC nodes and edges (Excel workbook with the
+  ``Modeling_KC_Nodes`` and ``Modeling_KC_Edges`` sheets).
+"""
+
+
 ####################################################################################
 ### CORE ALGOTHIRMS 
 ####################################################################################
@@ -22,18 +53,11 @@ MASTERY_THRESHOLD = 0.65
 
 # Band cutoffs for "Your Level" (applied to the exam-readiness score)
 PROGRESSING_CUTOFF = 0.35
-#EMERGING_CUTOFF = 0.35
-# ADVANCED_CUTOFF = 0.65
-# PROFICIENT_CUTOFF = 0.50
-# EMERGING_CUTOFF = 0.35
 
-# BAND_BG = {"Advanced": "#60D394", "Proficient": "#185FA5",
-#            "Emerging": "#FECD54", "Developing": "#EE6055"} # "#C77F0A" # red-other; "#C0392B"
 
-BANDS = [("Mastered", MASTERY_THRESHOLD), ("Progressing", PROGRESSING_CUTOFF)] #, ("Emerging", EMERGING_CUTOFF)]
+BANDS = [("Mastered", MASTERY_THRESHOLD), ("Progressing", PROGRESSING_CUTOFF)] 
 # Background colours for the KPI cards / bands
-BAND_BG = {"Mastered": "#60D394","Progressing": "#FECD54", "Needs Practice": "#EE6055"} # "#C77F0A" # red-other; "#C0392B"
-
+BAND_BG = {"Mastered": "#60D394","Progressing": "#FECD54", "Needs Practice": "#EE6055"} 
 
 def band_color(p):
     """Grey = not attempted; green/amber/red by mastery band (for graph nodes)."""
@@ -142,7 +166,7 @@ def level_band(score):
     for name, cutoff in BANDS:
         if score >= cutoff:
             return name, BAND_BG[name]
-    return "Developing", BAND_BG["Developing"]
+    return "Needs Practice", BAND_BG["Needs Practice"]
 
 
 def _unmastered_prereqs(kc, mastery_map):
@@ -424,7 +448,7 @@ def render_agenda_html(tbl):
               <span>Current mastery</span><strong style="color:{bar_col}">{pct:.0%}</strong></div>
             <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden">
               <div style="background:{bar_col};width:{int(pct*100)}%;height:100%"></div></div>
-            <div style="text-align:right;font-size:11px;color:#bbb;margin-top:2px">Target 80%</div>
+            <div style="text-align:right;font-size:11px;color:#bbb;margin-top:2px">Target {MASTERY_THRESHOLD:.0%}</div>
           </div>
           <div>
             <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:4px">✅ What to do next:</div>
