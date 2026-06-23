@@ -190,7 +190,11 @@ def student_mkc_table(student_id: str | int) -> pd.DataFrame:
         ``estimated_exam_share_pct``), ``label`` and ``unit``. An empty frame is
         returned if the student has no rows.
     """
-    s = student_df[student_df["student_id"].astype(str) == str(student_id)].copy()
+    #s = student_df[student_df["student_id"].astype(str) == str(student_id)].copy()
+    key = str(student_id).strip().upper()
+    ids = student_df["student_id"].astype(str).str.strip().str.upper()
+    s = student_df[ids == key].copy()
+    
     if s.empty:
         return pd.DataFrame(columns=["modeling_kc_id", "mastery", "weight",
                                     "tier", "downstream", "label", "unit"])

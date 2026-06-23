@@ -1,10 +1,10 @@
 """Standalone Shiny app — Student Dashboard (Student view).
 
 Hybrid design:
-  * Shiny handles login, tab navigation, and logout (matches Mailys's stack)
+  * Shiny handles login, tab navigation, and logout
   * Student Summary content is the rich HTML mockup from build_student_summary.py
     embedded in an iframe.
-  * My Practice Plan content is Godsgift's BKT-driven recommendations from
+  * My Practice Plan content is recommendations from
     training_agenda_utils.py.
   * Both tabs share the same logged_in student via reactive.value.
 
@@ -13,7 +13,7 @@ Run locally:
     shiny run --reload src/student_app.py
 
 Data: reads data/raw/final_data.xlsx, data/raw/mkc_mapping_pack_v1.0..xlsx,
-and data/processed/final_student_kc_data.csv (Mailys's unified pipeline output).
+and data/processed/final_student_kc_data.csv.
 """
 import base64
 import plotly.graph_objects as go
