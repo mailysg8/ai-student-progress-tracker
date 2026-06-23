@@ -1,0 +1,8 @@
+observation,value
+nb_kc,256.0
+nb_skills,4.0
+nb_sub_skills,18.0
+median_items_per_kc,6.0
+max_obs_per_kc,725.0
+min_obs_per_kc,0.0
+nb_zero_coverage,4.0
