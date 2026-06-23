@@ -15,7 +15,7 @@ from src.student_card import student_kc_card
 from src.data_import import build_card
 from src.data_processing import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions, run_bkt_predictions, save_final_output
 
-FILE_NAME = 'data/processed/final_student_kc_data.csv'
+DATA = 'data/processed/final_student_kc_data.csv'
 
 STU_OBS_COLS = [
     "student_id", "assignment_id", "class_num", "observation_id",
@@ -389,7 +389,7 @@ app_ui = ui.page_navbar(
 
 def server(input, output, session):
     # ── the live, in-memory dataset the whole dashboard reads from ──────────
-    mkc_data_rv = reactive.value(pd.read_csv(FILE_NAME))
+    mkc_data_rv = reactive.value(pd.read_csv(DATA))
 
     def mkc_data():
         return mkc_data_rv()
