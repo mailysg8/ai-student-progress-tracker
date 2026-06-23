@@ -25,6 +25,6 @@ dependencies:
   - pip
   - pip:
       - shiny>=1.6
-      - pyBKT==1.4.1
+      - "./wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl"
       - python-dotenv
       - plotly
