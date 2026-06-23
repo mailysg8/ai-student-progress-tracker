@@ -35,9 +35,9 @@ def find_file(name):
             return f
     raise FileNotFoundError(f"{name} not found in any of: {[str(s) for s in SEARCH]}")
 
-CSV  = find_file(os.environ.get("FINAL_FILE"))           # unified data pipeline output
-DATA = find_file(os.environ.get("STUDENT_OBS_FILE"))     # Overall_Scores sheet (student-level metadata)
-PACK = find_file(os.environ.get("KC_MAP_FILE"))          # canonical KC structure (for unit_mkcs)
+CSV  = find_file(os.environ.get("FINAL_FILE", "final_student_kc_data.csv"))           # unified data pipeline output
+DATA = find_file(os.environ.get("STUDENT_OBS_FILE", "Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx"))     # Overall_Scores sheet (student-level metadata)
+PACK = find_file(os.environ.get("KC_MAP_FILE", "mkc_mapping_pack_v1.0..xlsx"))          # canonical KC structure (for unit_mkcs)
 OUT  = REPO_ROOT / "notebooks" / "student_summary.html"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 print(f"  Using CSV: {CSV}")

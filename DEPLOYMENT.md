@@ -115,7 +115,6 @@ rsconnect deploy shiny . \
   --exclude "**/__pycache__/*" \
   --exclude "*.pyc" \
   --exclude "data/output/*" \
-  --exclude "data/raw/Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx" \
   --exclude "data/raw/mkc_weights_dataset.xlsx" \
   --exclude "data/raw/mkc_data-june01.csv" \
   --exclude "data/processed/best_subset_1_data.csv" \
@@ -148,7 +147,6 @@ rsconnect deploy shiny . \
   --exclude "**/__pycache__/*" \
   --exclude "*.pyc" \
   --exclude "data/output/*" \
-  --exclude "data/raw/Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx" \
   --exclude "data/raw/mkc_weights_dataset.xlsx" \
   --exclude "data/raw/mkc_data-june01.csv" \
   --exclude "data/processed/best_subset_1_data.csv" \

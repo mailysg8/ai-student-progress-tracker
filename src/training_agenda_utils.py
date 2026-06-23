@@ -91,8 +91,8 @@ DATA_DIR = Path("data")
 base_path = Path().resolve()
 file_path = base_path / "data" / "processed" 
 raw_path = base_path / "data" / "raw"
-final_file = os.environ["FINAL_FILE"]
-kc_map_file = os.environ["KC_MAP_FILE"]
+final_file = os.environ.get("FINAL_FILE", "final_student_kc_data.csv")
+kc_map_file = os.environ.get("KC_MAP_FILE", "mkc_mapping_pack_v1.0..xlsx")
 
 # student_df : long table of student observations and BKT predictions, one row per student-attempt.
 # nodes_df   : one row per modeling KC (id, label, unit, ...).
