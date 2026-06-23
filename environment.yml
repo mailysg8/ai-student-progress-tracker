@@ -1,8 +1,3 @@
-# Due to some issues with running pybkt on mac, we
-# created a custom wheel.
-# If the workflow is not being run on a mac, 
-# follow the instructions detailed below.
-
 name: stellar-proj
 channels:
   - conda-forge
