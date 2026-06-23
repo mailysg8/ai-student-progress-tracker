@@ -1,19 +1,21 @@
-"""Standalone Shiny app — Student Dashboard (Student view).
+"""Student Portal — Shiny application entry point.
 
-Hybrid design:
-  * Shiny handles login, tab navigation, and logout (matches Mailys's stack)
-  * Student Summary content is the rich HTML mockup from build_student_summary.py
-    embedded in an iframe.
-  * My Practice Plan content is Godsgift's BKT-driven recommendations from
-    training_agenda_utils.py.
-  * Both tabs share the same logged_in student via reactive.value.
+A hybrid Shiny app providing two views:
+  * Student Summary  — embedded HTML dashboard with KPI cards, unit-level
+    BKT mastery distributions, and per-skill drill-downs.
+  * My Practice Plan — BKT-driven personalised recommendations with a
+    prerequisite-aware Sankey graph and next-steps agenda.
+
+Both tabs share the logged-in student via a single reactive.value.
 
 Run locally:
-    conda activate pybkt-demo
-    shiny run --reload src/student_app.py
+    conda activate stellar-proj
+    shiny run --reload student_app.py
 
-Data: reads data/raw/final_data.xlsx, data/raw/mkc_mapping_pack_v1.0..xlsx,
-and data/processed/final_student_kc_data.csv (Mailys's unified pipeline output).
+Data files (placed locally before running):
+    data/raw/final_data.xlsx
+    data/raw/mkc_mapping_pack_v1.0..xlsx
+    data/processed/final_student_kc_data.csv
 """
 import base64
 import plotly.graph_objects as go
