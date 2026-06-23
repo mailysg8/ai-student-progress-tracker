@@ -40,8 +40,8 @@ That's it — no other changes to app.py.
       practice/unattempted per unit)
     - How you compare to the class (signed diff per unit, ahead vs behind)
 
-Uses the same data files Mailys's notebook generates:
-* data/raw/final_data.xlsx  (or the equivalent partner dataset)
+Data files (loaded from the repository's data/ directory):
+* data/raw/final_data.xlsx
 * data/raw/mkc_mapping_pack_v1.0..xlsx
 """
 import pandas as pd
@@ -58,7 +58,7 @@ from src.student_unit_grid        import unit_breakdown_chart
 from src.student_class_comparison import class_comparison_chart
 
 
-# ─── Module-level data load (same convention as Mailys's app.py) ──────────────
+# ─── Module-level data load (same convention as app.py) ──────────────────────
 _OBS, _MKC2LABEL, _MKC2UNIT, _UNIT_MKCS, _UNITS = load_data(
     "data/raw/final_data.xlsx",
     "data/raw/mkc_mapping_pack_v1.0..xlsx",
@@ -66,8 +66,7 @@ _OBS, _MKC2LABEL, _MKC2UNIT, _UNIT_MKCS, _UNITS = load_data(
 _CLASS_AVG   = class_average_per_unit(_OBS, _UNITS)
 _STUDENT_IDS = sorted(_OBS["user_id"].unique())
 
-# Icon helper (same as the one Mailys defined in app.py — duplicated here so
-# this module is self-contained; safe to delete if she refactors it out.)
+# Inline SVG info-icon helper — kept here so this module is self-contained.
 def _bs_info_icon(title: str = "Information"):
     return ui.HTML(
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" '

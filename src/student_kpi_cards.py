@@ -6,11 +6,12 @@ Used by `student_summary_dash.qmd` to populate KPI valueboxes and feed the chart
 import pandas as pd
 import numpy as np
 
-# Shared palette — matches the team's dashboard colors (src/kc_mastery_box.py)
+# Shared palette — matches the dashboard color tokens defined in
+# src/kc_mastery_box.py.
 COLORS = {
     "mastered":    "#60D394",   # Emerald
     "developing":  "#FFD97D",   # Jasmine
-    "needs":       "#FF9B85",   # Sweet Salmon  (matches Mailys's ATTENTION_FILL)
+    "needs":       "#FF9B85",   # Sweet Salmon (matches teacher view ATTENTION_FILL)
     "unattempted": "#8B9DBB",   # Lavender Grey
     "ahead":       "#60D394",
     "behind":      "#FF9B85",
@@ -45,10 +46,12 @@ def load_data(data_path: str, pack_path: str):
 
 
 def tier_overall(overall: float) -> tuple[str, str, str]:
-    """Status tier for the whole student (used for valuebox color + badge)."""
-    if overall >= 0.60: return ("on_track",  "On track",        "success")
-    if overall >= 0.45: return ("attention", "Needs attention", "warning")
-    return                    ("at_risk",    "At risk",         "danger")
+    """Status tier for the whole student. Color is a hex from the team palette
+    so valueboxes render in the dashboard's actual colors instead of stock
+    Bootstrap green/yellow/red."""
+    if overall >= 0.60: return ("on_track",  "On track",        "#60D394")  # Emerald
+    if overall >= 0.45: return ("attention", "Needs attention", "#FFD97D")  # Jasmine
+    return                    ("at_risk",    "At risk",         "#FF9B85")  # Sweet Salmon
 
 
 def tier_for_unit(t: dict) -> str:

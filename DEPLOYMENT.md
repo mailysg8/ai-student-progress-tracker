@@ -241,5 +241,5 @@ ai-student-progress-tracker/
 
 ## Contacts
 
-- Original team: Siting Wang, Mailys, Godsgift, Park (MDS Capstone 2026)
+- Project team: Siting Wang, Mailys Guedon, Godsgift Eseoghena Braimah, Seungmyun Park (UBC MDS Capstone 2026)
 - Repo: https://github.com/mailysg8/ai-student-progress-tracker
