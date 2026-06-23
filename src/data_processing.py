@@ -314,7 +314,7 @@ def run_bkt_predictions(
 # Constants
 # ---------------------------------------------------------------------------
 
-OUTPUT_FILENAME = "final_student_kc_data.csv"
+OUTPUT_FILENAME = os.environ.get("FINAL_FILE")
 
 # Columns that must be present in the final DataFrame before saving.
 FINAL_OUTPUT_COLS = [

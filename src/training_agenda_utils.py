@@ -9,6 +9,10 @@ import networkx as nx
 import plotly.graph_objects as go
 from shiny import App, ui, render, reactive
 from shinywidgets import output_widget, render_widget
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 ####################################################################################
@@ -50,9 +54,9 @@ base_path = Path().resolve()
 file_path = base_path / "data" / "processed" 
 raw_path = base_path / "data" / "raw"
 
-student_df = pd.read_csv(file_path / "final_student_kc_data.csv")
-nodes_df = pd.read_excel(raw_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Nodes")
-edges_df = pd.read_excel(raw_path / "mkc_mapping_pack_v1.0..xlsx", sheet_name="Modeling_KC_Edges")
+student_df = pd.read_csv(file_path / os.environ.get("FINAL_FILE"))
+nodes_df = pd.read_excel(raw_path / os.environ.get("KC_MAP_FILE"), sheet_name="Modeling_KC_Nodes")
+edges_df = pd.read_excel(raw_path / os.environ.get("KC_MAP_FILE"), sheet_name="Modeling_KC_Edges")
 
 for col in ["weight", "estimated_exam_share_pct", "downstream_dependents",
             "direct_dependents", "order_id", "state_predictions",

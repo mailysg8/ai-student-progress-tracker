@@ -1,5 +1,6 @@
 import pandas as pd
 import altair as alt
+import os
 from shiny import App, ui, render, reactive, req
 from shinywidgets import render_altair, output_widget, reactive_read
 from src.kc_mastery_box import kc_mastery_box
@@ -15,7 +16,11 @@ from src.student_card import student_kc_card
 from src.data_import import build_card
 from src.data_processing import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions, run_bkt_predictions, save_final_output
 
-DATA = 'data/processed/final_student_kc_data.csv'
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATA = "data/processed/" + os.environ.get("FINAL_FILE")
 
 STU_OBS_COLS = [
     "student_id", "assignment_id", "class_num", "observation_id",

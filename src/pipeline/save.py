@@ -28,8 +28,6 @@ load_dotenv()
 # Constants
 # ---------------------------------------------------------------------------
 
-OUTPUT_FILENAME = "final_student_kc_data.csv"
-
 # Columns that must be present in the final DataFrame before saving.
 FINAL_OUTPUT_COLS = [
     # --- From observations ---
@@ -120,7 +118,7 @@ def validate_final_df(df: pd.DataFrame) -> None:
 # Save
 # ---------------------------------------------------------------------------
 
-def save_final_output(df: pd.DataFrame, filename: str = OUTPUT_FILENAME) -> Path:
+def save_final_output(df: pd.DataFrame, filename: str = os.environ.get("FINAL_FILE")) -> Path:
     """
     Validate and write the final student KC DataFrame to a CSV file.
 
