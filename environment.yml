@@ -26,6 +26,7 @@ dependencies:
   - quarto=1.9.37
   - jupyterlab=4.5.7
   - tabulate=0.10.0
+  - xmltodict=1.0.4
   - make=4.4.1
   - pip
   - pip:
