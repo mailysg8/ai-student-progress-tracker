@@ -15,6 +15,8 @@ from src.student_card import student_kc_card
 from src.data_import import build_card
 from src.data_processing import merge_kc_mapping, merge_weights, merge_class_plan, merge_bkt_predictions, run_bkt_predictions, save_final_output
 
+FILE_NAME = 'data/processed/final_student_kc_data.csv'
+
 STU_OBS_COLS = [
     "student_id", "assignment_id", "class_num", "observation_id",
     "source_question", "primary_kc_id", "score", "max_score"
@@ -36,15 +38,6 @@ DATASETS = {
     "weights": ("Weights",              WEIGHTS_COLS),
 }
 
-def check_required_columns(df: pd.DataFrame, required: list[str]):
-    missing = []
-    found = []
-    for c in required :
-        if c not in df.columns :
-            missing.append(c)
-        else :
-            found.append(c)
-    return found, missing
 
 # Thresholds for student mastery status
 STUDENT_MASTERY_THRESHOLD = 0.65
@@ -396,7 +389,7 @@ app_ui = ui.page_navbar(
 
 def server(input, output, session):
     # ── the live, in-memory dataset the whole dashboard reads from ──────────
-    mkc_data_rv = reactive.value(pd.read_csv('data/processed/final_student_kc_data.csv'))
+    mkc_data_rv = reactive.value(pd.read_csv(FILE_NAME))
 
     def mkc_data():
         return mkc_data_rv()
