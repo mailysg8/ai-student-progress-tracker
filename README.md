@@ -46,7 +46,7 @@ They should be placed in the `data/raw` folder.
 To create the dataframe, follow the instructions below :
 
 ![](img/initial_data_setup.gif)
-1. Create a `.env` file in the project root (an example of what needs to be included can be found in the [.env.example](https://github.com/mailysg8/ai-student-progress-tracker/blob/2b0a6029b68aa8df714f48a969ed0179c6651c18/.env.example) file)
+1. Create a `.env` file in the project root (an example of what needs to be included can be found in the [.env.example](https://github.com/mailysg8/ai-student-progress-tracker/blob/f7bbe2cfd264b0eda53d64538efbede89e59a20a/.env.example) file)
 
 3. Run the following commands in the terminal (make sure you are in the project root) to create the data frame needed for the dashboard :
 
