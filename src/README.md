@@ -2,7 +2,7 @@
 
 This folder contains scripts for many different purposes : 
 - [pipeline](https://github.com/mailysg8/ai-student-progress-tracker/tree/33e842da2cc727b6336fdb541fc3a9c253dcce1d/src/pipeline) 
-- [build_student_summary.py]https://github.com/mailysg8/ai-student-progress-tracker/blob/33e842da2cc727b6336fdb541fc3a9c253dcce1d/src/build_student_summary.py
+- [build_student_summary.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/33e842da2cc727b6336fdb541fc3a9c253dcce1d/src/build_student_summary.py)
 - [classify.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/33e842da2cc727b6336fdb541fc3a9c253dcce1d/src/classify.py)
 - [data_import.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/33e842da2cc727b6336fdb541fc3a9c253dcce1d/src/data_import.py)
 - [kc_mastery_box.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/428771ca070304765161a9cb594a326c76f98294/src/kc_mastery_box.py)
