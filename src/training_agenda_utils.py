@@ -168,10 +168,28 @@ UNIT_LIST = sorted({u for u in MKC_UNIT.values() if isinstance(u, str)}, key=_un
 OVERVIEW_LABEL = "Overview: All Units"
 
 
+def student_mkc_table(student_id: str | int) -> pd.DataFrame:
+    """Build the per-student MKC table: latest mastery plus MKC attributes.
 
+    For each MKC the student has attempted, keep only their most recent attempt
+    (latest ``order_id``), since BKT is sequential and the last estimate is the
+    current belief.
 
-def student_mkc_table(student_id):
-    """PER-STUDENT: one row per MKC = the student's LATEST mastery + attributes."""
+    Parameters
+    ----------
+    student_id : str or int
+        The student identifier to filter on (compared as a string).
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per attempted MKC with columns (where available):
+        ``modeling_kc_id``, ``mastery`` (renamed from ``state_predictions``),
+        ``weight``, ``tier``, ``downstream`` (from ``downstream_dependents``),
+        ``direct`` (from ``direct_dependents``), ``exam_share`` (from
+        ``estimated_exam_share_pct``), ``label`` and ``unit``. An empty frame is
+        returned if the student has no rows.
+    """
     s = student_df[student_df["student_id"].astype(str) == str(student_id)].copy()
     if s.empty:
         return pd.DataFrame(columns=["modeling_kc_id", "mastery", "weight",
@@ -190,10 +208,28 @@ def student_mkc_table(student_id):
     return latest[[c for c in keep if c in latest.columns]].reset_index(drop=True)
 
 
-def exam_readiness(tbl, mastery_col="mastery", weight_col="weight"):
-    """
-    Σ(mastery·weight)/Σ(weight), weight = partner's importance score.
-    If no weights, just average mastery. If no data, return 0.
+def exam_readiness(tbl: pd.DataFrame, mastery_col: str = "mastery", weight_col: str = "weight") -> float:
+    """Compute a single weight-weighted average mastery (exam-readiness score).
+
+    Defined as ``sum(mastery * weight) / sum(weight)`` so that Stellar Education's
+    high-weight KCs move the score more than low-weight ones. Rows with missing
+    mastery are dropped first.
+
+    Parameters
+    ----------
+    tbl : pandas.DataFrame
+        Per-student MKC table (e.g. from :func:`student_mkc_table`).
+    mastery_col : str, optional
+        Column holding mastery probabilities. Default ``"mastery"``.
+    weight_col : str, optional
+        Column holding the KC importance weights. Default ``"weight"``.
+
+    Returns
+    -------
+    float
+        The readiness score in ``[0, 1]``. Falls back to a plain mean of mastery
+        if there is no weight column or the weights sum to zero, and returns
+        ``0.0`` if the table is empty after dropping missing mastery.
     """
     tbl = tbl.dropna(subset=[mastery_col])
     if tbl.empty:
@@ -203,59 +239,124 @@ def exam_readiness(tbl, mastery_col="mastery", weight_col="weight"):
     w = tbl[weight_col].fillna(0)
     if w.sum() == 0:
         return float(tbl[mastery_col].mean())
-    #return float((tbl[mastery_col] * w).sum() / w.sum())
     return float(np.average(tbl[mastery_col], weights=w))
 
 
-def level_band(score):
+def level_band(score: float) -> tuple[str, str]:
+    """Classify a mastery / readiness score into a named band.
+
+    Parameters
+    ----------
+    score : float
+        A mastery or readiness score in ``[0, 1]``.
+
+    Returns
+    -------
+    tuple of (str, str)
+        ``(band_name, hex_colour)``. Bands are checked high-to-low against
+        :data:`BANDS`; the first cutoff the score clears wins, otherwise the
+        ``"Needs Practice"`` fallback is returned."""
     for name, cutoff in BANDS:
         if score >= cutoff:
             return name, BAND_BG[name]
     return "Needs Practice", BAND_BG["Needs Practice"]
 
 
-def _unmastered_prereqs(kc, mastery_map):
+def _unmastered_prereqs(kc: str, mastery_map: dict[str, float]) -> list[str]:
+    """List the direct prerequisites of an MKC that are not yet mastered.
+
+    Parameters
+    ----------
+    kc : str
+        Modeling-KC id to inspect.
+    mastery_map : dict
+        Mapping ``modeling_kc_id -> mastery`` for the current student. KCs absent
+        from the map are treated as mastery ``0.0`` (not mastered).
+        
+    Returns
+    -------
+    list of str
+        The prerequisite MKC ids whose mastery is below ``MASTERY_THRESHOLD``.
+        Empty if ``kc`` is not in the graph.
+    """
     if kc not in G:
         return []
     return [pr for pr in G.predecessors(kc)
             if mastery_map.get(pr, 0.0) < MASTERY_THRESHOLD]
 
 
-def find_blocked(mastery_map):
+def find_blocked(mastery_map: dict[str, float]) -> list[str]:
+    """Find MKCs that are unmastered *and* still have an unmastered prerequisite.
+
+    Parameters
+    ----------
+    mastery_map : dict
+        Mapping ``modeling_kc_id -> mastery`` for the current student.
+
+    Returns
+    -------
+    list of str
+        MKC ids that the student cannot fairly tackle yet (below threshold and
+        gated by at least one unmastered prerequisite).
+    """
     return [kc for kc, p in mastery_map.items()
             if p < MASTERY_THRESHOLD and _unmastered_prereqs(kc, mastery_map)]
 
 
-def _norm(x):
+def _norm(x: pd.Series) -> pd.Series:
+    """Min-max normalize a numeric Series to ``[0, 1]``.
+
+    Parameters
+    ----------
+    x : pandas.Series
+        Values to normalize; ``NaN`` is treated as ``0``.
+
+    Returns
+    -------
+    pandas.Series
+        The input rescaled so the smallest value maps to 0 and the largest to 1.
+        When every value is identical, there is no range to scale against, so the
+        function returns 0.5 for all of them instead of dividing by zero.
+    """
     x = x.fillna(0).astype(float)
     rng = x.max() - x.min()
     return (x - x.min()) / rng if rng > 0 else pd.Series(0.5, index=x.index)
 
 
-def build_agenda(tbl, n=3):
-    """
-Build the student's top-`n` "next steps" cards.
+def build_agenda(tbl: pd.DataFrame, n: int = 3) -> list[dict[str, object]]:
+    """Build the student's top-``n`` "next steps" recommendation cards.
 
     Strategy
     --------
-    1. Look only at WEAK topics (mastery < 0.65) — mastered ones need no action.
-    2. Split weak topics into READY (all prerequisites already mastered, the
-       student can tackle them now) vs BLOCKED (still missing a prerequisite).
-    3. Rank the READY ones by a weighted priority score (see below) and take n.
-    4. If there aren't n ready topics, top up with the highest-`weight` BLOCKED
-       topics so the agenda always shows n cards, these are badged "locked"
-       and list the prerequisites to clear first.
+    1. Consider only WEAK topics (mastery below ``MASTERY_THRESHOLD``); mastered
+    ones need no action.
+    2. Split weak topics into READY (all prerequisites already mastered, so the
+    student can tackle them now) versus BLOCKED (still missing a prerequisite).
+    3. Rank the READY ones by the priority score below and take ``n``.
+    4. If fewer than ``n`` are ready, top up with the highest-``weight`` BLOCKED
+    topics so the agenda always shows ``n`` cards; these are badged "locked" and 
+    list the prerequisites to clear first.
 
     Priority score (ready topics only)
     -----------------------------------
-        score =importance 
-      - importance = normalized `weight`     (partner's 1-100 priority)
-    importance is the stated business priority;
+    ``score = normalized weight`` -- the partner's importance score is the sole
+    ranking signal, reflecting the stated business priority.
+
+    Parameters
+    ----------
+    tbl : pandas.DataFrame
+        Per-student MKC table (e.g. from :func:`student_mkc_table`).
+    n : int, optional
+        Number of cards to return. Default ``3``.
+
     Returns
     -------
-    list[dict] : one dict per card, each carrying the topic name, mastery,
-    weight, tier, downstream count, a badge/type, ready flag, the missing
-    prerequisites (for locked cards), and the downstream topics it unlocks.
+    list of dict
+        One dict per card with keys: ``name``, ``mastery``, ``weight``, ``tier``,
+        ``downstream`` (count), ``atype`` and ``badge`` (recommendation type),
+        ``ready`` (bool), ``missing`` (prerequisite labels for locked cards), and
+        ``unlocks`` (list of ``(label, is_mastered)`` for downstream topics).
+        Empty list if there is nothing weak to recommend.
     """
     if tbl.empty:
         return []
@@ -274,9 +375,6 @@ Build the student's top-`n` "next steps" cards.
     ready = weak[weak["ready"]].copy()
     if not ready.empty:
         w = ready["weight"] if "weight" in ready.columns else pd.Series(0.5, index=ready.index)
-        #d = ready["downstream"] if "downstream" in ready.columns else pd.Series(0, index=ready.index)
-        #closeness = (ready["mastery"] / MASTERY_THRESHOLD).clip(0, 1)
-        # ready["score"] = 0.5 * _norm(w) + 0.3 * _norm(d) + 0.2 * closeness
         ready["score"] = _norm(w)
         ready = ready.sort_values("score", ascending=False)
     chosen = ready.head(n)
@@ -307,7 +405,6 @@ Build the student's top-`n` "next steps" cards.
             atype, badge = "foundation", "🏗 Foundation"
 
         # Downstream topics this one unlocks (for the card's "Will unlock" list).
-        # nx.descendants = every topic reachable from this one in the prereq graph.
         kc = r["modeling_kc_id"]
         desc = nx.descendants(G, kc) if kc in G else set()
         unlocks = sorted(((LABELS.get(x, x), mm.get(x, 0) >= MASTERY_THRESHOLD) for x in desc),
@@ -322,26 +419,70 @@ Build the student's top-`n` "next steps" cards.
         })
     return items
 
-# ---- Graph builders ----------------------------------------------------------
+
+####################################################################################
+### GRAPH BUILDERS 
+####################################################################################
+
 def _style(fig):
-    """Responsive layout:
-    NO fixed height, so it fills the (expandable) panel."""
+    """Apply the shared, responsive Plotly layout to a figure.
+
+    Sets ``autosize`` (no fixed height, so the figure fills an expandable panel),
+    tight margins, base font, and white backgrounds.
+
+    Parameters
+    ----------
+    fig : plotly.graph_objects.Figure
+        The figure to style, modified in place.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        The same figure, for chaining.
+    """
     fig.update_layout(autosize=True, margin=dict(l=8, r=8, t=8, b=8),
                     font=dict(size=12), paper_bgcolor="white", plot_bgcolor="white")
     return fig
 
 
-def _unit_avg(unit, mastery_map):
+def _unit_avg(unit:str, mastery_map: dict[str, float]) -> float | None:
+    """Average a student's mastery across the attempted MKCs in one unit.
+
+    Parameters
+    ----------
+    unit : str
+        Unit label (e.g. ``"Unit 3"``).
+    mastery_map : dict
+        Mapping ``modeling_kc_id -> mastery`` for the current student.
+
+    Returns
+    -------
+    float or None
+        Mean mastery over the unit's MKCs that have a (non-``NaN``) value, or
+        ``None`` if the student has attempted none of them.
+    """
     vals = [mastery_map[k] for k, u in MKC_UNIT.items() 
             if u == unit and k in mastery_map and pd.notna(mastery_map[k])]
     return sum(vals) / len(vals) if vals else None
 
 
 def build_unit_sankey(mm):
+    """Build the unit-level prerequisite Sankey (overview).
+
+    Nodes are course units, coloured by the student's average mastery in each
+    unit. Links aggregate the cross-unit prerequisite edges (within-unit edges
+    are omitted), with link value summing ``fine_edge_count``.
+
+    Parameters
+    ----------
+    mm : dict
+        Mapping ``modeling_kc_id -> mastery`` for the current student.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        A styled Sankey figure giving a high-level, unit-to-unit view.
     """
-    OVERVIEW: nodes = units (colour = avg mastery), 
-    links = cross-unit prereqs.
-    Note: this is a high-level overview for the student, so we only show links between units, not individual MKCs."""
     agg = {}
     for s, t, v in zip(edges_df["source_modeling_kc_id"],
                     edges_df["target_modeling_kc_id"], edges_df["fine_edge_count"]):
@@ -353,7 +494,6 @@ def build_unit_sankey(mm):
     idx = {u: i for i, u in enumerate(units)}
     colors = [band_color(_unit_avg(u, mm)) for u in units]
     hover = [f"{u}<br>Avg mastery: " +
-            #("n/a" if _unit_avg(u, mm) is None 
             ("Not attempted" if _unit_avg(u, mm) is None
             else f"{_unit_avg(u, mm):.0%}") 
             for u in units]
@@ -369,9 +509,24 @@ def build_unit_sankey(mm):
 
 
 def build_unit_detail_sankey(unit, mm):
-    """
-    DRILL-DOWN: a unit's MKCs + immediate neighbours (few nodes, readable).
-    
+    """Build the drill-down Sankey for a single unit.
+
+    Shows the selected unit's MKCs plus their immediate graph neighbours
+    (predecessors and successors), with the prerequisite edges among that node
+    set. Neighbour nodes from other units are annotated with their unit name.
+
+    Parameters
+    ----------
+    unit : str
+        The unit label to drill into.
+    mm : dict
+        Mapping ``modeling_kc_id -> mastery`` for the current student.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        A styled Sankey for the unit; if no prerequisite links touch the unit, a
+        figure with an explanatory annotation is returned instead.
     """
     core = [k for k, u in MKC_UNIT.items() if u == unit]
     nodeset = set(core)
@@ -387,15 +542,14 @@ def build_unit_detail_sankey(unit, mm):
                         showarrow=False, font=dict(size=14, color="#888"))
         return _style(fig)
     nodes = list(dict.fromkeys([s for s, _, _ in pairs] + [t for _, t, _ in pairs]))
-    idx = {nname: i for i, nname in enumerate(nodes)}
-    labels = [LABELS.get(nname, nname) + ("" if MKC_UNIT.get(nname) == unit
-            else f"  ·{MKC_UNIT.get(nname)}") for nname in nodes]
-    colors = [band_color(mm.get(nname)) for nname in nodes]
-    hover = [f"{LABELS.get(nname, nname)}<br>Mastery: " +
-            #("n/a" if mm.get(nname) is None 
-            ("Not attempted" if mm.get(nname) is None or pd.isna(mm.get(nname))
-            else f"{mm.get(nname):.0%}") 
-            for nname in nodes]
+    idx = {node_name: i for i, node_name in enumerate(nodes)}
+    labels = [LABELS.get(node_name, node_name) + ("" if MKC_UNIT.get(node_name) == unit
+            else f"  ·{MKC_UNIT.get(node_name)}") for node_name in nodes]
+    colors = [band_color(mm.get(node_name)) for node_name in nodes]
+    hover = [f"{LABELS.get(node_name, node_name)}<br>Mastery: " +
+            ("Not attempted" if mm.get(node_name) is None or pd.isna(mm.get(node_name))
+            else f"{mm.get(node_name):.0%}") 
+            for node_name in nodes]
     
     fig = go.Figure(go.Sankey(
         arrangement="snap",
@@ -408,6 +562,26 @@ def build_unit_detail_sankey(unit, mm):
     return _style(fig)
 
 def render_agenda_html(tbl):
+    """
+    Render the training-agenda cards as an HTML string.
+
+    Calls :func:`build_agenda` and lays the items out as a three-column grid of
+    cards. Each card shows the topic, a recommendation badge, current mastery (a
+    progress bar), concrete next-step bullets, any prerequisites still to clear,
+    and the downstream topics it will unlock (first four inline, the rest behind
+    an expandable ``<details>``).
+
+    Parameters
+    ----------
+    tbl : pandas.DataFrame
+        Per-student MKC table (e.g. from :func:`student_mkc_table`).
+
+    Returns
+    -------
+    str
+        An HTML fragment for embedding via ``ui.HTML``. If nothing is weak, a
+        short celebratory message is returned instead.
+    """
     items = build_agenda(tbl, n=3)
     if not items:
         return ("<div style='padding:24px;color:#1D9E75;font-size:16px'>"
@@ -422,24 +596,57 @@ def render_agenda_html(tbl):
 
     cards = ("<div style='display:grid;grid-template-columns:repeat(3,1fr);"
             "gap:12px;align-items:start'>")
+    
+
     for i, it in enumerate(items):
         col, bg = style.get(it["atype"], ("#555", "#f3f3f3"))
         pct = it["mastery"]; bar_col = band_color(pct)
+        
+        # ── Next-step bullets ─────────────────────────────────────────────────
+        # Two strategies are kept here; ONE is active at a time.
+        #
+        # OPTION A (inactive, commented out below): choose advice by MASTERY level.
+        #   Note: every agenda card is already weak (mastery < MASTERY_THRESHOLD),
+        #   so the tiers barely differ and all cards tend to look the same.
+        #
+        # OPTION B (ACTIVE): choose advice by the BADGE (atype), i.e. WHY the card
+        #   was recommended. The badge varies across cards, so each gets distinct,
+        #   relevant advice. To switch strategies, comment this block and
+        #   uncomment Option A.
 
-        if pct >= PROGRESSING_CUTOFF:
-            bullets = ["Review the few items you missed here.",
-                    "Redo homework questions below 60%.",
-                    "Ask your teacher about the hardest part."]
-        # elif pct >= EMERGING_CUTOFF:
-        #     bullets = ["Re-read the relevant notes / textbook section.",
-        #                "Complete ~5 more practice problems.",
+        ####################################################################################
+        #### OPTION A: by mastery level (inactive)
+        #####################################################################################
+        # if pct >= PROGRESSING_CUTOFF:
+        #     bullets = ["Review the few items you missed here.",
+        #                "Redo homework questions below 60%.",
         #                "Ask your teacher about the hardest part."]
-        else:
-            bullets = ["Start from the scaffolded examples.",
-                       "Watch a short explainer for this concept.",
-                       "Build the basics before moving on."]
-        bullet_html = "".join(f"<li style='margin-bottom:2px'>{b}</li>" for b in bullets)
+        # else:
+        #     bullets = ["Start from the scaffolded examples.",
+        #                "Watch a short explainer for this concept.",
+        #                "Build the basics before moving on."]
 
+        ####################################################################################
+        #### OPTION B: by badge / recommendation type (active)
+        #####################################################################################
+        if it["atype"] == "locked":
+            bullets = ["First master the prerequisite skills listed below.",
+                        "Come back to this once those are green.",
+                        "Ask your teacher if you're unsure where to start."]
+        elif it["atype"] == "quickwin":
+            bullets = ["You're close! Review the items you missed here.",
+                        "Redo the practice questions you got wrong.",
+                        "Try one exam-style question on this skill."]
+        elif it["atype"] == "unblock":
+            bullets = ["Spend focused practice on this — it unlocks several later topics.",
+                        "Work through the worked examples step by step.",
+                        "Ask your teacher to check your understanding."]
+        else:  # foundation
+            bullets = ["Start from the scaffolded examples.",
+                        "Watch a short explainer for this concept.",
+                        "Build the basics before moving on."]
+        bullet_html = "".join(f"<li style='margin-bottom:2px'>{b}</li>" for b in bullets)
+        
         meta = []
         if it["tier"]:
             meta.append(chip(it["tier"], col, bg))
@@ -452,8 +659,8 @@ def render_agenda_html(tbl):
         if not it["ready"] and it["missing"]:
             tags = "".join(chip(m, "#A32D2D", "#FCEBEB") for m in it["missing"])
             prereq_html = (f"<div style='border-top:1px solid #eee;padding-top:8px'>"
-                           f"<div style='font-size:12px;color:#888;font-weight:600;margin-bottom:4px'>"
-                           f"⚠ Master these first:</div>{tags}</div>")
+                            f"<div style='font-size:12px;color:#888;font-weight:600;margin-bottom:4px'>"
+                            f"⚠ Master these first:</div>{tags}</div>")
 
         # Downstream KCs this unlocks — first 4 inline, the rest behind <details>
         unlock_html = ""
@@ -468,13 +675,16 @@ def render_agenda_html(tbl):
             if rest:
                 rest_html = "".join(utag(l, m) for l, m in rest)
                 more_html = (f"<details style='margin-top:4px'>"
-                             f"<summary style='cursor:pointer;color:#185FA5;font-size:12px;"
-                             f"list-style:none;font-weight:600'>+{len(rest)} more ▾</summary>"
-                             f"<div style='margin-top:4px'>{rest_html}</div></details>")
+                                f"<summary style='cursor:pointer;color:#185FA5;font-size:12px;"
+                                f"list-style:none;font-weight:600'>+{len(rest)} more ▾</summary>"
+                                f"<div style='margin-top:4px'>{rest_html}</div></details>")
             unlock_html = (f"<div style='border-top:1px solid #eee;padding-top:8px'>"
-                           f"<div style='font-size:12px;color:#888;font-weight:600;margin-bottom:4px'>"
-                           f"🔓 Will unlock ({len(it['unlocks'])} downstream):</div>"
-                           f"{inline_html}{more_html}</div>")
+                            f"<div style='font-size:12px;color:#888;font-weight:600;margin-bottom:4px'>"
+                            f"🔓 Will unlock ({len(it['unlocks'])} downstream):</div>"
+                            f"<div style='font-size:10.5px;color:#aaa;margin-bottom:4px'>"
+                            f"<span style='color:#185FA5'>■</span> still to learn &nbsp; "
+                            f"<span style='color:#9aa0a6'>■</span> already covered</div>"
+                            f"{inline_html}{more_html}</div>")
 
         cards += f"""
         <div style="border:1px solid #e3e3e3;border-top:3px solid {col};border-radius:0 0 10px 10px;
@@ -509,6 +719,8 @@ def render_agenda_html(tbl):
 ####################################################################################
 ### STYLING
 ####################################################################################
+# Page-level CSS injected into the Shiny UI: dark banner, compact coloured KPI
+# value boxes, section-card headers, and tighter tab spacing.
 custom_css = ui.tags.style("""
     body { background:#20303d; }
     .dash-banner 
@@ -552,8 +764,26 @@ custom_css = ui.tags.style("""
     .kc-head .shiny-input-container { margin:0; }
     .section-card .card-body { display:flex;flex-direction:column;padding-top:6px; }
     .tab-pane.bslib-gap-spacing { gap:0.4rem !important; }
+    
+    /* friendly hover tooltip */
+    .info-tip {
+        position:relative; cursor:help; display:inline-block;
+        width:18px; height:18px; line-height:18px; text-align:center;
+        border-radius:50%; background:#185FA5; color:#fff;
+        font-size:12px; font-weight:700; margin-left:6px;
+    }
+    .info-tip:hover::after {
+        content: attr(data-tip);
+        position:absolute; left:24px; top:-6px; z-index:100;
+        width:240px; padding:10px 12px;
+        background:#20303d; color:#fff; font-size:12px; font-weight:400;
+        line-height:1.5; border-radius:8px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.22);
+        white-space:normal;
+    }
 """)
 
+# Dark page banner with the dashboard title and the Stellar Education brand mark.
 banner = ui.div(
     ui.h1("Your Progress Dashboard"),
     ui.div(ui.div("Stellar Education", class_="brand-name"),
@@ -562,6 +792,7 @@ banner = ui.div(
            class_="brand"),
     class_="dash-banner")
 
+# Student selector; the rest of the page reacts to the chosen student id.
 student_picker = ui.div(
     ui.input_select("student", "Student:", choices=STUDENT_IDS,
                     selected=STUDENT_IDS[0] if STUDENT_IDS else None, width="220px"),
