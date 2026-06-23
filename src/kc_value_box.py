@@ -1,6 +1,29 @@
-import pandas as pd
+"""
+This module contains helper function to build a single KPI value-box UI
+component for the Teacher Portal dashboard, showing a count of KCs at a
+given mastery status alongside a comparison to first-attempt counts.
+
+Used to render the "Mastered" / "Progressing" / "Needs Practice" summary
+tiles at the top of the dashboard.
+
+Expects a data DataFrame with at minimum this column:
+    class_date : date string in "%Y-%m-%d" format.
+
+Typical usage :
+    from src.kc_value_box import kpi_value_box
+
+    box = kpi_value_box(
+        data=df_final,
+        status="Mastered",
+        theme=ui.value_box_theme(bg="#60D394"),
+        value_now=12,
+        value_first=8,
+    )
+"""
 from datetime import datetime
 from shiny import ui
+
+
 def kpi_value_box(data, status, theme, value_now, value_first):
     """
     Builds a value box tag. All values must be pre-computed scalars —
@@ -16,12 +39,12 @@ def kpi_value_box(data, status, theme, value_now, value_first):
     """
     # ── Date range ───────────────────────────────────────────────────────
     d_start = datetime.strptime(data['class_date'].unique().min(), "%Y-%m-%d")
-    d_end   = datetime.strptime(data['class_date'].unique().max(), "%Y-%m-%d")
+    d_end = datetime.strptime(data['class_date'].unique().max(), "%Y-%m-%d")
 
     # ── Delta ────────────────────────────────────────────────────────────
-    delta       = value_now - value_first
-    arrow       = "↑" if delta >= 0 else "↓"
-    delta_str   = f"{arrow} {abs(delta)} vs first attempt"
+    delta = value_now - value_first
+    arrow = "↑" if delta >= 0 else "↓"
+    delta_str = f"{arrow} {abs(delta)} vs first attempt"
     arrow_color = "#263744"
 
     # ── Header ───────────────────────────────────────────────────────────

@@ -1,12 +1,12 @@
 import pandas as pd
 import altair as alt
 import os
-from shiny import App, ui, render, reactive, req
+from shiny import App, ui, render, reactive
 from shinywidgets import render_altair, output_widget, reactive_read
 from src.kc_mastery_box import kc_mastery_box
-from src.classify import classify
+from src.classify import classify, compute_opportunity_counts
 from src.unit_mastery_box import unit_mastery
-from src.opportunity_heatmap import opp_heatmap, opportunity_table, compute_opportunity_counts 
+from src.opportunity_heatmap import opp_heatmap, opportunity_table 
 from src.student_status_boxes import student_status_boxes, compute_quantile_cuts
 from src.student_mastery_table import student_mastery_table
 from src.modal_builds import build_kc_modal, build_total_kc_modal
@@ -712,7 +712,7 @@ def server(input, output, session):
     for i in range(4):
         @output(id=f"kc_rank_{i}")
         @render_altair
-        def _render(i=i):
+        def _render():
             names = kc_list_rank()
             if i >= len(names):
                 return None
@@ -723,7 +723,7 @@ def server(input, output, session):
     for i in range(4):
         @output(id=f"kc_rank_title_{i}")
         @render.text
-        def _title(i=i):
+        def _title():
             names = kc_list_rank()
             return names[i] if i < len(names) else ""
 
@@ -740,7 +740,7 @@ def server(input, output, session):
 
         @output(id=output_id)
         @render_altair
-        def _render(i=i):   # default arg captures loop variable
+        def _render():   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
@@ -767,7 +767,7 @@ def server(input, output, session):
 
         @output(id=output_id)
         @render_altair
-        def _render(i=i):   # default arg captures loop variable
+        def _render():   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
@@ -1014,7 +1014,7 @@ def server(input, output, session):
             @output(id=f"card_{ds_id}")
             @render.ui
             def _card():
-                return ui.HTML(build_card(ds_id, title, dataset_cols, col_to_file()))
+                return ui.HTML(build_card(title, dataset_cols, col_to_file()))
         make_card_renderer()
 
     @output
