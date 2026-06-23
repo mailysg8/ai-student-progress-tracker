@@ -1,3 +1,8 @@
+# Due to some issues with running pybkt on mac, we
+# created a custom wheel.
+# If the workflow is not being run on a mac, 
+# follow the instructions detailed below.
+
 name: stellar-proj
 channels:
   - conda-forge
@@ -25,6 +30,7 @@ dependencies:
   - pip
   - pip:
       - shiny>=1.6
-      - "./wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl"
+      - "./wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl" # Comment if not on mac
+      # - pyBKT==1.4.1 # Uncomment if not on mac
       - python-dotenv
       - plotly
