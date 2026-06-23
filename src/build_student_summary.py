@@ -29,15 +29,37 @@ SEARCH = [
     Path.cwd(), Path.cwd()/"data"/"processed", Path.cwd()/"data"/"raw",
 ]
 def find_file(name):
+    """Locate a data file by name across the candidate ``SEARCH`` paths.
+
+    Walks the project's typical data directories (``data/processed``,
+    ``data/raw``, the repo root, and the current working directory) and
+    returns the first match. Lets the script run unchanged whether it is
+    invoked from the repo root or from inside ``src/``.
+
+    Parameters
+    ----------
+    name : str
+        File name to search for (e.g. ``"final_student_kc_data.csv"``).
+
+    Returns
+    -------
+    pathlib.Path
+        The first existing path that matches ``name``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``name`` is not present under any of the search paths.
+    """
     for b in SEARCH:
         f = b / name
         if f.exists():
             return f
     raise FileNotFoundError(f"{name} not found in any of: {[str(s) for s in SEARCH]}")
 
-CSV  = find_file(os.environ.get("FINAL_FILE", "final_student_kc_data.csv"))           # unified data pipeline output
-DATA = find_file(os.environ.get("STUDENT_OBS_FILE", "Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx"))     # Overall_Scores sheet (student-level metadata)
-PACK = find_file(os.environ.get("KC_MAP_FILE", "mkc_mapping_pack_v1.0..xlsx"))          # canonical KC structure (for unit_mkcs)
+CSV  = find_file(os.environ.get("FINAL_FILE"))           # unified data pipeline output
+DATA = find_file(os.environ.get("STUDENT_OBS_FILE"))     # Overall_Scores sheet (student-level metadata)
+PACK = find_file(os.environ.get("KC_MAP_FILE"))          # canonical KC structure (for unit_mkcs)
 OUT  = REPO_ROOT / "notebooks" / "student_summary.html"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 print(f"  Using CSV: {CSV}")
@@ -93,7 +115,22 @@ for _u in UNITS:
     bkt_class_per_unit[_u] = (sum(_vals)/len(_vals)) if _vals else None
 
 def tier_overall(overall):
-    # badge background colors — match the dashboard palette
+    """Map a student's overall mastery score to a status-tier badge.
+
+    Used for the header badge next to the student name in the Student Summary
+    view ("On track" / "Needs attention" / "At risk").
+
+    Parameters
+    ----------
+    overall : float
+        Overall mastery, in ``[0, 1]``.
+
+    Returns
+    -------
+    tuple of (str, str, str)
+        ``(tier_id, tier_label, hex_color)`` where the hex colour comes from
+        the dashboard palette.
+    """
     if overall >= 0.60: return ("on_track",  "On track",        "#60D394")  # Emerald
     if overall >= 0.45: return ("attention", "Needs attention", "#FFD97D")  # Jasmine
     return                    ("at_risk",   "At risk",          "#EE6055")  # Vibrant Coral
@@ -261,11 +298,27 @@ DEFAULT_PICKS = [("S004","High performer"), ("S019","Middle performer"), ("S001"
 
 
 def build_html(picks=None):
-    """Generate the full HTML mockup as a string.
+    """Generate the full Student Summary dashboard as an HTML string.
 
-    picks : list of (student_id, label) tuples.
-            Default = three demo students.
-            Pass [(sid, "")] for single-student rendering — picker/demo-banner/topbar auto-hidden.
+    Builds the per-student data payload (KPI counts, unit tiles, strip-plot
+    mastery distributions, weekly sparkline trends, class-comparison vectors)
+    and substitutes it into ``HTML_TEMPLATE``. The output is a self-contained
+    HTML document with inline CSS and JS, suitable for embedding directly via
+    an iframe ``data:`` URL.
+
+    Parameters
+    ----------
+    picks : list of (str, str) or None, optional
+        ``(student_id, profile_label)`` pairs to render. When ``None``, the
+        default three demo profiles are used. Pass a single-element list with
+        an empty label (``[(sid, "")]``) for single-student rendering — the
+        picker, demo banner, and topbar are auto-hidden in that case so the
+        embedded view looks like a production dashboard.
+
+    Returns
+    -------
+    str
+        A complete HTML document.
     """
     picks = picks or DEFAULT_PICKS
     students = []
