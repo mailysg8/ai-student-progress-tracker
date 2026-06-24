@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/15e86c19-e6e4-4fec-b0bd-c3797659daf3
-
 # Student Progress Tracker
 
 ## Overview
@@ -69,7 +65,13 @@ They should be placed in the `data/raw` folder.
 
 To create the dataframe, follow the video or instructions below :
 
-<video src="img/data_setup.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/d889721b-536d-4b67-8799-0776f4e4b45d" controls width="100%"></video>
+
+https://github.com/user-attachments/assets/d916282b-5581-48ad-90bf-a76dc0bf0f0a
+
+
+
+
 
 1. Create a `.env` file in the project root (an example of what needs to be included can be found in the [`.env.example`](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/.env.example) file)
     - Run the following command in the terminal to copy the `.env.example` file :
@@ -90,7 +92,7 @@ There should now be a file called `final_student_kc_data.csv` in `data/processed
 
 To run the app locally, follow the video or the instructions below : 
 
-<video src="img/run_app.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/6faeaebd-3b24-45c8-a822-2ad3b58546d2" controls width="100%"></video>
 
 1. Run the app in reload mode: 
     - Teacher View : 
@@ -122,7 +124,7 @@ This page allows users to upload data to update the Teacher View.
 > - Only csv files can be uploaded. 
 > - Files to test it can be found in [`data/csv`](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/data/csv)
 
-<video src="img/data_input.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/15e86c19-e6e4-4fec-b0bd-c3797659daf3" controls width="100%"></video>
 
 Once data is uploaded, it replaces the current version of `final_student_kc_data.csv` that is used by both dashboards. 
 
