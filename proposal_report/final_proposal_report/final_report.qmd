@@ -267,15 +267,19 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 :::
 **This view contains the Student Summary and My Practice Plan tabs:**
 
-The Student Overview focuses on one learner. A status summary (@fig-student1) shows the share of
-that student's KCs that are Mastered, Progressing, unattempted or Needing Practice, and a
-detailed table lists every KC with its mastery probability as a progress bar and
-a coloured status badge. Two controls shape the view: a status filter, and a
-toggle between absolute and relative grading. 
+- The Student Overview focuses on a single learner. A status summary (@fig-student1) **shows the proportion of KCs that are Mastered, Progressing, Unattempted, or Needing Practice**, while a detailed table displays each KC with its mastery probability and status. Two toggles shape the view: Course Order, which organizes progress by unit, and Needs Attention First, which prioritizes units and KCs requiring the most support. Students can also compare their performance against class averages using descriptive statistics.
 
-A student can access their next steps based on their current mastery levels (@fig-student2). The prerequisite map shows the student's current mastery for each KC, with arrows indicating which skills are required for others. 
+![Student Summary: a learner's own progress, skill by skill.](img/student_view1.png){#fig-student1 width=95%}
 
-**Status thresholds.** We assign each KC a status from its mastery probability using fixed cut points:
+<br>
+
+- From My Practice Plan, a student can view personalized next steps based on their mastery levels (@fig-student2). This page highlights **mastered KCs, exam readiness, current standing, and KCs that remain locked** until prerequisite skills are completed. A prerequisite map, displayed as a Sankey chart, visualizes relationships between KCs across units and within each unit. Students also receive recommendations based on their current mastery levels, highlighting either foundational KCs that need attention or the skills that will be unlocked once a KC is mastered. Recommendations are prioritized using the weighting scheme provided by our capstone partner.s.
+
+![Your Next Steps: weight-aware recommendations with a prerequisite map.](img/student_view2.png){#fig-student2 width=95%}
+
+<br>
+
+**Status thresholds.** For all views, we assigned each KC a status from its mastery probability using fixed cut points:
 
 | Status | Mastery probability |
 |---|---|
@@ -283,18 +287,9 @@ A student can access their next steps based on their current mastery levels (@fi
 | Progressing | 0.35 – 0.65 |
 | Needs Practice | < 0.35 |
 
-**Absolute vs. Relative status.** In absolute mode the thresholds above are
-applied directly, answering "is this skill objectively mastered?" In relative
-(quantile) mode the same KCs are graded against the whole class's distribution,
-answering "where does this student rank among peers?" A strong student therefore
-stays mostly green under the relative view, while a struggling student's KCs are
-spread across the three bands rather than all flagged red.
 
-![Student Summary: a learner's own progress, skill by skill.](img/student_view1.png){#fig-student1 width=95%}
 
-<br>
 
-![Your Next Steps: weight-aware recommendations with a prerequisite map.](img/student_view2.png){#fig-student2 width=95%}
 
 ## Results
 We ultimately delivered two main outcomes. The first is a functional dashboard that translates raw data into mastery estimates for each Knowledge Component (KC). Teachers can now look at a single screen to identify weak units, spot under practiced skills, and see exactly how each student is progressing.
