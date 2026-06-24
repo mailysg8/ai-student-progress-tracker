@@ -136,7 +136,7 @@ We began our model selection with a simple question: **What does Stellar Educati
 
 The goal was not to grade a class that has already ended; it is to guide data collection for future cohorts, deciding which knowledge components to assess next and which students need more practice on which skills. This is a forward-looking problem, and it called for a method that revises its estimate of a student's mastery as new attempts to questions arrive over the course of the term, so that our recommendations always reflect where each student stands now.
 
-BKT emerged as the most promising candidate to address this need. We selected it as our primary model for evaluation based on four key advantages:"
+**BKT emerged as the most promising candidate to address this need**. We selected it as our primary model for evaluation based on four key advantages:
 
 1. **Theoretical suitability for smaller cohorts.** Deep-learning approaches to knowledge tracing, such as Deep Knowledge Tracing (DKT), typically require thousands of observations to train reliably and would easily overfit our data. Because BKT estimates only four parameters per KC, it is designed to produce meaningful estimates from smaller samples, such as a class of `{python} int(nb_students)` students across `{python} int(nb_kc)` KCs [@badrinath2021]. 
 2.	**It matches the structure of our data.** We have student responses to questions, on a skill, recorded in the order it happened, this is precisely the sequential input BKT was designed to model.
@@ -144,7 +144,7 @@ BKT emerged as the most promising candidate to address this need. We selected it
 4.	**Its output is interpretable.** Mastery is expressed as a single probability between 0 and 1, so Stellar Education can read it directly; "this student has a 73% chance of having mastered this skill," and act on it.
 
 ::: {.callout-note title="Methodological Motivation"}
-**Given this theoretical advantage, a core part of our methodology involved evaluating how well BKT works with our cohort size.**
+**Given this theoretical advantage, an integral part of our experimentation and analysis involved evaluating how well BKT works with our cohort size.**
 :::
 
 ## BKT Methodology
@@ -267,15 +267,15 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 :::
 **This view contains the Student Summary and My Practice Plan tabs:**
 
-- The Student Overview focuses on a single learner. A status summary (@fig-student1) **shows the proportion of KCs that are Mastered, Progressing, Unattempted, or Needing Practice**, while a detailed table displays each KC with its mastery probability and status. Two toggles shape the view: Course Order, which organizes progress by unit, and Needs Attention First, which prioritizes units and KCs requiring the most support. Students can also compare their performance against class averages using descriptive statistics.
+- The Student Summary focuses on a single learner. A status summary (@fig-student1) **shows the proportion of KCs that are Mastered, Progressing, Unattempted, or Needing Practice**, while a detailed table displays each KC with its mastery probability and status. Two toggles shape the view: Course Order, which organizes progress by unit, and Needs Attention First, which prioritizes units and KCs requiring the most support. Students can also compare their performance against class averages using intuitive statistics.
 
-![Student Summary: a learner's own progress, skill by skill.](img/student_view1.png){#fig-student1 width=95%}
+![Student Summary: A learner's personal progress, skill by skill.](img/student_view1.png){#fig-student1 width=95%}
 
 <br>
 
-- From My Practice Plan, a student can view personalized next steps based on their mastery levels (@fig-student2). This page highlights **mastered KCs, exam readiness, current standing, and KCs that remain locked** until prerequisite skills are completed. A prerequisite map, displayed as a Sankey chart, visualizes relationships between KCs across units and within each unit. Students also receive recommendations based on their current mastery levels, highlighting either foundational KCs that need attention or the skills that will be unlocked once a KC is mastered. Recommendations are prioritized using the weighting scheme provided by our capstone partner.s.
+- From My Practice Plan, a student can view personalized next steps based on their mastery levels (@fig-student2). This page highlights **mastered KCs, exam readiness, current standing, and KCs that remain locked** until prerequisite skills are completed. A prerequisite map, displayed as a Sankey chart, visualizes relationships between KCs across units and within each unit. Students also receive recommendations based on their current mastery levels, highlighting either foundational KCs that need attention or the skills that will be unlocked once a KC is mastered. Recommendations are prioritized using the weighting scheme provided by our capstone partner.
 
-![Your Next Steps: weight-aware recommendations with a prerequisite map.](img/student_view2.png){#fig-student2 width=95%}
+![Your Next Steps: Priority-based recommendations with a prerequisite map.](img/student_view2.png){#fig-student2 width=95%}
 
 <br>
 
