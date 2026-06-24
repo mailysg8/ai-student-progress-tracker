@@ -4,6 +4,25 @@
 
 This Student Progress Tracker is a dashboard for visualising student performance. It provides insights into student's mastery over time for both teachers (Teacher View) and students (Student View).
 
+## Portals
+
+| | URL |
+|---|---|
+| Teacher Portal | <https://stellar-edu.shinyapps.io/stellar_education_-_teacher_portal/> |
+| Student Portal | <https://stellar-edu.shinyapps.io/stellar_education_-_student_portal/> |
+| Documentation site | <https://mailysg8.github.io/ai-student-progress-tracker/> |
+
+## Where to find what
+
+| If you want to … | Go to … |
+|---|---|
+| Read the full project documentation | <https://mailysg8.github.io/ai-student-progress-tracker/> (sources in [`docs/`](docs/)) |
+| Browse the experiment notebooks (BKT comparison, KC aggregation, edge cases) | [`notebooks/`](notebooks/) — see [`notebooks/README.md`](notebooks/README.md) for a one-line description of each |
+| Look at the dashboard source code | [`app.py`](app.py) (Teacher Portal), [`student_app.py`](student_app.py) (Student Portal), and the helpers in [`src/`](src/) |
+| See the data pipeline | [`src/pipeline/`](src/pipeline/) and the `make all` target in [`Makefile`](Makefile) |
+| Deploy or maintain the live dashboards | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
+| Read the proposal report | [`proposal_report/`](proposal_report/) |
+
 ## Instructions
 
 You can run this app locally following the instructions below.
