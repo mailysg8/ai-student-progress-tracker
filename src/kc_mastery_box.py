@@ -1,3 +1,17 @@
+"""
+This module contains helper functions to create the KC progress card used on the dashboard with a class-wide progress bar, a per-student tile grid colour-coded by
+mastery status, and a legend.
+
+Expects a DataFrame with at minimum these columns:
+    student_id         : unique student identifier
+    state_predictions  : BKT mastery probability (float, 0-1)
+    name               : student display name (required only if show_names=True)
+
+Typical usage :
+    from src.kc_mastery_box import kc_mastery_box
+
+    chart = kc_mastery_box(df_final, mastery_threshold=0.70, practice_threshold=0.30)
+"""
 import pandas as pd
 import altair as alt
 import numpy as np
@@ -29,6 +43,7 @@ def tile_positions(n, cols = 8) :
 
 
 def status_color(status: str, key: str) -> str:
+    """Assign a colors to each mastery level."""
     mapping = {
         "Mastered":    {"fill": MASTERED_FILL, "stroke": MASTERED_STROKE, "text": MASTERED_TEXT},
         "Progressing": {"fill": PROGRESS_FILL,  "stroke": PROGRESS_STROKE,  "text": PROGRESS_TEXT},
@@ -46,28 +61,52 @@ def kc_mastery_box(
     tile_size: int = 38,
     tile_gap: int = 6,
     show_names: bool = False,
-) : 
-    """
-    Build a two-layer Altair chart:
-      • Top card  – KC name, mastery %, progress bar, legend
-      • Bottom grid – one tile per student coloured by mastery status
+):
+    """Build a two-layer Altair chart summarising KC mastery for a class.
+
+    Layer 1 (top)    : a horizontal progress bar showing the percentage of
+                        students who have mastered the knowledge component.
+    Layer 2 (middle) : a tile grid with one square per student, colour-coded
+                        by mastery status (Mastered / Progressing / Needs
+                        Practice), with hover tooltips showing the exact
+                        mastery probability.
+    Layer 3 (bottom) : a text legend with per-status counts.
+
+    Mastery status is derived per student via classify().
 
     Parameters
     ----------
-    kc_name    : displayed name of the knowledge component
-    students   : DataFrame with at least columns ``name`` (str) and ``score`` (float 0-1).
-                 An optional ``student_id`` column is used for tile labels when present
-                 and show_names is False; otherwise initials are derived from ``name``.
-    threshold  : mastery cut-off (default 0.80)
-    cols       : tiles per row in the student grid (default 8)
-    tile_size  : pixel size of each square tile (default 38)
-    tile_gap   : gap between tiles in pixels (default 6)
-    show_names : if True, show name initials (from ``name`` column) instead of ``student_id``.
+    data : pd.DataFrame
+        DataFrame with one row per student for a single knowledge component.
+        Must contain:
+            student_id : unique student identifier
+            state_predictions : BKT mastery probability (float, 0-1)
+        Must also contain ``name`` if ``show_names=True``.
+    mastery_threshold : float, default 0.70
+        Minimum ``state_predictions`` value to classify a student as
+        "Mastered".
+    practice_threshold : float, default 0.30
+        Maximum ``state_predictions`` value to classify a student as
+        "Needs Practice" (values at or above this but below
+        ``mastery_threshold`` are "Progressing").
+    cols : int, default 8
+        Number of tiles per row in the student grid.
+    tile_size : int, default 38
+        Pixel size of each square tile.
+    tile_gap : int, default 6
+        Gap between tiles in pixels.
+    show_names : bool, default False
+        If True, tile labels show initials derived from the ``name`` column
+        (first letter of up to the first two words, uppercased). If False,
+        tile labels show ``student_id``.
 
-    
     Returns
     -------
-    alt.VConcatChart  – use .show() or return from a Quarto cell
+    alt.VConcatChart
+
+    Examples
+    --------
+    >>> chart = kc_mastery_box(df_final, mastery_threshold=0.70, practice_threshold=0.30)
     """
 
     # ── prepare data ────────────────────────────────────────────────────────

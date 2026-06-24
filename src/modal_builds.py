@@ -1,3 +1,33 @@
+"""
+This module contains helper functions to build modal popup content 
+for the Teacher Portal dashboard, triggered when a teacher clicks a KC summary value box.
+
+Renders a scrollable list of knowledge components grouped by unit, each
+shown with its mastery percentage and (for status-filtered modals) a
+status badge.
+
+Two modal variants are provided:
+    build_total_kc_modal : shows ALL KCs regardless of status, with an
+                            inline status badge per row.
+    build_kc_modal        : shows only KCs matching one status (Mastered,
+                            Progressing, or Needs Practice), with styling
+                            driven by STATUS_CONFIG.
+
+Expects a df DataFrame with at minimum these columns:
+    unit               : str, e.g. "Unit 1" (must contain a digit for sorting)
+    modeling_kc_label  : str, the KC display name
+    pct_mastered       : float in [0, 1]
+    status             : str, one of "Mastered", "Progressing", "Needs Practice"
+
+Typical usage :
+    from src.modal_builds import build_total_kc_modal, build_kc_modal
+
+    modal_content = build_total_kc_modal(df_kc_summary)
+    # or, for a single status:
+    modal_content = build_kc_modal(df_kc_summary, status="Mastered",
+                                    mastery=0.70, practice=0.30)
+"""
+
 from shiny import ui
 
 # ---------------------------------------------------------------------------

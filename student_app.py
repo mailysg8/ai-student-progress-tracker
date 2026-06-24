@@ -74,6 +74,12 @@ def login_card_ui():
         ),
     )
 
+def info_icon(text):
+    """ 
+    Helper function for customized hover icon on Sankey Chart and Next Steps 
+    """
+    return ui.span("?", {"class": "info-tip", "data-tip": text})
+
 
 def practice_plan_static_ui():
     """STATIC Practice Plan UI — always rendered in app_ui so the Sankey widget
@@ -111,6 +117,7 @@ def practice_plan_static_ui():
                     choices=[OVERVIEW_LABEL] + UNIT_LIST,
                     selected=OVERVIEW_LABEL, width="240px",
                 ),
+                ui.output_ui("kc_info"),
                 class_="kc-head",
             )
         ),
@@ -118,7 +125,13 @@ def practice_plan_static_ui():
         class_="section-card", height="380px", full_screen=True, fill=True,
     )
     agenda_card = ui.card(
-        ui.card_header("🌟 Your Personalized Next Steps & Training Agenda"),
+        ui.card_header(
+            ui.div("🌟 Your Personalized Next Steps & Training Agenda",
+                info_icon("These are the best things to practice next. "
+                        "Blue tags are skills you'll unlock; grey tags are ones you've already got. "
+                        "The bar shows how close you are to mastering each topic."),
+                    style="display:flex;align-items:center")
+            ),
         ui.output_ui("agenda"),
         class_="section-card", height="440px", full_screen=True,
     )
@@ -127,6 +140,7 @@ def practice_plan_static_ui():
         id="practice_plan_root",
         style="padding:16px 24px;",
     )
+    
 
 
 # ─── App UI ───────────────────────────────────────────────────────────────────
@@ -501,6 +515,21 @@ def server(input, output, session):
         return build_unit_detail_sankey(v, mastery_map())
 
     @render.ui
+    def kc_info():
+        """ 
+        Integrates tool tip to the Sankey Knowledge Prerequisite Graph, 
+        providing additional context for the user.
+        """
+        overview = (not input.kc_view()) or input.kc_view() == OVERVIEW_LABEL
+        if overview:
+            tip = ("Each node is a unit. A link from A to B means topics in B build on A. "
+                "Thicker links connect more prerequisite relationships.")
+        else:
+            tip = ("Each node is a knowledge component. A link from A to B means B builds on A "
+            "(A is a prerequisite). The Units which the skills belong to are shown for context.")
+        return info_icon(tip)
+
+    @render.ui
     def agenda():
         """Render the personalised "Next Steps & Training Agenda" cards.
 
@@ -515,6 +544,6 @@ def server(input, output, session):
                 "Log in to see your personalised agenda.</div>"
             )
         return ui.HTML(render_agenda_html(t))
-
+    
 
 app = App(app_ui, server)
