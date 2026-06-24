@@ -1,3 +1,33 @@
+"""
+This module contains helper functions to build the student progress card in the opportunity heatmap tab in the Teacher
+Portal dashboard.
+
+Renders two stacked Altair charts:
+    1. A progress bar showing the student's latest mastery probability.
+    2. A line + scatter chart of mastery probability across attempts,
+       colour-coded by correct/incorrect, with a dashed mastery threshold
+       line at 0.70.
+
+If the student has no attempts on the given KC, returns a text-only chart
+with a message, optionally suggesting up to 3 other assignments/questions
+linked to that KC.
+
+Expects a data DataFrame with at minimum these columns:
+    student_id         : unique student identifier
+    modeling_kc_label   : KC display name
+    kc_attempt          : 1-based attempt index per student/KC pair
+    state_predictions   : BKT mastery probability (float, 0-1)
+    correct             : 1.0 / 0.0 (or NaN), whether the attempt was correct
+    unit                : str, e.g. "Unit 1"
+    class_date, source_question, assignment_id : optional, used for
+        tooltips and the empty-state message; missing values are
+        displayed as "—"
+
+Typical usage :
+    from src.student_card import student_kc_card
+
+    chart = student_kc_card(df_final, student_id="S023", kc_label="Confidence Intervals")
+"""
 import pandas as pd
 import altair as alt
 
@@ -11,6 +41,40 @@ LABEL_COLOR   = "#263744"
 
 
 def student_kc_card(data: pd.DataFrame, student_id: str, kc_label: str):
+    """Build a detail card for one student's history on one knowledge component.
+
+    Filters ``data`` to the given student and KC. If no rows match, returns
+    a text-only chart explaining there are no attempts yet, with up to 3
+    suggested assignments/questions linked to that KC (drawn from other
+    students' attempts) if any exist. Otherwise, returns a two-part chart:
+    a progress bar showing the latest mastery probability, and a line +
+    scatter chart of mastery probability across attempts, with points
+    coloured by whether the attempt was correct and a dashed reference
+    line at the 0.70 mastery threshold.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Full observations DataFrame across all students and KCs. Must
+        contain 'student_id', 'modeling_kc_label', 'kc_attempt',
+        'state_predictions', 'correct', and 'unit'. 'class_date',
+        'source_question', and 'assignment_id' are used if present.
+    student_id : str
+        The student to filter to.
+    kc_label : str
+        The knowledge component (by display label) to filter to.
+
+    Returns
+    -------
+    alt.Chart or alt.VConcatChart
+        A single text chart if the student has no attempts on this KC,
+        otherwise a vertically concatenated progress-bar + line chart.
+
+
+    Examples
+    --------
+    >>> chart = student_kc_card(df_final, student_id="S1023", kc_label="Confidence Intervals")
+    """
     df = (
         data[
             (data["student_id"] == student_id) &

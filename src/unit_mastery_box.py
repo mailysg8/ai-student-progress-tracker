@@ -1,7 +1,29 @@
+"""
+This module contains helper functions to build the unit mastery overview element for the Teacher
+Portal dashboard.
+
+Three pieces compose the final chart:
+    unit_kc_chart : one unit's row — a label plus a grid of KC tiles.
+    unit_mastery  : the full assembled grid across all units, plus an
+                    inline summary legend.
+
+Expects a data DataFrame (passed to unit_mastery) with at minimum:
+    unit                : str, e.g. "Unit 1" (must contain a digit)
+    modeling_kc_id       : KC identifier
+    modeling_kc_label    : KC display name
+    state_predictions    : per-student BKT mastery probability (float, 0-1)
+
+Typical usage :
+    from src.unit_mastery_box import unit_mastery
+
+    chart = unit_mastery(df_final, mastery_threshold=0.70, practice_threshold=0.30)
+"""
+
 import pandas as pd
 import altair as alt
 import numpy as np
 from src.classify import classify
+
 # ── colour constants ────────────────────────────────────────────────────────
  
 MASTERED_FILL       = "#60D394"
@@ -20,6 +42,7 @@ BG_COLOR            = "#F5F4F0"
 # ── helpers ─────────────────────────────────────────────────────────────────
  
 def status_color(status: str, key: str) -> str:
+    """Assign a colors to each mastery level."""
     mapping = {
         "Mastered":          {"fill": MASTERED_FILL,    "stroke": MASTERED_STROKE},
         "Progressing":       {"fill": PROGRESS_FILL,    "stroke": PROGRESS_STROKE},
@@ -47,21 +70,39 @@ def unit_kc_chart(
     tile_gap: int = 6,
     label_width: int = 90,
 ) -> alt.Chart:
-    """
-    Build one row of the dashboard for a single unit.
- 
+    """Build one row of the dashboard for a single unit.
+
+    Renders a left-aligned unit label next to a left-to-right grid of
+    clickable tiles, one per knowledge component in ``unit_df``, coloured
+    by mastery status. Clicking a tile toggles its highlight; clicking
+    a second time, or double-clicking, clears the selection.
+
     Parameters
     ----------
-    unit_name         : display label shown on the left
-    unit_df           : DataFrame with at least these columns:
-                          - modeling_kc_label   (str)  KC name shown in tooltip
-                          - state_predictions   (float) mastery probability 0–1
-    mastery_threshold : score >= this  → Mastered
-    practice_threshold : score <= this  → Needs Practice
-    cols              : max tiles per row inside the grid
-    tile_size         : width/height of each square in px
-    tile_gap          : gap between squares in px
-    label_width       : pixel width reserved for the unit label on the left
+    unit_name : str
+        Display label shown to the left of the tile grid.
+    unit_df : pd.DataFrame
+        DataFrame for this unit only, with at least:
+            modeling_kc_label : str, KC name shown in the tooltip
+            pct_mastered       : float in [0, 1], fraction of the class
+                                  that has mastered this KC
+    mastery_threshold : float, default 0.70
+        Minimum ``pct_mastered`` to classify a KC as "Mastered".
+    practice_threshold : float, default 0.30
+        Maximum ``pct_mastered`` to classify a KC as "Needs Practice".
+    cols : int, default 8
+        Maximum tiles per row before wrapping to a new row inside the grid.
+    tile_size : int, default 38
+        Width/height of each square tile, in pixels.
+    tile_gap : int, default 6
+        Gap between tiles, in pixels.
+    label_width : int, default 90
+        Pixel width reserved for the unit label column on the left.
+
+    Returns
+    -------
+    alt.Chart
+        A horizontally concatenated label + tile grid for this unit.
     """
     df = unit_df.copy().reset_index(drop=True)
     df["status"] = df["pct_mastered"].apply(
@@ -153,51 +194,9 @@ def unit_kc_chart(
     return alt.hconcat(label, tiles, spacing=16).resolve_scale(
         x="independent", y="independent"
     )
- 
- 
-# ── legend ───────────────────────────────────────────────────────────────────
- 
-def make_legend() -> alt.Chart:
-    items = [
-        {"status": "Mastered",          "fill": MASTERED_FILL,    "stroke": MASTERED_STROKE,    "x": 0},
-        {"status": "Progressing",       "fill": PROGRESS_FILL,    "stroke": PROGRESS_STROKE,    "x": 1},
-        {"status": "Needs Practice", "fill": PRACTICE_FILL, "stroke": PRACTICE_STROKE, "x": 2},
-    ]
-    thresholds = ["≥ 70%", "30 – 70%", "≤ 30%"]
-    for item, thr in zip(items, thresholds):
-        item["label"] = f"{item['status']}  ({thr})"
- 
-    ldf = pd.DataFrame(items)
-    ldf["y"] = 0
- 
-    squares = (
-        alt.Chart(ldf)
-        .mark_rect(cornerRadius=4, width=14, height=14)
-        .encode(
-            x=alt.X("x:O", axis=None),
-            y=alt.Y("y:O", axis=None),
-            color=alt.Color("fill:N",   scale=None, legend=None),
-            stroke=alt.Stroke("stroke:N", scale=None, legend=None),
-            strokeWidth=alt.value(1.5),
-        )
-    )
- 
-    labels = (
-        alt.Chart(ldf)
-        .mark_text(align="left", baseline="middle", dx=12, fontSize=12, color=LABEL_COLOR)
-        .encode(
-            x=alt.X("x:O", axis=None),
-            y=alt.Y("y:O", axis=None),
-            text="label:N",
-        )
-    )
- 
-    return (
-        (squares + labels)
-        .properties(width=520, height=24)
-        .configure_view(strokeWidth=0)
-    )
- 
+
+
+
 def unit_mastery(
     data: pd.DataFrame,
     mastery_threshold: float = 0.70,
@@ -205,21 +204,51 @@ def unit_mastery(
     cols: int = 8,
     tile_size: int = 38,
     tile_gap: int = 6,
-    label_width: int = 90
+    label_width: int = 90,
 ) -> alt.VConcatChart:
-    """
-    Build the full multi-unit KC mastery grid.
- 
+    """Build the full multi-unit KC mastery grid with a summary legend.
+
+    For each (unit, KC) pair, computes the fraction of students whose
+    state_predictions meets mastery_threshold ("pct_mastered"), classifies
+    each KC by that fraction via classify(), then renders one tile-grid
+    row per unit (via unit_kc_chart) stacked vertically, followed by an
+    inline legend showing Mastered / Needs Practice / Progressing counts
+    across all KCs and units.
+
+    Units are sorted numerically by the digit embedded in their name
+    (e.g. "Unit 2" before "Unit 10"), then by ascending pct_mastered
+    within each unit.
+
     Parameters
     ----------
-    data              : DataFrame with columns for unit, KC label, and mastery score
-    mastery_threshold : score >= this  → Mastered          (default: 0.70)
-    practice_threshold : score <= this  → Needs Practice (default: 0.30)
-    cols              : max tiles per row                   (default: 8)
-    tile_size         : tile width/height in px             (default: 38)
-    tile_gap          : gap between tiles in px             (default: 6)
-    label_width       : width of the unit-name column       (default: 90)
-    title             : chart title                         (default: "Unit Mastery Overview")
+    data : pd.DataFrame
+        Full observations DataFrame. Must contain 'unit', 'modeling_kc_id',
+        'modeling_kc_label', and 'state_predictions'.
+    mastery_threshold : float, default 0.70
+        Minimum per-student state_predictions to count as "mastered" when
+        computing pct_mastered, and minimum pct_mastered to classify a KC
+        as "Mastered".
+    practice_threshold : float, default 0.30
+        Maximum pct_mastered to classify a KC as "Needs Practice".
+    cols : int, default 8
+        Maximum tiles per row within each unit's grid.
+    tile_size : int, default 38
+        Width/height of each square tile, in pixels.
+    tile_gap : int, default 6
+        Gap between tiles, in pixels.
+    label_width : int, default 90
+        Pixel width reserved for each unit's label column.
+
+    Returns
+    -------
+    alt.VConcatChart
+        One tile-grid row per unit, stacked vertically, followed by a
+        summary legend row.
+
+
+    Examples
+    --------
+    >>> chart = unit_mastery(df_final, mastery_threshold=0.70, practice_threshold=0.30)
     """
 
     df = (
