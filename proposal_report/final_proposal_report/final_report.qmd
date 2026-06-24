@@ -114,7 +114,7 @@ In addition to student responses, Stellar Education provided metadata describing
 
 We included data considerations and feedback from our Capstone Partner into the design process. 
 
-- **Sparse coverage.** We discovered that not every student attempted every KC (as can be seen in @tbl-practice_summary), so the student-by-KC matrix is incomplete. The dashboard treats absent attempts as "not started" rather than as failures.
+- **Sparse coverage.** We discovered that not every student attempted every KC (as can be seen in @tbl-practice_summary). The dashboard treats absent attempts as "not started" rather than as failures.
 
 ```{python}
 #| label: tbl-practice_summary
@@ -123,7 +123,6 @@ Markdown(practice_summary.to_markdown())
 ```
 
 - **Privacy.** Students are identified only by anonymized codes (S001–S025); no personally identifying information is used or displayed.
-- **Mixed-type columns.** A revision-note column (`2026_27_revision_note`) loaded with mixed types and was excluded from modeling; it carries no signal for mastery estimation.
 
 # Data Science Methods
 
@@ -134,14 +133,14 @@ Markdown(practice_summary.to_markdown())
 
 We began our model selection with a simple question: **What does Stellar Education actually need this system to do?** 
 
-The goal was not to grade a class that has already ended; it is to guide data collection for future cohorts, deciding which knowledge components to assess next and which students need more practice on which skills. This is a forward-looking problem, and it called for a method that revises its estimate of a student's mastery as new attempts to questions arrive over the course of the term, so that our recommendations always reflect where each student stands now.
+Our goal was to find a way to combine providing insights into how a current class is doing while also guiding data collection for future cohorts. This is a forward-looking problem that required estimates that of a student's mastery update after every new attempt, so that our recommendations always reflect where each student stands now.
 
-**BKT emerged as the most promising candidate to address this need**. We selected it as our primary model for evaluation based on four key advantages:
+**BKT emerged as a good solution**. We selected it as our model for estimation based on four key advantages:
 
 1. **Theoretical suitability for smaller cohorts.** Deep-learning approaches to knowledge tracing, such as Deep Knowledge Tracing (DKT), typically require thousands of observations to train reliably and would easily overfit our data. Because BKT estimates only four parameters per KC, it is designed to produce meaningful estimates from smaller samples, such as a class of `{python} int(nb_students)` students across `{python} int(nb_kc)` KCs [@badrinath2021]. 
-2.	**It matches the structure of our data.** We have student responses to questions, on a skill, recorded in the order it happened, this is precisely the sequential input BKT was designed to model.
-3.	**It updates without retraining.** Each new response refines a student's mastery estimate immediately, which lets us track students continuously across the term and use the most recent estimate to decide what to assess next.
-4.	**Its output is interpretable.** Mastery is expressed as a single probability between 0 and 1, so Stellar Education can read it directly; "this student has a 73% chance of having mastered this skill," and act on it.
+2.	**It matches the structure of our data.** The sequential input BKT was designed to model matches what we have.
+3.	**It updates without retraining.** Each new response updates a student's mastery estimate, which lets us track students continuously and use the most recent estimate to decide what to assess next.
+4.	**Its output is interpretable.** Mastery is expressed as a single probability which can be interpreted as "this student has a 73% chance of having mastered this skill".
 
 ::: {.callout-note title="Methodological Motivation"}
 **Given this theoretical advantage, an integral part of our experimentation and analysis involved evaluating how well BKT works with our cohort size.**
@@ -204,13 +203,9 @@ Markdown(kc_agg_results.to_markdown())
 
 ## Evaluation
 
-To assess whether the model generalises to unseen students, we used a student-level 70-30 train-test split. Splitting by student rather than by attempt reflects real deployment conditions and prevents data leakage.
+To assess whether the model generalises to unseen students, we used a student-level 70-30 train-test split. Splitting by student rather than by attempt reflects real deployment conditions and allows us to maintain the sequential structure of the data needed for BKT.
 
-We report two complementary metrics: `RMSE (Root Mean Square Error)` and `AUC (Area Under the Receiver Operating Characteristic Curve)`. Although RMSE is a regression metric and AUC is a classification metric, both are appropriate because BKT produces probabilities between 0 and 1.
-
-`RMSE` measures how close the predicted probabilities are to the observed outcomes, while `AUC` measures how well the model ranks students, placing those who are struggling below those who are performing well. **Because a model may produce accurate probability estimates (low RMSE) yet fail to effectively rank students by performance (low AUC), both metrics are needed for a complete evaluation** [@dhanani2014comparison].
-
-
+We decided to use two metrics: `RMSE (Root Mean Square Error)` and `AUC (Area Under the Receiver Operating Characteristic Curve)`. Combining a regression metric (`RMSE`) with a classification metric (`AUC`), allows us to test both how accurate the probability estimates are and how well student performance is classified. Both these metrics are also commonly used in BKT research [@dhanani2014comparison].
 
 
 ## Ethical Considerations and Limitations of our Approach
@@ -230,12 +225,8 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 
 **This view contains 3 pages:**
 
-- The Class Overview page (@fig-teacher1) opens with four summary boxes: the total number of KCs and how many are currently Mastered, Progressing, or Needing Practice, each compared against the cohort's first attempt to show movement over time. Below them, three panels give complementary views of the same cohort.
 
-  - **Unit Mastery Overview**. A grid where every KC is a coloured tile grouped by unit, green for mastered, yellow for progressing, and red for needs practice. It makes weak units visible at a glance.
-  - **KC Progress**. For a selected KC, we show the class student by student alongside the percentage who have mastered that skill. Tabs separate the most important KCs, those needing practice, and those showing good progress.
-  - **KC Opportunities and Opportunity Heatmap**. These show how much practice each skill has received. The heatmap plots students against KCs and shades each cell by practice volume, exposing skills the whole class has barely attempted.
-
+- The Class Overview page (@fig-teacher1) provides information for the whole class. Four summary boxes give insights into how the class is progressing with the KC. The **Unit Mastery Overview** groups every KC into a coloured tile by unit, making weak units visible at a glance. **KC Progress** allows you to compare class progress across selected KCs. **KC Opportunities and Opportunity Heatmap** show how much practice each skill has received and show how students progress across attempts.
 
 ![Teacher View 1 with Class Overview: Whole-class status across all knowledge components.](img/teacher_view1.png){#fig-teacher1 width=95%}
 
@@ -243,23 +234,19 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 <br>
 
 
-- The Student Overview page (@fig-teacher2) opens with a student selector, a relative (quantile) status toggle, and a status filter, letting you focus on one student at a time and choose between predicted mastery values or the students actual results. Below this, two panels give complementary views of that student's progress.
+- The Student Overview page (@fig-teacher2) opens with a student selector, a quantile status toggle, and a status filter , letting users focus on one student and choose between predicted mastery or actual results. Two panels below give complementary views of that student's progress. **Status Summary** shows the percentage of KCs Mastered, Progressing, or Needing Practice, with KC counts beneath each. **P(Mastery)** by KC lists every KC with a progress bar for mastery probability, sorted highest to lowest, surfacing solid skills and weak spots at a glance.
 
-  - **Status Summary**. Three boxes show the percentage of KCs the selected student has Mastered, is Progressing on, or still Needs Practice on, with the underlying KC count shown beneath each percentage. It gives an immediate read on where the student stands overall.
-  - **P(Mastery) by KC**. A scrollable list of every KC, each with a progress bar showing the student's mastery probability, the exact percentage, and a coloured status tag. Sorted from highest to lowest mastery, it shows at a glance which skills are solid and which are falling behind.
-
-![Teacher View 2 with Student Specifics: Drilling into a Single Student in the class.](img/teacher_view2.png){#fig-teacher2 width=95%} 
+![Teacher View 2 with Student Specifics: Drilling into a Single Student in the class.](img/teacher_view2.png){#fig-teacher2 width=95%}
 
 <br>
 
-- The Data Input page (@fig-teacher3) opens with a file uploader, letting you browse and upload one or more CSV files at once, with each dataset's required columns contained in a single file. Below it, four schema cards show what each uploaded dataset still needs.
-  - **Student Observations, Class Plan, KC Map, and Weights**. Each card lists the required columns for that dataset and tracks how many have been matched so far (e.g. "0 / 8"), with a marker beside each column name indicating whether it's been found in the uploaded files. It makes missing or misnamed columns visible before any processing happens.
-  - **Preprocess data and Save and update dashboard**. Once the required columns are satisfied, these buttons run the data through preprocessing and push the results into the rest of the dashboard.
-> **Note** : Due to some issues with pyBKT package versions, the Data Input page only works when running the app locally not on the hosted version.
+- The Data Input page (@fig-teacher3) allows you to **upload CSV files**, while checking that all the column requirements are met. Two buttons then run the uploaded data through **preprocessing and update the dashboard**.
 
-![Teacher View 3 with Data Input: Allows teachers to upload data to update dashboard.](img/teacher_view3.png){#fig-teacher3 width=95%} 
+::: {.callout-note}
+ **Note** : The Data Input page only works when running the app locally, not on the hosted version.
+::: 
 
-
+![Teacher View 3 with Data Input: Allows teachers to upload data to update dashboard.](img/teacher_view3.png){#fig-teacher3 width=95%}
 
 ## Student Overview
 
