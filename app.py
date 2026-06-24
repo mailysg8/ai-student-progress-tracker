@@ -67,12 +67,16 @@ PALETTE = [
 ]
 
 # Info icon
-icon_title = "Information"
-def bs_info_icon(title: str):
-    # Enhanced from https://rstudio.github.io/bsicons/ via `bsicons::bs_icon("info-circle", title = icon_title)`
-    return ui.HTML(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="bi bi-info-circle " style="height:1em;width:1em;fill:currentColor;" aria-hidden="true" role="img" ><title>{title}</title><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"></path></svg>')
-
-
+def info_icon():
+    """Helper function to create the info icon"""
+    return ui.HTML(
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" '
+        f'class="bi bi-question-circle-fill" '
+        f'style="height:1em;width:1em;fill:#263744;" '
+        f'aria-hidden="true" role="img">'
+        f'<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247m2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z"></path>'
+        f'</svg>'
+    )
 
 
 app_ui = ui.page_navbar(
@@ -106,25 +110,33 @@ app_ui = ui.page_navbar(
                                 ui.div(
                                     ui.span("Key KC Insights", style="font-size: 22px;"),
                                     ui.tooltip(
-                                        bs_info_icon(icon_title),
+                                        info_icon(),
                                         """
                                         Each box provides insights into the
-                                        Knowledge Components (KCs).
-                                        For each KC, the proportion of students
-                                        with a BKT mastery probability above
-                                        the mastery threshold is computed.
-                                        Each KC is then assigned a status
-                                        based on that proportion. The boxes
-                                        display the count of KCs falling into
-                                        each status.
+                                        Knowledge Components (KCs) and how the
+                                        class is progressing with them.
+                                        Click on the box to see more information.
                                         """,
                                     ),
-                                    style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                                    style="display: flex; align-items: center; gap: 8px; width: 100%;"
                                 )
                     ),
                     ui.layout_columns(
                         ui.value_box(
-                            "Total KCs",
+                            ui.div(
+                                ui.span("Total KCs",),
+                                ui.tooltip(
+                                    info_icon(),
+                                    """
+                                    This box counts the number of Knowledge Components 
+                                    in this course.
+                                    Clicking on the box reveals the list of courses grouped by units 
+                                    and their corresponding mastery level and probability.
+                                    """,
+                                ),
+                                style="display: flex; align-items: center; gap: 8px; width: 100%;",
+                            ),
+
                             ui.output_text("vb_total"),
                             theme=ui.value_box_theme(bg="#8B9DBB", fg="#263744"),
                             id="vb_total_box",
@@ -164,14 +176,14 @@ app_ui = ui.page_navbar(
                                 ui.div(
                                     ui.span("Unit Mastery Overview", style="font-size: 22px;"),
                                     ui.tooltip(
-                                        bs_info_icon(icon_title),
+                                        info_icon(),
                                         """
                                         Each square is a Knowledge Component (KC). 
                                         Green = class has largely mastered it, yellow = still in progress, red = needs practice.
                                         Use this to spot which units may require additional support.
                                         """,
                                     ),
-                                    style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                                    style="display: flex; align-items: center; gap: 8px; width: 100%;"
                                 )
                             ),
                             output_widget("unit_mastery_chart"),
@@ -183,11 +195,14 @@ app_ui = ui.page_navbar(
                                 ui.div(
                                     ui.span("KC Opportunities", style="font-size: 22px;"),
                                     ui.tooltip(
-                                        bs_info_icon(icon_title),
-                                        "The KCs where students have had the least practice on average. "
-                                        "Consider assigning more questions on these skills.",
+                                        info_icon(),
+                                        """
+                                        Compares the average opportunities per student accross different KCs.
+                                        Switch tabs to focus on KCs needing practice or showing good progress or 
+                                        to choose which KCs to compare. 
+                                        """,
                                     ),
-                                    style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                                    style="display: flex; align-items: center; gap: 8px; width: 100%;"
                                 )
                             ),
                             ui.navset_tab(
@@ -226,15 +241,16 @@ app_ui = ui.page_navbar(
                             ui.div(
                                 ui.span("KC Progress", style="font-size: 22px;"),
                                 ui.tooltip(
-                                    bs_info_icon(icon_title),
+                                    info_icon(),
                                     """
                                     Each card shows one Knowledge Component (KC). 
-                                    Squares represent individual students — green = mastered, yellow = progressing, red = needs practice. 
+                                    Squares represent individual students. 
                                     The progress bar shows the class mastery rate. 
-                                    Switch tabs to focus on KCs needing practice or showing good progress.
+                                    Switch tabs to focus on KCs needing practice or showing good progress or 
+                                    to choose which KCs to compare.
                                     """,
                                 ),
-                                style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                                style="display: flex; align-items: center; gap: 8px; width: 100%;"
                             )
                         ),
                         ui.navset_tab(
@@ -301,7 +317,19 @@ app_ui = ui.page_navbar(
                 # -- Student info card
                     ui.card(
                         ui.card_header(
-                            ui.output_text("student_kc_card_title")
+                            ui.div(
+                                ui.output_text("student_kc_card_title"),
+                                ui.tooltip(
+                                    info_icon(),
+                                    """
+                                    Each dot is one attempt. 
+                                    The line tracks how mastery probability shifts over time, 
+                                    and the dashed line marks the threshold needed to count as mastered.
+                                    """,
+                                ),
+                                style="display: flex; align-items: center; gap: 8px; width: 100%;"
+                            )
+   
                         ),
                         output_widget("student_kc_detail"),
                         ui.output_ui("student_kc_card_placeholder"),  
@@ -311,12 +339,12 @@ app_ui = ui.page_navbar(
                             ui.div(
                                 ui.span("Opportunity Heatmap", style="font-size: 22px;"),
                                 ui.tooltip(
-                                    bs_info_icon(icon_title),
+                                    info_icon(),
                                     "Shows how many practice opportunities each student has had per KC. "
                                     "Green = well practiced (7+), yellow = some practice (3–6), "
                                     "red = low practice (1–2), blue-grey = not started.",
                                 ),
-                                style="display: flex; align-items: center; justify-content: space-between; width: 100%;"
+                                style="display: flex; align-items: center; gap: 8px; width: 100%;"
                             )
                         ),
                         output_widget("opp_heatmap_plot"),
@@ -498,6 +526,7 @@ def server(input, output, session):
             theme       = ui.value_box_theme(bg="#60D394", fg="#263744"),
             value_now   = int((last_df['status'] == 'Mastered').sum()),
             value_first = int((first_df['status'] == 'Mastered').sum()),
+            text = "KCs where more than 75% of the class has reached mastery. Click to see the list."        
         )
 
     @render.ui
@@ -510,6 +539,7 @@ def server(input, output, session):
             theme       = ui.value_box_theme(bg="#FFD97D", fg="#263744"),
             value_now   = int((last_df['status'] == 'Progressing').sum()),
             value_first = int((first_df['status'] == 'Progressing').sum()),
+            text = "KCs with 25% to 75% of the class who has reached mastery. Click to see the list."
         )
 
     @render.ui
@@ -522,7 +552,7 @@ def server(input, output, session):
             theme       = ui.value_box_theme(bg="#FF9B85", fg="#263744"),
             value_now   = int((last_df['status'] == 'Needs Practice').sum()),
             value_first = int((first_df['status'] == 'Needs Practice').sum()),
-        )
+            text = "KCs where less than 25% of the class has reached mastery. Click to see the list."        )
 
 
     @render.text
@@ -712,7 +742,7 @@ def server(input, output, session):
     for i in range(4):
         @output(id=f"kc_rank_{i}")
         @render_altair
-        def _render():
+        def _render(i=i):
             names = kc_list_rank()
             if i >= len(names):
                 return None
@@ -723,7 +753,7 @@ def server(input, output, session):
     for i in range(4):
         @output(id=f"kc_rank_title_{i}")
         @render.text
-        def _title():
+        def _title(i=i):
             names = kc_list_rank()
             return names[i] if i < len(names) else ""
 
@@ -740,7 +770,7 @@ def server(input, output, session):
 
         @output(id=output_id)
         @render_altair
-        def _render():   # default arg captures loop variable
+        def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_lowest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
@@ -767,7 +797,7 @@ def server(input, output, session):
 
         @output(id=output_id)
         @render_altair
-        def _render():   # default arg captures loop variable
+        def _render(i=i):   # default arg captures loop variable
             kc_name = kc_list_highest()[i]
             filter = last_attempt()[last_attempt()['modeling_kc_label'] == kc_name]
             return kc_mastery_box(filter, mastery_threshold=KC_PERC_MASTERY_THRESHOLD, practice_threshold=KC_PERC_PRACTICE_THRESHOLD)
@@ -780,7 +810,7 @@ def server(input, output, session):
             def _title():
                 return kc_list_highest()[idx]
         make_title_high(i)
-
+        
     # ── Search tab ─────────────────────
     @reactive.effect
     def populate_search_choices():
