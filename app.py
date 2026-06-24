@@ -384,6 +384,7 @@ app_ui = ui.page_navbar(
             style="padding: 1rem;",
         ),
     ),
+# ── Page 3: Data Input ─────────────────────────────────────────── 
     ui.nav_panel(
         "Data Input",
         ui.tags.link(
