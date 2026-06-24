@@ -10,9 +10,10 @@ You can run this app locally following the instructions below.
 
 A video with a full run-through of the instructions can be found here : [Instruction Video](img/full_instructions.mp4)
 
-### Setting up
+### Repository Setup
 
-To set up the workflow, follow the instructions below :
+To set up the repo and environment, follow the video or the instructions below :
+<video src="img/repo_setup.mp4" controls width="100%"></video>
 1. Clone this repository:
 
     ```bash
@@ -59,10 +60,17 @@ For the initial data setup, the following data files are required :
 
 They should be placed in the `data/raw` folder.
 
-To create the dataframe, follow the instructions below :
+To create the dataframe, follow the video or instructions below :
 
-![](img/initial_data_setup.gif)
-1. Create a `.env` file in the project root (an example of what needs to be included can be found in the [.env.example](https://github.com/mailysg8/ai-student-progress-tracker/blob/f7bbe2cfd264b0eda53d64538efbede89e59a20a/.env.example) file)
+<video src="img/data_setup.mp4" controls width="100%"></video>
+
+1. Create a `.env` file in the project root (an example of what needs to be included can be found in the [`.env.example`](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/.env.example) file)
+    - Run the following command in the terminal to copy the `.env.example` file :
+
+    ```bash
+    cp .env.example .env
+    ```
+    
 
 3. Run the following commands in the terminal (make sure you are in the project root) to create the data frame needed for the dashboard :
 
@@ -73,9 +81,9 @@ There should now be a file called `final_student_kc_data.csv` in `data/processed
 
 ### Running the App
 
-To run the app locally, follow the instructions below : 
+To run the app locally, follow the video or the instructions below : 
 
-![](img/app_load.gif)
+<video src="img/run_app.mp4" controls width="100%"></video>
 
 1. Run the app in reload mode: 
     - Teacher View : 
@@ -97,6 +105,27 @@ The dashboard looks as follows :
 ![](img/teacher-view.gif)
 
 More information about the elements found in each the Class Overview Page can be found [here](https://github.com/mailysg8/ai-student-progress-tracker/issues/44).
+
+#### Data Input 
+
+This page allows users to upload data to update the Teacher View.
+
+> **Notes** : 
+> - This only works when running the app locally (not on the hosted version of the app).
+> - Only csv files can be uploaded. 
+> - Files to test it can be found in [`data/csv`](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/data/csv)
+
+<video src="img/data_input.mp4" controls width="100%"></video>
+
+Once data is uploaded, it replaces the current version of `final_student_kc_data.csv` that is used by both dashboards. 
+
+To get the data back to its original state, run the following command in the terminal from the project root:
+
+```bash
+make all
+```
+
+
 
 ### Student View
 
