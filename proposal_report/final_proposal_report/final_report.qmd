@@ -255,6 +255,7 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 - The Data Input page (@fig-teacher3) opens with a file uploader, letting you browse and upload one or more CSV files at once, with each dataset's required columns contained in a single file. Below it, four schema cards show what each uploaded dataset still needs.
   - **Student Observations, Class Plan, KC Map, and Weights**. Each card lists the required columns for that dataset and tracks how many have been matched so far (e.g. "0 / 8"), with a marker beside each column name indicating whether it's been found in the uploaded files. It makes missing or misnamed columns visible before any processing happens.
   - **Preprocess data and Save and update dashboard**. Once the required columns are satisfied, these buttons run the data through preprocessing and push the results into the rest of the dashboard.
+> **Note** : Due to some issues with pyBKT package versions, the Data Input page only works when running the app locally not on the hosted version.
 
 ![Teacher View 3 with Data Input: Allows teachers to upload data to update dashboard.](img/teacher_view3.png){#fig-teacher3 width=95%} 
 
