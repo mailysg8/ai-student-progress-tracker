@@ -18,7 +18,10 @@ import numpy as np
 import pandas as pd
 from pyBKT.models import Model
 
-from preprocess import preprocess
+try:
+    from src.pipeline.preprocess import preprocess
+except ImportError:
+    from preprocess import preprocess
 
 
 # ---------------------------------------------------------------------------
