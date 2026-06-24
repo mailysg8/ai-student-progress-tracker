@@ -294,7 +294,7 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 ## Results
 We ultimately delivered two main outcomes. The first is a functional dashboard that translates raw data into mastery estimates for each Knowledge Component (KC). Teachers can now look at a single screen to identify weak units, spot under practiced skills, and see exactly how each student is progressing.
 
-Second, we identified a data collection benchmark. Our modeling revealed that mastery estimates were unstable with only two or three attempts per skill, but became more reliable after roughly eight to fifteen attempts. This provides guidance that Stellar can use to design future assessments.
+Secondly, we identified a data collection benchmark. Our modeling revealed that mastery estimates were unstable with only two or three attempts per skill, but became more reliable after roughly eight to fifteen attempts. This provides guidance that Stellar can use to design future assessments.
 
 # Conclusions and Recommendations
 A dashboard is only as good as the data feeding it. To ensure the mastery views remain reliable, we recommend the following:
