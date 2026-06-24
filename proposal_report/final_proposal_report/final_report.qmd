@@ -1,6 +1,7 @@
 ---
 title: "A Skill-Level Progress Tracker for Stellar Education"
 author: "Godsgift Braimah, Maïlys Guedon, Seungmyun Park,  Siting Wang​"
+jupyter: python3
 date: last-modified
 format:
   html:
@@ -25,8 +26,30 @@ bibliography: references.bib
 execute:
   echo: false
   warning: false
+  daemon: false
+  timeout: 600
 ---
 
+
+```{python}
+import pandas as pd
+from IPython.display import Markdown
+
+summary_table = pd.read_csv('tables/summary_table.csv', index_col='observation')
+practice_summary = pd.read_csv('tables/practice_summary.csv', index_col='Practice Level')
+kc_agg_results = pd.read_csv('../../data/outputs/kc_agg_results.csv', index_col='approach')
+
+nb_students = summary_table.loc['nb_students','value']
+nb_units = summary_table.loc['nb_units','value']
+nb_kc = summary_table.loc['nb_kc','value']
+start_date = summary_table.loc['start_date','value']
+end_date = summary_table.loc['end_date','value']
+min_nb_attempts = summary_table.loc['min_nb_attempts','value']
+max_nb_attempts = summary_table.loc['max_nb_attempts','value']
+
+baseline = kc_agg_results.loc['Baseline','Number of groups']
+reduction = round(((baseline - kc_agg_results['Number of groups'].nlargest(2).iloc[-1])/baseline)*100)
+```
 
 # Executive summary
 
@@ -60,7 +83,7 @@ Analyzing performance at the KC level moves beyond a single aggregate score. Ins
 
 # Data
 
-Stellar Education provided homework response data from 25 AP Statistics students across 10 instructional units and 47 modeled knowledge components. Responses were recorded between early September 2025 and April 2026. They also supplied KC relationship data (KC Nodes and KC Edges) describing prerequisite, dependency, and supporting relationships between knowledge components.
+Stellar Education provided homework response data from `{python} int(nb_students)` AP Statistics students across `{python} int(nb_units)` instructional units and `{python} int(nb_kc)` modeled knowledge components. Responses were recorded between `{python} str(start_date)` and `{python} str(end_date)`. They also supplied KC relationship data (KC Nodes and KC Edges) describing prerequisite, dependency, and supporting relationships between knowledge components.
 
 Each row in the raw dataset represents a student's response to a single assessment item. Every item is mapped to the knowledge component (KC) it assesses, allowing performance to be analyzed at either the item, skill, or student level.
 
@@ -81,7 +104,7 @@ The final dataset output from our pipeline, `final_student_kc_data.csv`, contain
 
 ## Knowledge Component Structure
 
-The dataset represents knowledge at two levels of granularity. Each homework responsecis tagged with a **fine-grained KC (`fine_kc_id` / `fine_kc_label`)**, which captures the specific concept being tested, and a **modeling KC (`modeling_kc_id` / `modeling_kc_label`)**, which groups related concepts into a broader skill. We estimated our mastery probabilities at the modeling-KC level, allowing evidence from multiple related items to be combined and reducing sparsity in the data.
+The dataset represents knowledge at two levels of granularity. Each homework response is tagged with a **fine-grained KC (`fine_kc_id` / `fine_kc_label`)**, which captures the specific concept being tested, and a **modeling KC (`modeling_kc_id` / `modeling_kc_label`)**, which groups related concepts into a broader skill. We estimated our mastery probabilities at the modeling-KC level, allowing evidence from multiple related items to be combined and reducing sparsity in the data.
 
 ## Curriculum Metadata and Data Considerations
 
@@ -91,7 +114,14 @@ In addition to student responses, Stellar Education provided metadata describing
 
 We included data considerations and feedback from our Capstone Partner into the design process. 
 
-- **Sparse coverage.** We discovered that not every student attempted every KC, so the student-by-KC matrix is incomplete. The dashboard treats absent attempts as "not started" rather than as failures.
+- **Sparse coverage.** We discovered that not every student attempted every KC (as can be seen in @tbl-practice_summary), so the student-by-KC matrix is incomplete. The dashboard treats absent attempts as "not started" rather than as failures.
+
+```{python}
+#| label: tbl-practice_summary
+#| tbl-cap: "Students grouped by practice level: no attempts (0), low practice (1-9), some practice (10-25), and well practiced (25+)."
+Markdown(practice_summary.to_markdown())
+```
+
 - **Privacy.** Students are identified only by anonymized codes (S001–S025); no personally identifying information is used or displayed.
 - **Mixed-type columns.** A revision-note column (`2026_27_revision_note`) loaded with mixed types and was excluded from modeling; it carries no signal for mastery estimation.
 
@@ -108,7 +138,7 @@ The goal was not to grade a class that has already ended,  it is to guide data c
 
 BKT met that need, and we chose it over the other alternatives for four major reasons:
 
-1.	**It works on small cohorts.** Deep-learning approaches to knowledge tracing such as Deep Knowledge Tracing (DKT) typically need thousands of observations to train reliably and would overfit on our data. BKT estimates only four parameters per knowledge component, so it produces meaningful estimates from a class of 25 students across 47 KCs [@badrinath2021].
+1.	**It works on small cohorts.** Deep-learning approaches to knowledge tracing such as Deep Knowledge Tracing (DKT) typically need thousands of observations to train reliably and would overfit on our data. BKT estimates only four parameters per knowledge component, so it produces meaningful estimates from a class of `{python} int(nb_students)` students across `{python} int(nb_kc)` KCs [@badrinath2021].
 2.	**It matches the structure of our data.** We have student responses to questions, on a skill, recorded in the order it happened, this is precisely the sequential input BKT was designed to model.
 3.	**It updates without retraining.** Each new response refines a student's mastery estimate immediately, which lets us track students continuously across the term and use the most recent estimate to decide what to assess next.
 4.	**Its output is interpretable.** Mastery is expressed as a single probability between 0 and 1, so Stellar Education can read it directly; "this student has a 73% chance of having mastered this skill," and act on it.
@@ -150,9 +180,15 @@ To address this, we reduced granularity by aggregating fine-grained KCs into hig
 
 
 ### Data Aggregation and Final Design Choice
-We also explored alternative grouping strategies, including grouping by prerequisite structure, graph proximity, and domain-expert clustering. All three of these approaches helped to reduce the number of groups to predict (over 80% reduction in the number of groups compared to the initial 256) as well as increase the number of observations per group.
+We also explored alternative grouping strategies, including grouping by prerequisite structure, graph proximity, and domain-expert clustering. All three of these approaches helped to reduce the number of groups to predict (over `{python} int(reduction)`% reduction in the number of groups compared to the initial `{python} int(baseline)`) as well as increase the number of observations per group. 
 
-When comparing the performance of the three approaches to a baseline (initial fine KCs), we found that the BKT predictions were marginally better. However, having fewer groups helped us when designing and choosing visualization to include in the dashboard.
+As can be seen in @tbl-kc_agg, when comparing the performance of the three approaches to a baseline (initial fine KCs), the BKT predictions were marginally better. However, having fewer groups helped us when designing and choosing visualization to include in the dashboard.
+
+```{python}
+#| label: tbl-kc_agg
+#| tbl-cap: "Results from the 3 different KC aggregation approaches. The full experiment can be found in the kc-agg_exploration.ipynb notebook."
+Markdown(kc_agg_results.to_markdown())
+```
 
 **Finally, since BKT updates mastery after every attempt, we retain only the most recent estimate per student–KC pair as the current mastery value used in the dashboard.**
 
@@ -165,7 +201,7 @@ To assess whether the model generalises to unseen students, we used a student-le
 
 We report two complementary metrics. `RMSE` measures the average gap between the model's predicted probability of a correct response and the actual outcome, so it captures how well-calibrated the predictions are (lower is better). `AUC` measures whether the model correctly ranks struggling students below performing ones (1.0 is perfect, 0.5 is chance). 
 
-Together, **RMSE asks whether the predicted probabilities are numerically accurate, while AUC asks whether the model ranks students correctly, placing those who are actually struggling below those who are doing well.** because a model can do well on one and poorly on the other.
+Together, **RMSE asks whether the predicted probabilities are numerically accurate, while AUC asks whether the model ranks students correctly, placing those who are actually struggling below those who are doing well.** because a model can do well on one and poorly on the other. [@dhanani2014comparison]
 
 
 
@@ -176,32 +212,49 @@ Together, **RMSE asks whether the predicted probabilities are numerically accura
 
 # Data Product and Results
 
-Our deliverable includes the mastery probabilities rendered as an interactive dashboard, built with Shiny for Python [@shinypython], that turns the per-student, per-KC mastery probabilities into a view a teacher can act on. We organized it into two views that answer two different questions. `Class Overview` asks how the whole class is doing, and `Student Overview` asks how one student is doing.
+Our deliverable includes the mastery probabilities rendered as an interactive dashboard, built with Shiny for Python [@shinypython], that turns the per-student, per-KC mastery probabilities into a view a teacher can act on. We organized it into two views that answer two different questions. `Teacher View` asks how the whole class is doing, and `Student View` asks how one student is doing.
 
-## Class Overview
+## Teacher View 
 
-The Class Overview opens with four summary boxes: the total number of KCs and how many are currently Mastered, Progressing, or Needing Practice, each compared against the cohort's first attempt to show movement over time. Below them, three panels give complementary views of the same cohort.
+This view contains 3 pages :
 
-- **Unit Mastery Overview**. A grid where every KC is a coloured tile grouped by unit, green for mastered, yellow for progressing, and red for needs practice. It makes weak units visible at a glance.
-- **KC Progress**. For a selected KC, we show the class student by student alongside the percentage who have mastered that skill. Tabs separate the most important KCs, those needing practice, and those showing good progress.
-- **KC Opportunities and Opportunity Heatmap**. These show how much practice each skill has received. The heatmap plots students against KCs and shades each cell by practice volume, exposing skills the whole class has barely attempted.
+- The Class Overview page (@fig-teacher1) opens with four summary boxes: the total number of KCs and how many are currently Mastered, Progressing, or Needing Practice, each compared against the cohort's first attempt to show movement over time. Below them, three panels give complementary views of the same cohort.
+
+  - **Unit Mastery Overview**. A grid where every KC is a coloured tile grouped by unit, green for mastered, yellow for progressing, and red for needs practice. It makes weak units visible at a glance.
+  - **KC Progress**. For a selected KC, we show the class student by student alongside the percentage who have mastered that skill. Tabs separate the most important KCs, those needing practice, and those showing good progress.
+  - **KC Opportunities and Opportunity Heatmap**. These show how much practice each skill has received. The heatmap plots students against KCs and shades each cell by practice volume, exposing skills the whole class has barely attempted.
 
 
 ![Teacher View 1 with Class Overview: Whole-class status across all knowledge components.](img/teacher_view1.png){#fig-teacher1 width=95%}
 
 <br>
 
+- The Student Overview page (@fig-teacher2) opens with a student selector, a relative (quantile) status toggle, and a status filter, letting you focus on one student at a time and choose between predicted mastery values or the students actual results. Below this, two panels give complementary views of that student's progress.
+
+  - **Status Summary**. Three boxes show the percentage of KCs the selected student has Mastered, is Progressing on, or still Needs Practice on, with the underlying KC count shown beneath each percentage. It gives an immediate read on where the student stands overall.
+  - **P(Mastery) by KC**. A scrollable list of every KC, each with a progress bar showing the student's mastery probability, the exact percentage, and a coloured status tag. Sorted from highest to lowest mastery, it shows at a glance which skills are solid and which are falling behind.
+
 ![Teacher View 2 with Student Specifics: Drilling into a Single Student in the class.](img/teacher_view2.png){#fig-teacher2 width=95%} 
+
+<br>
+
+- The Data Input page (@fig-teacher3) opens with a file uploader, letting you browse and upload one or more CSV files at once, with each dataset's required columns contained in a single file. Below it, four schema cards show what each uploaded dataset still needs.
+  - **Student Observations, Class Plan, KC Map, and Weights**. Each card lists the required columns for that dataset and tracks how many have been matched so far (e.g. "0 / 8"), with a marker beside each column name indicating whether it's been found in the uploaded files. It makes missing or misnamed columns visible before any processing happens.
+  - **Preprocess data and Save and update dashboard**. Once the required columns are satisfied, these buttons run the data through preprocessing and push the results into the rest of the dashboard.
+
+![Teacher View 3 with Data Input: Allows teachers to upload data to update dashboard.](img/teacher_view3.png){#fig-teacher3 width=95%} 
+
+
 
 ## Student Overview
 
-The Student Overview focuses on one learner. A status summary shows the share of
+The Student Overview focuses on one learner. A status summary (@fig-student1) shows the share of
 that student's KCs that are Mastered, Progressing, or Needing Practice, and a
 detailed table lists every KC with its mastery probability as a progress bar and
 a coloured status badge. Two controls shape the view: a status filter, and a
 toggle between absolute and relative grading. 
 
-A student can access their next steps based on their current mastery levels. The prerequisite map shows the student's current mastery for each KC, with arrows indicating which skills are required for others. 
+A student can access their next steps based on their current mastery levels (@fig-student2). The prerequisite map shows the student's current mastery for each KC, with arrows indicating which skills are required for others. 
 
 **Status thresholds.** We assign each KC a status from its mastery probability using fixed cut points:
 
@@ -240,7 +293,7 @@ A dashboard is only as good as the data feeding it. To ensure the mastery views 
 ## Limitations
 • **Targets based on simulation: ** While the eight to fifteen attempt rule relies on actual KC structures, it was derived through simulation. It needs to be tested and confirmed once real high-volume cohort data comes in.
 
-• **Small sample size: ** Our current estimates are based on just 25 students in a single course. They should not be blindly applied to other subjects or cohorts without adjusting the model.
+• **Small sample size: ** Our current estimates are based on just `{python} int(nb_students)` students in a single course. They should not be blindly applied to other subjects or cohorts without adjusting the model.
 
 • **Unconfirmed predictive validity: ** As mentioned above, we still need to validate these mastery estimates against independent outcomes before we can fully vouch for their predictive power.
 

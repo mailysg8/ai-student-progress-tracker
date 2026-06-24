@@ -10,9 +10,7 @@ This script:
 Usage: python proposal_report/src/eda.py [OPTIONS]
 
 [OPTIONS] :
---student_observations    Path to student_observations CSV file (default: data/raw/student_observations.csv)
---overall_scores          Path to overall_scores CSV file (default: data/raw/overall_scores.csv)
---kc_coverage             Path to kc_coverage CSV file (default: data/raw/kc_coverage.csv)
+--data_path               Path to student_observations excel file (default: data/raw/Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx)
 --chart_to                Directory to save figures (default: proposal_report/figures)
 --table_to                Directory to save tables (default: proposal_report/tables)
 """
@@ -28,28 +26,24 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from src.eda_utils import create_kc_coverage_chart, create_comparison_kc_coverage_chart, create_performance_band_chart, create_missing_assignement_table, create_student_missing_assignement_table, get_student_kc_coverage
 
 @click.command()
-@click.option('--student_observations', type=str, required=False, default="data/raw/student_observations.csv", help='Path to student_observations CSV file')
-@click.option('--overall_scores', type=str, required=False, default="data/raw/overall_scores.csv", help='Path to overall_scores CSV file')
-@click.option('--kc_coverage', type=str, required=False, default="data/raw/kc_coverage.csv", help='Path to kc_coverage CSV file')
+@click.option('--data_path', type=str, required=False, default="data/raw/Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx", help='Path to student_observations excel file')
 @click.option('--chart_to', type=str, required=False, default="proposal_report/figures", help='Directory to save figures')
 @click.option('--table_to', type=str, required=False, default="proposal_report/tables", help='Directory to save tables')
 
-def main(student_observations : str, overall_scores : str, chart_to : str, table_to : str, kc_coverage : str):
+def main(data_path : str,  chart_to : str, table_to : str):
     """Generate EDA visualizations and summary tables."""
 
     os.makedirs(chart_to, exist_ok=True)
 
     # Load data
-    print(f"Loading data from: {student_observations}")
-    student_observations = pd.read_csv(student_observations)
+    print(f"Loading data from: {data_path}")
+    student_observations = pd.read_excel(data_path, sheet_name="Student_Observations")
     print(f"Loaded {student_observations.shape[0]} student observations")
 
-    print(f"Loading data from: {overall_scores}")
-    overall_scores = pd.read_csv(overall_scores)
+    overall_scores = pd.read_excel(data_path, sheet_name="Overall_Scores")
     print(f"Loaded {overall_scores.shape[0]} student scores")
 
-    print(f"Loading data from: {kc_coverage}")
-    kc_coverage = pd.read_csv(kc_coverage)
+    kc_coverage = pd.read_excel(data_path, sheet_name="KC_Coverage")
     print(f"Loaded {kc_coverage.shape[0]} knowledge components")
     
     # Create student performance summary table
