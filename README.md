@@ -100,6 +100,19 @@ To run the app locally, follow the video or the instructions below :
     ```
 
 
+### Regenerating the Report
+
+The final report is written in [Quarto](https://quarto.org) at [`proposal_report/final_proposal_report/final_report.qmd`](proposal_report/final_proposal_report/final_report.qmd) and produces both a PDF and an HTML version. Quarto is already included in `environment.yml`, so no extra setup is required beyond completing the steps above.
+
+To regenerate the report after editing `final_report.qmd`, run from the project root:
+
+```bash
+quarto render proposal_report/final_proposal_report/final_report.qmd
+```
+
+This will refresh both `final_report.pdf` and `final_report.html` in the same folder.
+
+
 ## Demo
 
 The dashboard looks as follows :
