@@ -27,5 +27,4 @@ The following scripts are used for :
         - [student_kpi_cards.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/src/student_kpi_cards.py)
         - [student_overview_panel.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/src/student_overview_panel.py)
     - Next Steps Page : 
-        - [next_steps_app.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/src/next_steps_app.py)
         - [training_agenda_utils.py](https://github.com/mailysg8/ai-student-progress-tracker/blob/main/src/training_agenda_utils.py)
