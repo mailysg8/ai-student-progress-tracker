@@ -5,10 +5,12 @@
 #	make check             - Check the data contains all the necessary columns
 #  	make data              - Create final_student_kc_data.csv 
 #   make proposal-report   - Create the proposal report
-#   make final-report     - Create the final report
-#   make clean             - Remove all generated files
+#   make final-report      - Create the final report
+#   make clean-all         - Remove all generated files
+#   make clean-final       - Remove all generated files related to final report
+#   make clean-proposal    - Remove all generated files related to proposal report
 
-.PHONY: all check data proposal-report final-report clean
+.PHONY: all check data proposal-report final-report clean-all clean-final clean-proposal
 
 all :
 	python src/pipeline/check.py
@@ -82,8 +84,8 @@ proposal_report/final_proposal_report/tables/practice_summary.csv: data/processe
 		--table_to=proposal_report/final_proposal_report/tables \
  
 
-# ===================== CLEAN =====================
-clean :
+# ===================== CLEAN-ALL =====================
+clean-all :
 	rm -f data/processed/final_student_kc_data.csv
 	rm -f proposal_report/figures/*.png
 	rm -f proposal_report/tables/*.csv
@@ -93,3 +95,17 @@ clean :
 	rm -f proposal_report/reports/proposal_report.pdf
 	rm -f proposal_report/final_proposal_report/final_report.pdf
 	rm -f proposal_report/final_proposal_report/final_report.html
+
+# ===================== CLEAN-FINAL =====================
+clean-final: 
+	rm -f proposal_report/final_proposal_report/figures/*.png
+	rm -f proposal_report/final_proposal_report/tables/*.csv
+	rm -f proposal_report/final_proposal_report/final_report.pdf
+	rm -f proposal_report/final_proposal_report/final_report.html
+
+# ===================== CLEAN-PROPOSAL =====================
+clean-proposal :
+	rm -f proposal_report/figures/*.png
+	rm -f proposal_report/tables/*.csv
+	rm -f proposal_report/reports/proposal_report.html 
+	rm -f proposal_report/reports/proposal_report.pdf
