@@ -189,6 +189,8 @@ The Class Overview opens with four summary boxes: the total number of KCs and ho
 
 ![Teacher View 1 with Class Overview: Whole-class status across all knowledge components.](img/teacher_view1.png){#fig-teacher1 width=95%}
 
+<br>
+
 ![Teacher View 2 with Student Specifics: Drilling into a Single Student in the class.](img/teacher_view2.png){#fig-teacher2 width=95%} 
 
 ## Student Overview
@@ -199,7 +201,7 @@ detailed table lists every KC with its mastery probability as a progress bar and
 a coloured status badge. Two controls shape the view: a status filter, and a
 toggle between absolute and relative grading. 
 
-A student can access their next steps based on their current mastery levels. The prerequisite map shows the student's current mastery for each KC, with arrows indicating which skills are required for others. T
+A student can access their next steps based on their current mastery levels. The prerequisite map shows the student's current mastery for each KC, with arrows indicating which skills are required for others. 
 
 **Status thresholds.** We assign each KC a status from its mastery probability using fixed cut points:
 
@@ -249,5 +251,4 @@ A dashboard is only as good as the data feeding it. To ensure the mastery views 
 
 # Appendix {.appendix}
 
-Full code, the reproducible pipeline, and product documentation are available in
-the project repository: [GitHub link](https://github.com/mailysg8/ai-student-progress-tracker/tree/main). 
+Full code, the reproducible pipeline, and product documentation are available in the project repository: [GitHub link](https://github.com/mailysg8/ai-student-progress-tracker.git). 
