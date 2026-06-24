@@ -225,7 +225,7 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 ## Teacher View 
 
 ::: {.callout-note title="Teacher View Dashboard"}
-🔗 [Access Stellar Educations's live Teacher View](https://stellar-edu.shinyapps.io/stellar_education_-_teacher_portal/)
+🔗 [Access Stellar Education's live Teacher View](https://stellar-edu.shinyapps.io/stellar_education_-_teacher_portal/)
 :::
 
 **This view contains 3 pages:**
@@ -263,7 +263,7 @@ Our deliverable includes the mastery probabilities rendered as an interactive da
 ## Student Overview
 
 ::: {.callout-note title="Student View Dashboard"}
-🔗 [Access Stellar Educations's live Student View](https://stellar-edu.shinyapps.io/stellar_education_-_student_portal/)
+🔗 [Access Stellar Education's live Student View](https://stellar-edu.shinyapps.io/stellar_education_-_student_portal/)
 :::
 **This view contains the Student Summary and My Practice Plan tabs:**
 
