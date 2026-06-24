@@ -21,10 +21,12 @@ dependencies:
   - quarto=1.9.37
   - jupyterlab=4.5.7
   - tabulate=0.10.0
+  - xmltodict=1.0.4
   - make=4.4.1
   - pip
   - pip:
       - shiny>=1.6
-      - pyBKT==1.4.1
+      - "./wheels/pybkt-1.4.1-cp311-cp311-macosx_11_0_arm64.whl" # Comment if not on mac
+      # - pyBKT==1.4.1 # Uncomment if not on mac
       - python-dotenv
       - plotly

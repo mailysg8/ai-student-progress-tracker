@@ -115,7 +115,6 @@ rsconnect deploy shiny . \
   --exclude "**/__pycache__/*" \
   --exclude "*.pyc" \
   --exclude "data/output/*" \
-  --exclude "data/raw/Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx" \
   --exclude "data/raw/mkc_weights_dataset.xlsx" \
   --exclude "data/raw/mkc_data-june01.csv" \
   --exclude "data/processed/best_subset_1_data.csv" \
@@ -148,7 +147,6 @@ rsconnect deploy shiny . \
   --exclude "**/__pycache__/*" \
   --exclude "*.pyc" \
   --exclude "data/output/*" \
-  --exclude "data/raw/Stellar_edu_MDS_ap_stats_dataset - v1.9.xlsx" \
   --exclude "data/raw/mkc_weights_dataset.xlsx" \
   --exclude "data/raw/mkc_data-june01.csv" \
   --exclude "data/processed/best_subset_1_data.csv" \
@@ -241,5 +239,5 @@ ai-student-progress-tracker/
 
 ## Contacts
 
-- Original team: Siting Wang, Mailys, Godsgift, Park (MDS Capstone 2026)
+- Project team: Siting Wang, Mailys Guedon, Godsgift Eseoghena Braimah, Seungmyun Park (UBC MDS Capstone 2026)
 - Repo: https://github.com/mailysg8/ai-student-progress-tracker

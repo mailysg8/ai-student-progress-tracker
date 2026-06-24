@@ -1,3 +1,22 @@
+"""
+This module contains helper functions to summarise how many attempts students have had on each KC, averaged
+across the class.
+
+Used to surface which KCs are under-practiced (lowest opportunity average)
+or over-practiced (highest opportunity average), or to look up the
+opportunity average for a specific list of KCs.
+
+Expects an opp_counts DataFrame with at minimum these columns:
+    modeling_kc_label : knowledge component display label
+    n_opportunities    : number of attempts a student has had on that KC
+
+Typical usage :
+    from src.kc_opp import kc_opp_lowest, kc_opp_highest, kc_opp_rank
+
+    lowest_5  = kc_opp_lowest(opp_counts, n=5)
+    highest_5 = kc_opp_highest(opp_counts, n=5)
+    selected  = kc_opp_rank(["Probability Rules", "Confidence Intervals"], opp_counts)
+"""
 import pandas as pd
 def kc_opp_lowest(opp_counts : pd.DataFrame, n: int = 5):
         """Lowest n KCs by opportunity average."""

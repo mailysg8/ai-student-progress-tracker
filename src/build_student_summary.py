@@ -1,38 +1,65 @@
-"""Student Summary HTML mockup — tile-based, action-oriented version per advisor's spec.
+"""Student Summary view — generates the interactive HTML dashboard.
 
-Changes in this revision:
-1. Tile color now reflects KC counts, not avg %:
-   red = has any 'needs practice' KC, yellow = has developing KCs but no needs,
-   green = mostly mastered, gray = unattempted.
-2. KPI strip splits "not mastered" into "still developing" vs "need practice".
-3. Sort toggle: Course order  ↔  Needs attention first.
-4. Modal includes a "Start with: <skill>" recommendation + practice button.
-5. CTA explicitly mentions red vs orange skills.
+Builds a per-student dashboard with:
+  * Top KPI cards (Mastered / Progressing / Needs Practice / Unattempted),
+    bucketed by BKT mastery and clickable to a flat skill-list modal.
+  * Ten unit tiles showing a BKT-mastery distribution strip plot, count
+    breakdown, trend sparkline, and a click-through detail modal.
+  * A class-comparison panel and a primary call-to-action.
+
+The output HTML is rendered standalone or embedded in the Shiny app via
+an iframe.
 """
 import json
 from pathlib import Path
 import pandas as pd
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Portable path resolution: works whether the script sits in src/ or repo root
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent if (HERE.name == "src" and (HERE.parent / "notebooks").exists()) else HERE
 
 SEARCH = [
-    REPO_ROOT/"data"/"processed",      # Mailys's unified pipeline output
-    REPO_ROOT/"data"/"raw",            # legacy xlsx files (scores sheet, KC pack)
+    REPO_ROOT/"data"/"processed",      # unified data pipeline output
+    REPO_ROOT/"data"/"raw",            # raw xlsx files (scores sheet, KC pack)
     REPO_ROOT/"data", REPO_ROOT,
     Path.cwd(), Path.cwd()/"data"/"processed", Path.cwd()/"data"/"raw",
 ]
 def find_file(name):
+    """Locate a data file by name across the candidate ``SEARCH`` paths.
+
+    Walks the project's typical data directories (``data/processed``,
+    ``data/raw``, the repo root, and the current working directory) and
+    returns the first match. Lets the script run unchanged whether it is
+    invoked from the repo root or from inside ``src/``.
+
+    Parameters
+    ----------
+    name : str
+        File name to search for (e.g. ``"final_student_kc_data.csv"``).
+
+    Returns
+    -------
+    pathlib.Path
+        The first existing path that matches ``name``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``name`` is not present under any of the search paths.
+    """
     for b in SEARCH:
         f = b / name
         if f.exists():
             return f
     raise FileNotFoundError(f"{name} not found in any of: {[str(s) for s in SEARCH]}")
 
-CSV  = find_file("final_student_kc_data.csv")   # Mailys's unified pipeline output
-DATA = find_file("final_data.xlsx")              # still needed for Overall_Scores sheet
-PACK = find_file("mkc_mapping_pack_v1.0..xlsx")  # canonical KC structure (for unit_mkcs)
+CSV  = find_file(os.environ.get("FINAL_FILE"))           # unified data pipeline output
+DATA = find_file(os.environ.get("STUDENT_OBS_FILE"))     # Overall_Scores sheet (student-level metadata)
+PACK = find_file(os.environ.get("KC_MAP_FILE"))          # canonical KC structure (for unit_mkcs)
 OUT  = REPO_ROOT / "notebooks" / "student_summary.html"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 print(f"  Using CSV: {CSV}")
@@ -40,9 +67,9 @@ print(f"  Using xlsx (scores only): {DATA}")
 print(f"  Using MKC pack: {PACK}")
 print(f"  Output: {OUT}")
 
-# Mailys's CSV has every observation joined with the modeling-KC mapping, the
-# unit, the precomputed `correct` flag, AND class_date. So we no longer need the
-# fine-KC → MKC mapping step or the obs xlsx sheet for the per-attempt data.
+# The unified CSV already joins every observation with the modeling-KC mapping,
+# the unit, the precomputed `correct` flag, and class_date. This removes the
+# need for a separate fine-KC → MKC mapping step at runtime.
 csv_df = pd.read_csv(CSV)
 scores = pd.read_excel(DATA, sheet_name="Overall_Scores")  # student-level metadata
 mnodes = pd.read_excel(PACK, sheet_name="Modeling_KC_Nodes")  # canonical KC list
@@ -61,12 +88,12 @@ o["correct"] = o["correct"].astype(int)
 o["mkc"]     = o["modeling_kc_id"]
 # `unit` and `class_num` already exist in the CSV — used for weekly trend buckets
 
-T_MASTERED   = 0.65   # team consensus (Mailys): mastered = ≥ 65%
-T_DEVELOPING = 0.35   # team consensus (Mailys): progressing = 35–64%, needs = < 35%
+T_MASTERED   = 0.65   # mastered = ≥ 65%
+T_DEVELOPING = 0.35   # progressing = 35–64%, needs practice = < 35%
 N_TREND_BUCKETS = 5   # number of bars per KPI sparkline (snapshots over the term)
 TOTAL_MKCS = sum(len(unit_mkcs[u]) for u in UNITS)
 
-# ─── BKT mastery layer (advisor's spec: unit cards use BKT, not raw correctness) ──
+# ─── BKT mastery layer (unit cards use BKT, not raw correctness) ──
 # For each (student, modeling_kc_id), take the LATEST state_predictions across
 # all their attempts. This is the BKT model's current estimate of how well the
 # student has mastered that KC right now.
@@ -88,7 +115,22 @@ for _u in UNITS:
     bkt_class_per_unit[_u] = (sum(_vals)/len(_vals)) if _vals else None
 
 def tier_overall(overall):
-    # badge background colors — match the dashboard palette
+    """Map a student's overall mastery score to a status-tier badge.
+
+    Used for the header badge next to the student name in the Student Summary
+    view ("On track" / "Needs attention" / "At risk").
+
+    Parameters
+    ----------
+    overall : float
+        Overall mastery, in ``[0, 1]``.
+
+    Returns
+    -------
+    tuple of (str, str, str)
+        ``(tier_id, tier_label, hex_color)`` where the hex colour comes from
+        the dashboard palette.
+    """
     if overall >= 0.60: return ("on_track",  "On track",        "#60D394")  # Emerald
     if overall >= 0.45: return ("attention", "Needs attention", "#FFD97D")  # Jasmine
     return                    ("at_risk",   "At risk",          "#EE6055")  # Vibrant Coral
@@ -256,11 +298,27 @@ DEFAULT_PICKS = [("S004","High performer"), ("S019","Middle performer"), ("S001"
 
 
 def build_html(picks=None):
-    """Generate the full HTML mockup as a string.
+    """Generate the full Student Summary dashboard as an HTML string.
 
-    picks : list of (student_id, label) tuples.
-            Default = three demo students.
-            Pass [(sid, "")] for single-student rendering — picker/demo-banner/topbar auto-hidden.
+    Builds the per-student data payload (KPI counts, unit tiles, strip-plot
+    mastery distributions, weekly sparkline trends, class-comparison vectors)
+    and substitutes it into ``HTML_TEMPLATE``. The output is a self-contained
+    HTML document with inline CSS and JS, suitable for embedding directly via
+    an iframe ``data:`` URL.
+
+    Parameters
+    ----------
+    picks : list of (str, str) or None, optional
+        ``(student_id, profile_label)`` pairs to render. When ``None``, the
+        default three demo profiles are used. Pass a single-element list with
+        an empty label (``[(sid, "")]``) for single-student rendering — the
+        picker, demo banner, and topbar are auto-hidden in that case so the
+        embedded view looks like a production dashboard.
+
+    Returns
+    -------
+    str
+        A complete HTML document.
     """
     picks = picks or DEFAULT_PICKS
     students = []
@@ -269,7 +327,7 @@ def build_html(picks=None):
         sob  = o[o["student_id"]==sid]
         raw_overall = sob["correct"].mean()
 
-        # ── BKT mastery layer (advisor synced view: BKT throughout) ─────────
+        # ── BKT mastery layer (used consistently across all widgets) ────────
         # Per-MKC current BKT mastery — latest state_predictions per MKC.
         bkt_mkc = sob.sort_values(["mkc", "kc_attempt"]).groupby("mkc")["state_predictions"].last().to_dict()
         bkt_mkc = {m: float(v) for m, v in bkt_mkc.items()}
@@ -318,7 +376,7 @@ def build_html(picks=None):
             avg = sum(bkt_mkc[m] for m in attempted) / len(attempted) if attempted else None
             unit_avgs_bkt[u] = avg
 
-            # Mastery distribution (advisor: show distribution, not just average)
+            # Mastery distribution — show the full shape, not just an average
             # Each attempted KC's BKT mastery as %, sorted for stable plot order.
             mastery_values = sorted(round(bkt_mkc[m]*100, 1) for m in attempted)
             if mastery_values:
@@ -354,7 +412,7 @@ def build_html(picks=None):
                 "class_avg":        round(bkt_class_per_unit[u]*100, 1) if bkt_class_per_unit.get(u) is not None else None,
             }
             tile["tier"] = tier_for_tile(tile)
-            # advisor #4: recommended first action when student opens this unit
+            # Recommended first action when the student opens this unit
             if   tile["needs_list"]:      tile["start_with"] = tile["needs_list"][0];      tile["start_verb"] = "Start with"
             elif tile["developing_list"]: tile["start_with"] = tile["developing_list"][0]; tile["start_verb"] = "Keep practicing"
             else:                         tile["start_with"] = None;                       tile["start_verb"] = None
@@ -787,7 +845,7 @@ const TIER_RANK = {red:0, yellow:1, green:2, gray:3};
 let currentStudent = 0;
 let currentSort = "order";
 
-// ─── Sparkline + trend delta (Ilya's "sparkline" essential) ──────────────────
+// ─── Sparkline + trend delta ─────────────────────────────────────────────────
 function sparklineSVG(values, color){
   if(!values || values.length < 2) return "";
   const max = Math.max(...values, 1);
@@ -828,7 +886,7 @@ function renderTrend(cat, trends, color, biggerIsBetter){
   el.innerHTML = sparklineSVG(values, color) + trendDelta(trends, cat, biggerIsBetter);
 }
 
-// ─── KPI card population (Ilya's redesign: every number gets context) ─────────
+// ─── KPI card population — every number is paired with context ──────────────
 function taglineFor(cat, value){
   if(cat === "mastered"){
     if(value === 0) return "Your journey starts here.";
@@ -901,7 +959,7 @@ function tileTrendHTML(trend, color){
     </div>`;
 }
 
-// Mastery-distribution strip plot (advisor's spec: show shape, not just mean)
+// Mastery-distribution strip plot — show the full shape, not just a mean
 // Each attempted KC becomes a colored dot at its BKT mastery position.
 function stripPlotSVG(values){
   if(!values || values.length === 0) return "";
@@ -1232,7 +1290,7 @@ function render(idx){
   setKpiCard("needs",       s.totals.needs,       s.totals.all, ca.needs,       atRisk, /*biggerIsBetter*/ false);
   setKpiCard("unattempted", s.totals.unattempted, s.totals.all, ca.unattempted, atRisk, /*biggerIsBetter*/ false);
 
-  // Sparklines + "vs last check" delta (Ilya's "sparkline" essential)
+  // Sparklines + "vs last check" delta
   const trends = s.weekly_trends || [];
   renderTrend("mastered",    trends, COLORS.green, true);
   renderTrend("developing",  trends, COLORS.amber, null);   // neutral

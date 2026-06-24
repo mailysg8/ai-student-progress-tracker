@@ -1,3 +1,16 @@
+"""
+This module contains helper functions to create the elements (column checklist, progress badge) in the Data Input tab in the
+Teacher Portal.
+
+Typical usage :
+    from helpers.data_input_helpers import build_card
+
+    card_html = build_card(
+        title="Student Observations",
+        dataset_cols=["student_id", "score", "primary_kc_id"],
+        col_to_file={"student_id": "obs.xlsx", "score": "obs.xlsx"},
+    )
+"""
 def col_status_html(dataset_cols: list[str], col_to_file: dict[str, str]) -> str:
     """Render a column checklist for one dataset card."""
     items = []
@@ -35,7 +48,8 @@ def progress_badge(found: int, total: int) -> str:
     )
 
 
-def build_card(ds_id: str, title: str, dataset_cols: list[str], col_to_file: dict[str, str]) -> str:
+def build_card(title: str, dataset_cols: list[str], col_to_file: dict[str, str]) -> str:
+    """Create the card that holds the checklist and progress badge."""
     found = sum(1 for c in dataset_cols if c in col_to_file)
     total = len(dataset_cols)
     return (

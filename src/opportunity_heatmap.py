@@ -1,5 +1,22 @@
+"""
+This module contains helper functions to create the opportunity dashboard and KC opportunity list on the Teacher Portal dashboard.
+
+Two chart variants are provided:
+    opp_heatmap        : a student × KC grid heatmap, coloured by practice
+                          level, with click-to-highlight selection.
+    opportunity_table   : a ranked table-style chart showing average
+                           opportunities per KC, with a coloured pill per row.
+
+Typical usage :
+    from helpers.opportunity_charts import opp_heatmap, opportunity_table
+
+    heatmap_chart = opp_heatmap(df_final)
+    table_chart   = opportunity_table(avg_opp_df, n=5)
+"""
 import pandas as pd
 import altair as alt
+
+from src.classify import opp_status, compute_opportunity_counts
 
 # ── colour constants ─────────────────────────────────────────────────────────
 
@@ -21,69 +38,6 @@ TEXT_COLOR          = "#263744"
 
 LOW_OPP  = 5   # fewer than this = low practice
 HIGH_OPP = 15   # more than this = well practiced
-
-# ── helpers ──────────────────────────────────────────────────────────────────
-
-def opp_status(n: int) -> str:
-    if n == 0:          return "not started"
-    elif n >= HIGH_OPP: return "well practiced"
-    elif n >= LOW_OPP:  return "some practice"
-    else:               return "low practice"
-
-
-def compute_opportunity_counts(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    For each student × KC pair, compute the total number of practice
-    opportunities. Missing combinations are filled with 0 / 'not started'.
-
-    Parameters
-    ----------
-    data : DataFrame containing 'student_id', 'modeling_kc_id',
-           'modeling_kc_label', and 'order_id' columns.
-
-    Returns
-    -------
-    DataFrame with columns:
-        student_id, modeling_kc_label, n_opportunities, status
-    """
-    # Opportunity number per student per KC
-    data = data.copy()
-    data['opportunity'] = (
-        data
-        .groupby(['student_id', 'modeling_kc_id'])
-        .cumcount() + 1
-    )
-
-    # Max opportunity = total practice count
-    opp_counts = (
-        data
-        .groupby(['student_id', 'modeling_kc_label'])['opportunity']
-        .max()
-        .reset_index()
-        .rename(columns={'opportunity': 'n_opportunities'})
-    )
-
-    # Fill in every student × KC combination (including not started)
-    all_students = opp_counts['student_id'].unique()
-    all_kcs      = opp_counts['modeling_kc_label'].unique()
-
-    full_index = pd.MultiIndex.from_product(
-        [all_students, all_kcs],
-        names=['student_id', 'modeling_kc_label']
-    )
-
-    opp_counts = (
-        opp_counts
-        .set_index(['student_id', 'modeling_kc_label'])
-        .reindex(full_index)
-        .reset_index()
-    )
-
-    opp_counts['n_opportunities'] = opp_counts['n_opportunities'].fillna(0).astype(int)
-    opp_counts['status']          = opp_counts['n_opportunities'].apply(opp_status)
-
-    return opp_counts
-
 
 def opp_heatmap(data: pd.DataFrame) -> alt.Chart:
     """
