@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/15e86c19-e6e4-4fec-b0bd-c3797659daf3
+
 # Student Progress Tracker
 
 ## Overview
@@ -32,7 +36,10 @@ A video with a full run-through of the instructions can be found here : [Instruc
 ### Repository Setup
 
 To set up the repo and environment, follow the video or the instructions below :
-<video src="img/repo_setup.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/624da2ab-fb2d-4205-a572-637d860fa2c9" controls width="100%"></video>
+
+
+
 1. Clone this repository:
 
     ```bash
