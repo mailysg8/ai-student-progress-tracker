@@ -48,7 +48,7 @@ import pandas as pd
 from shiny import ui, render, reactive
 from shinywidgets import render_altair, output_widget
 
-from src.student_kpi_cards import (
+from dashboard_prototypes.student_kpi_cards import (
     load_data,
     compute_student_summary,
     class_average_per_unit,
