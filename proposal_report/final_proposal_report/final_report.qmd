@@ -1,6 +1,7 @@
 ---
 title: "A Skill-Level Progress Tracker for Stellar Education"
 author: "Godsgift Braimah, Maïlys Guedon, Seungmyun Park,  Siting Wang​"
+jupyter: python3
 date: last-modified
 format:
   html:
@@ -25,6 +26,8 @@ bibliography: references.bib
 execute:
   echo: false
   warning: false
+  daemon: false
+  timeout: 600
 ---
 
 
@@ -32,9 +35,9 @@ execute:
 import pandas as pd
 from IPython.display import Markdown
 
-student_summary = pd.read_csv('/tables/summary_table.csv', index_col='observation')
-practice_summary = pd.read_csv('/tables/practice_summary.csv', index_col='Practice Level')
-kc_agg_results = pd.read_csv('data/outputs/kc_agg_results.csv', index_col='approach')
+summary_table = pd.read_csv('tables/summary_table.csv', index_col='observation')
+practice_summary = pd.read_csv('tables/practice_summary.csv', index_col='Practice Level')
+kc_agg_results = pd.read_csv('../../data/outputs/kc_agg_results.csv', index_col='approach')
 
 nb_students = summary_table.loc['nb_students','value']
 nb_units = summary_table.loc['nb_units','value']
@@ -116,7 +119,7 @@ We included data considerations and feedback from our Capstone Partner into the 
 ```{python}
 #| label: tbl-practice_summary
 #| tbl-cap: "Students grouped by practice level: no attempts (0), low practice (1-9), some practice (10-25), and well practiced (25+)."
-Markdown(practice_summary.to_markdown(index=False))
+Markdown(practice_summary.to_markdown())
 ```
 
 - **Privacy.** Students are identified only by anonymized codes (S001–S025); no personally identifying information is used or displayed.
@@ -184,7 +187,7 @@ As can be seen in @tbl-kc_agg, when comparing the performance of the three appro
 ```{python}
 #| label: tbl-kc_agg
 #| tbl-cap: "Results from the 3 different KC aggregation approaches. The full experiment can be found in the kc-agg_exploration.ipynb notebook."
-Markdown(kc_agg_results.to_markdown(index=False))
+Markdown(kc_agg_results.to_markdown())
 ```
 
 **Finally, since BKT updates mastery after every attempt, we retain only the most recent estimate per student–KC pair as the current mastery value used in the dashboard.**
@@ -217,9 +220,9 @@ This view contains 3 pages :
 
 - The Class Overview page (@fig-teacher1) opens with four summary boxes: the total number of KCs and how many are currently Mastered, Progressing, or Needing Practice, each compared against the cohort's first attempt to show movement over time. Below them, three panels give complementary views of the same cohort.
 
-- **Unit Mastery Overview**. A grid where every KC is a coloured tile grouped by unit, green for mastered, yellow for progressing, and red for needs practice. It makes weak units visible at a glance.
-- **KC Progress**. For a selected KC, we show the class student by student alongside the percentage who have mastered that skill. Tabs separate the most important KCs, those needing practice, and those showing good progress.
-- **KC Opportunities and Opportunity Heatmap**. These show how much practice each skill has received. The heatmap plots students against KCs and shades each cell by practice volume, exposing skills the whole class has barely attempted.
+  - **Unit Mastery Overview**. A grid where every KC is a coloured tile grouped by unit, green for mastered, yellow for progressing, and red for needs practice. It makes weak units visible at a glance.
+  - **KC Progress**. For a selected KC, we show the class student by student alongside the percentage who have mastered that skill. Tabs separate the most important KCs, those needing practice, and those showing good progress.
+  - **KC Opportunities and Opportunity Heatmap**. These show how much practice each skill has received. The heatmap plots students against KCs and shades each cell by practice volume, exposing skills the whole class has barely attempted.
 
 
 ![Teacher View 1 with Class Overview: Whole-class status across all knowledge components.](img/teacher_view1.png){#fig-teacher1 width=95%}
@@ -228,18 +231,20 @@ This view contains 3 pages :
 
 - The Student Overview page (@fig-teacher2) opens with a student selector, a relative (quantile) status toggle, and a status filter, letting you focus on one student at a time and choose between predicted mastery values or the students actual results. Below this, two panels give complementary views of that student's progress.
 
-- **Status Summary**. Three boxes show the percentage of KCs the selected student has Mastered, is Progressing on, or still Needs Practice on, with the underlying KC count shown beneath each percentage. It gives an immediate read on where the student stands overall.
-- **P(Mastery) by KC**. A scrollable list of every KC, each with a progress bar showing the student's mastery probability, the exact percentage, and a coloured status tag. Sorted from highest to lowest mastery, it shows at a glance which skills are solid and which are falling behind.
+  - **Status Summary**. Three boxes show the percentage of KCs the selected student has Mastered, is Progressing on, or still Needs Practice on, with the underlying KC count shown beneath each percentage. It gives an immediate read on where the student stands overall.
+  - **P(Mastery) by KC**. A scrollable list of every KC, each with a progress bar showing the student's mastery probability, the exact percentage, and a coloured status tag. Sorted from highest to lowest mastery, it shows at a glance which skills are solid and which are falling behind.
 
 ![Teacher View 2 with Student Specifics: Drilling into a Single Student in the class.](img/teacher_view2.png){#fig-teacher2 width=95%} 
 
 <br>
 
+- The Data Input page (@fig-teacher3) opens with a file uploader, letting you browse and upload one or more CSV files at once, with each dataset's required columns contained in a single file. Below it, four schema cards show what each uploaded dataset still needs.
+  - **Student Observations, Class Plan, KC Map, and Weights**. Each card lists the required columns for that dataset and tracks how many have been matched so far (e.g. "0 / 8"), with a marker beside each column name indicating whether it's been found in the uploaded files. It makes missing or misnamed columns visible before any processing happens.
+  - **Preprocess data and Save and update dashboard**. Once the required columns are satisfied, these buttons run the data through preprocessing and push the results into the rest of the dashboard.
+
 ![Teacher View 3 with Data Input: Allows teachers to upload data to update dashboard.](img/teacher_view3.png){#fig-teacher3 width=95%} 
 
-- The Data Input page (@fig-teacher3) opens with a file uploader, letting you browse and upload one or more CSV files at once, with each dataset's required columns contained in a single file. Below it, four schema cards show what each uploaded dataset still needs.
-- **Student Observations, Class Plan, KC Map, and Weights**. Each card lists the required columns for that dataset and tracks how many have been matched so far (e.g. "0 / 8"), with a marker beside each column name indicating whether it's been found in the uploaded files. It makes missing or misnamed columns visible before any processing happens.
-- **Preprocess data and Save and update dashboard**. Once the required columns are satisfied, these buttons run the data through preprocessing and push the results into the rest of the dashboard.
+
 
 ## Student Overview
 

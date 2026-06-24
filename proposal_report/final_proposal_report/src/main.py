@@ -74,9 +74,9 @@ def main(data_path : str, table_to : str):
         .reindex(['no attempts', 'low practice', 'some practice', 'well practiced'])
         .reset_index()
         )
-    practice_summary.columns = ['Practice Level', 'count']
+    practice_summary.columns = ['Practice Level', 'Nb of Students']
     practice_summary_path = os.path.join(table_to, "practice_summary.csv")
-    practice_summary.to_csv(practice_summary_path)
+    practice_summary.to_csv(practice_summary_path, index=False)
     print(f"Saved: {practice_summary_path}")
 
 
